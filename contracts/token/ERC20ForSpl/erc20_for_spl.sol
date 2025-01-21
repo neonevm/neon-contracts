@@ -45,6 +45,8 @@ contract ERC20ForSplBackbone {
 
     /// @notice Passed EVM address is empty.
     error EmptyAddress();
+    /// @notice Passed SVM account is empty.
+    error EmptyAccount();
     /// @notice Spending more than the allowed amount.
     error InvalidAllowance();
     /// @notice Requested amount higher than the actual balance.
@@ -114,7 +116,8 @@ contract ERC20ForSplBackbone {
     /// @notice ERC20 approve function
     /// @custom:getter allowance
     function approve(address spender, uint256 amount) public returns (bool) {
-        if (spender == address(0)) revert EmptyAddress();
+        require(spender != address(0), EmptyAddress());
+
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -129,7 +132,8 @@ contract ERC20ForSplBackbone {
     /// @notice ERC20 transferFrom function: spends the ERC20 allowance provided by the `from` account to `msg.sender`
     /// @custom:getter balanceOf
     function transferFrom(address from, address to, uint256 amount) public returns (bool) {
-        if (from == address(0)) revert EmptyAddress();
+        require(from != address(0), EmptyAddress());
+
         _spendAllowance(from, msg.sender, amount);
         _transfer(from, to, amount);
         return true;
@@ -145,6 +149,8 @@ contract ERC20ForSplBackbone {
     /// @notice ERC20 burnFrom function: spends the ERC20 allowance provided by the `from` account to `msg.sender`
     /// @custom:getter balanceOf
     function burnFrom(address from, uint256 amount) public returns (bool) {
+        require(from != address(0), EmptyAddress());
+
         _spendAllowance(from, msg.sender, amount);
         _burn(from, amount);
         return true;
@@ -160,6 +166,8 @@ contract ERC20ForSplBackbone {
     /// @param amount The amount to be delegated to the delegate
     /// @custom:getter getAccountDelegateData
     function approveSolana(bytes32 spender, uint64 amount) public returns (bool) {
+        require(spender != bytes32(0), EmptyAccount());
+
         bytes32 fromSolana = solanaAccount(msg.sender);
         if (amount > 0) {
             SPLTOKEN_PROGRAM.approve(fromSolana, spender, amount);
@@ -185,7 +193,8 @@ contract ERC20ForSplBackbone {
     /// @param to The 32 bytes SPL Token account address of the recipient
     /// @custom:getter balanceOf
     function transferSolanaFrom(address from, bytes32 to, uint64 amount) public returns (bool) {
-        if (from == address(0)) revert EmptyAddress();
+        require(from != address(0), EmptyAddress());
+
         _spendAllowance(from, msg.sender, amount);
         return _transferSolana(from, to, amount);
     }
@@ -209,7 +218,9 @@ contract ERC20ForSplBackbone {
     /// @param amount The amount to be transferred to the NeonEVM arbitrary token account attributed to the `to` address
     /// @custom:getter balanceOf
     function claimTo(bytes32 from, address to, uint64 amount) public returns (bool) {
+        require(to != address(0), EmptyAddress());
         bytes32 toSolana = solanaAccount(to);
+        require(SPLTOKEN_PROGRAM.getAccount(from).amount >= amount, AmountExceedsBalance());
 
         if (SPLTOKEN_PROGRAM.isSystemAccount(toSolana)) {
             SPLTOKEN_PROGRAM.initializeAccount(_salt(to), tokenMint);
@@ -230,18 +241,17 @@ contract ERC20ForSplBackbone {
     function _spendAllowance(address owner, address spender, uint256 amount) internal {
         uint256 currentAllowance = _allowances[owner][spender];
         if (currentAllowance != type(uint256).max) {
-            if (currentAllowance < amount) revert InvalidAllowance();
+            require(currentAllowance >= amount, InvalidAllowance());
             _approve(owner, spender, currentAllowance - amount);
         }
     }
 
     /// @notice Internal function to burn tokens
     function _burn(address from, uint256 amount) internal {
-        if (from == address(0)) revert EmptyAddress();
-        if (amount > type(uint64).max) revert AmountExceedsUint64();
-
+        require(amount <= type(uint64).max, AmountExceedsUint64());
         bytes32 fromSolana = solanaAccount(from);
-        if (SPLTOKEN_PROGRAM.getAccount(fromSolana).amount < amount) revert AmountExceedsBalance();
+        require(SPLTOKEN_PROGRAM.getAccount(fromSolana).amount >= amount, AmountExceedsBalance());
+
         SPLTOKEN_PROGRAM.burn(tokenMint, fromSolana, uint64(amount));
 
         emit Transfer(from, address(0), amount);
@@ -249,8 +259,8 @@ contract ERC20ForSplBackbone {
 
     /// @notice Internal function to transfer tokens
     function _transfer(address from, address to, uint256 amount) internal {
-        if (to == address(0)) revert EmptyAddress();
-        if (amount > type(uint64).max) revert AmountExceedsUint64();
+        require(to != address(0), EmptyAddress());
+        require(amount <= type(uint64).max, AmountExceedsUint64());
 
         // First we get the token balance of NeonEVM's arbitrary token account associated to the `from` address
         bytes32 fromSolanaPDA = solanaAccount(from);
@@ -307,8 +317,10 @@ contract ERC20ForSplBackbone {
 
     /// @notice Internal function to transfer tokens to a Solana SPL Token account
     function _transferSolana(address from, bytes32 to, uint64 amount) internal returns (bool) {
+        require(to != bytes32(0), EmptyAccount());
         bytes32 fromSolana = solanaAccount(from);
-        if (SPLTOKEN_PROGRAM.getAccount(fromSolana).amount < amount) revert AmountExceedsBalance();
+        require(SPLTOKEN_PROGRAM.getAccount(fromSolana).amount >= amount, AmountExceedsBalance());
+
         SPLTOKEN_PROGRAM.transfer(fromSolana, to, uint64(amount));
 
         emit Transfer(from, address(0), amount);
@@ -368,11 +380,6 @@ contract ERC20ForSplBackbone {
         );
     }
 
-    /// @return A 32 bytes salt used to derive the NeonEVM arbitrary token account attributed to the `account` address
-    function _salt(address account) internal pure returns (bytes32) {
-        return bytes32(uint256(uint160(account)));
-    }
-
     /// @return The 32 bytes public key of the Solana SPL associated token account (ATA) owned by the Solana account
     /// associated to the NeonEVM `account` address, and the ATA balance that is delegated to the external authority of
     /// the _NeonEVM_ `account`. If `skipDelegateCheck` is set to `true` then the returned delegated ATA balance is `0`.
@@ -395,6 +402,11 @@ contract ERC20ForSplBackbone {
         }
         return (bytes32(0), 0);
     }
+
+    /// @return A 32 bytes salt used to derive the NeonEVM arbitrary token account attributed to the `account` address
+    function _salt(address account) internal pure returns (bytes32) {
+        return bytes32(uint256(uint160(account)));
+    }
 }
 
 /// @title ERC20ForSpl
@@ -403,8 +415,8 @@ contract ERC20ForSplBackbone {
 contract ERC20ForSpl is ERC20ForSplBackbone {
     /// @param _tokenMint The 32 bytes Solana address of the underlying SPL Token
     constructor(bytes32 _tokenMint) {
-        if (!SPLTOKEN_PROGRAM.getMint(_tokenMint).isInitialized) revert InvalidTokenMint();
-        if (!METAPLEX_PROGRAM.isInitialized(_tokenMint)) revert MissingMetaplex();
+        require(SPLTOKEN_PROGRAM.getMint(_tokenMint).isInitialized, InvalidTokenMint());
+        require(METAPLEX_PROGRAM.isInitialized(_tokenMint), MissingMetaplex());
 
         tokenMint = _tokenMint;
     }
@@ -427,14 +439,15 @@ contract ERC20ForSplMintable is ERC20ForSplBackbone {
         uint8 _decimals,
         address _owner
     ) {
-        if (_decimals > 9) revert InvalidDecimals();
-        _admin = _owner;
+        require(_decimals <= 9, InvalidDecimals());
+        require(_owner != address(0), EmptyAddress());
 
+        _admin = _owner;
         tokenMint = SPLTOKEN_PROGRAM.initializeMint(bytes32(0), _decimals);
-        if (!SPLTOKEN_PROGRAM.getMint(tokenMint).isInitialized) revert InvalidTokenMint();
+        require(SPLTOKEN_PROGRAM.getMint(tokenMint).isInitialized, InvalidTokenMint());
 
         METAPLEX_PROGRAM.createMetadata(tokenMint, _name, _symbol, "");
-        if (!METAPLEX_PROGRAM.isInitialized(tokenMint)) revert MissingMetaplex();
+        require(METAPLEX_PROGRAM.isInitialized(tokenMint), MissingMetaplex());
     }
 
     /// @notice Unauthorized msg.sender.
@@ -451,9 +464,9 @@ contract ERC20ForSplMintable is ERC20ForSplBackbone {
     /// @notice Mints new tokens to the NeonEVM arbitrary token account attributed to the 'to` address.
     /// @custom:getter balanceOf
     function mint(address to, uint256 amount) public {
-        if (msg.sender != _admin) revert InvalidOwner();
-        if (to == address(0)) revert EmptyAddress();
-        if (totalSupply() + amount > type(uint64).max) revert AmountExceedsUint64();
+        require(msg.sender == _admin, InvalidOwner());
+        require(to != address(0), EmptyAddress());
+        require(totalSupply() + amount <= type(uint64).max, AmountExceedsUint64());
 
         bytes32 toSolana = solanaAccount(to);
         if (SPLTOKEN_PROGRAM.isSystemAccount(toSolana)) {
