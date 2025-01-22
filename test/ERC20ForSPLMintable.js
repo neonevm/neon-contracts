@@ -538,6 +538,30 @@ describe('Test init',  function () {
                 expect((await getAccount(connection, solanaApproverATA)).delegate).to.be.null;
             });
 
+            it('Test reverting of contract deployed with decimals greater than 9', async function () {
+                // Call burn with amount > type(uint64).max
+                await expect(
+                    ERC20ForSPLFactory.createErc20ForSplMintable(
+                        NAME,
+                        SYMBOL,
+                        18,
+                        owner.address
+                    )
+                ).to.be.revertedWith('ERC20 SPL Factory: SPL TOKEN MINTABLE IS NOT CREATED'); // because require(_decimals <= 9, InvalidDecimals());
+            });
+
+            it('Test reverting of contract deployed with empty address owner', async function () {
+                // Call burn with amount > type(uint64).max
+                await expect(
+                    ERC20ForSPLFactory.createErc20ForSplMintable(
+                        NAME,
+                        SYMBOL,
+                        DECIMALS,
+                        ethers.ZeroAddress
+                    )
+                ).to.be.revertedWith('ERC20 SPL Factory: SPL TOKEN MINTABLE IS NOT CREATED'); // because require(_owner != address(0), EmptyAddress());
+            });
+
             it('Malicious claimTo (insufficient owner balance): reverts with error message', async function () {
                 // Save initial approver and recipient balances
                 let initialApproverBalance = ethers.toBigInt(parseInt((
@@ -584,7 +608,7 @@ describe('Test init',  function () {
                     solanaApproverATAInBytes,
                     user2.address,
                     claimAmount
-                )).to.be.revertedWith('External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x1');
+                )).to.be.revertedWithCustomError(ERC20ForSPLMintable, 'AmountExceedsBalance');
 
                 // Check balances after claim
                 expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.equal(
@@ -741,7 +765,7 @@ describe('Test init',  function () {
                     ERC20ForSPLMintable.connect(user1).burnFrom(ZERO_ADDRESS, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'InvalidAllowance'
+                    'EmptyAddress'
                 );
             });
 

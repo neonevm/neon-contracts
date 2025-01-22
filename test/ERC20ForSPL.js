@@ -557,6 +557,50 @@ describe('Test init', async function () {
                     this.skip();
                 }
             });
+
+            it('approveSolana - approving zero Solana account', async function () {
+                if (grantedTestersWithBalance) {
+                    // user3 has no tokens at all
+                    await expect(
+                        ERC20ForSPL.connect(user3).approveSolana('0x0000000000000000000000000000000000000000000000000000000000000000', ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
+                    ).to.be.revertedWithCustomError(
+                        ERC20ForSPL,
+                        'EmptyAccount'
+                    );
+                } else {
+                    this.skip();
+                }
+            });
+    
+            it('transferSolana - to empty account', async function () {
+                if (grantedTestersWithBalance) {
+                    await expect(
+                        ERC20ForSPL.connect(user3).transferSolana('0x0000000000000000000000000000000000000000000000000000000000000000', ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
+                    ).to.be.revertedWithCustomError(
+                        ERC20ForSPL,
+                        'EmptyAccount'
+                    );
+                } else {
+                    this.skip();
+                }
+            });
+    
+            it('transferSolana - sending amount greater than balance', async function () {
+                if (grantedTestersWithBalance) {
+                    const user1Balance = await ERC20ForSPL.balanceOf(user1);
+                    await expect(
+                        ERC20ForSPL.connect(user1).transferSolana(
+                            await ERC20ForSPL.solanaAccount(user2.address),
+                            user1Balance + ethers.parseUnits('1', TOKEN_MINT_DECIMALS)
+                        )
+                    ).to.be.revertedWithCustomError(
+                        ERC20ForSPL,
+                        'AmountExceedsBalance'
+                    );
+                } else {
+                    this.skip();
+                }
+            });
     
             it('Malicious transferFrom - no approval given', async function () {
                 if (grantedTestersWithBalance) {
@@ -571,7 +615,7 @@ describe('Test init', async function () {
                 }
             });
     
-            it('Malicious transferFrom - zero balance', async function () {
+            it('transferFrom - zero balance', async function () {
                 if (grantedTestersWithBalance) {
                     let tx = await ERC20ForSPL.connect(user3).approve(user2.address, ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     await tx.wait(1);
@@ -647,6 +691,22 @@ describe('Test init', async function () {
                 }
             });
     
+            it('Malicious claim - claiming balance greater than approver balance', async function () {
+                if (grantedTestersWithBalance) {
+                    await expect(
+                        ERC20ForSPL.connect(user3).claim(
+                            config.utils.publicKeyToBytes32(approverATAWithTokens),
+                            '18446744073709551000' // almost max uint64, but for sure greater than approver balance
+                        )
+                    ).to.be.revertedWithCustomError(
+                        ERC20ForSPL,
+                        'AmountExceedsBalance'
+                    );
+                } else {
+                    this.skip();
+                }
+            });
+    
             it('Malicious burn - zero balance', async function () {
                 if (grantedTestersWithBalance) {
                     // user3 has no tokens at all
@@ -655,6 +715,19 @@ describe('Test init', async function () {
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
                         'AmountExceedsBalance'
+                    );
+                } else {
+                    this.skip();
+                }
+            });
+    
+            it('burnFrom - empty address', async function () {
+                if (grantedTestersWithBalance) {
+                    await expect(
+                        ERC20ForSPL.connect(user3).burnFrom(ethers.ZeroAddress, ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
+                    ).to.be.revertedWithCustomError(
+                        ERC20ForSPL,
+                        'EmptyAddress'
                     );
                 } else {
                     this.skip();
