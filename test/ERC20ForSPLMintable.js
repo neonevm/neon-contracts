@@ -560,6 +560,24 @@ describe('Test init',  function () {
                 expect(await ERC20ForSPLMintable.owner()).to.equal(initialOwner);
             });
 
+            it('Test malicious ownership change', async function () {
+                await expect(
+                    ERC20ForSPLMintable.connect(user1).transferOwnership(user1.address)
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLMintable,
+                    'OwnableUnauthorizedAccount'
+                );
+            });
+
+            it('Test malicious ownership renounce', async function () {
+                await expect(
+                    ERC20ForSPLMintable.connect(user1).renounceOwnership()
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLMintable,
+                    'OwnableUnauthorizedAccount'
+                );
+            });
+
             it('Test reverting of contract deployed with decimals greater than 9', async function () {
                 // Call burn with amount > type(uint64).max
                 await expect(
