@@ -199,7 +199,7 @@ const config = {
                     )
                 });
             },
-            buildTransactionBody: function(payer, nonce, chainId, target, callData) {
+            buildTransactionBody: async function(signerAddress, payer, nonce, chainId, target, callData) {
                 if (parseInt(nonce, 16) == 0) {
                     nonce = '0x'
                 } else {
@@ -221,8 +221,8 @@ const config = {
                         value: '0x',
                         chainId: ethers.toBeHex(parseInt(chainId, 16)),
                         gasLimit: ethers.toBeHex(9999999),
-                        maxFeePerGas: ethers.toBeHex(5000000000000),
-                        maxPriorityFeePerGas: ethers.toBeHex(Date.now())
+                        maxFeePerGas: ethers.toBeHex(50000000000),
+                        maxPriorityFeePerGas: ethers.toBeHex(10000000000)
                     }
                 }
             
@@ -258,7 +258,8 @@ const config = {
                 const chainId = (await eth_chainIdRequest.json()).result;
 
                 const neonEvmProgram = new web3.PublicKey(neon_getEvmParams.result.neonEvmProgramId);
-                const neonTransaction = this.buildTransactionBody(
+                const neonTransaction = await this.buildTransactionBody(
+                    signerAddress,
                     payer,
                     nonce,
                     chainId,
@@ -270,7 +271,6 @@ const config = {
                 const [treeAccountAddress] = this.neonTreeAccountAddressSync(payer, neonEvmProgram, nonce, parseInt(chainId, 16));
                 const [authorityPoolAddress] = this.neonAuthorityPoolAddressSync(neonEvmProgram);
                 const associatedTokenAddress = await getAssociatedTokenAddress(new web3.PublicKey('So11111111111111111111111111111111111111112'), authorityPoolAddress, true);
-
 
                 const index = Math.floor(Math.random() * neon_getEvmParams.result.neonTreasuryPoolCount) % neon_getEvmParams.result.neonTreasuryPoolCount;
                 const treasuryPool = {
