@@ -560,6 +560,15 @@ describe('Test init',  function () {
                 expect(await ERC20ForSPLMintable.owner()).to.equal(initialOwner);
             });
 
+            it('Test zero address ownership change', async function () {
+                await expect(
+                    ERC20ForSPLMintable.connect(owner).transferOwnership(ethers.ZeroAddress)
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLMintable,
+                    'OwnableInvalidOwner'
+                );
+            });
+
             it('Test malicious ownership change', async function () {
                 await expect(
                     ERC20ForSPLMintable.connect(user1).transferOwnership(user1.address)
