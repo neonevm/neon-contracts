@@ -47,7 +47,7 @@ let neon_getEvmParams;
 const TOKEN_MINT = config.utils.publicKeyToBytes32(config.DATA.ADDRESSES.ERC20ForSplTokenMint);
 const TOKEN_MINT_DECIMALS = 9;
 const RECEIPTS_COUNT = 1;
-const SOLANA_TX_TIMEOUT = 20000;
+const SOLANA_TX_TIMEOUT = 10000;
 
 describe('Test init', async function () {
     before(async function() {

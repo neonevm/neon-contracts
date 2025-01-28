@@ -28,7 +28,7 @@ describe('Test init',  function () {
     const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
     const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
     const RECEIPTS_COUNT = 3;
-    const TIMEOUT = 3000;
+    const TIMEOUT = 10000;
     const other  = ethers.Wallet.createRandom()
     const other2 = ethers.Wallet.createRandom();
     let owner, user1, user2, user3;
@@ -241,12 +241,17 @@ describe('Test init',  function () {
     });
 
     describe('ERC20ForSPLMintable tests',  function() {
-
         it('Empty storage slots', async function () {
             for (let i = 0; i < 100; ++i) {
-                expect(await ethers.provider.getStorage(ERC20ForSPLMintable.target, i)).to.eq(
-                    '0x0000000000000000000000000000000000000000000000000000000000000000'
-                );
+                if (i == 1) {
+                    expect(await ethers.provider.getStorage(ERC20ForSPLMintable.target, i)).to.eq(
+                        ethers.zeroPadValue(owner.address, 32)
+                    );
+                } else {
+                    expect(await ethers.provider.getStorage(ERC20ForSPLMintable.target, i)).to.eq(
+                        '0x0000000000000000000000000000000000000000000000000000000000000000'
+                    );
+                }
             }
         });
 
@@ -536,6 +541,50 @@ describe('Test init',  function () {
                 // Check approver's delegatedAmount and delegate after claim
                 expect((await getAccount(connection, solanaApproverATA)).delegatedAmount).to.equal(ZERO_AMOUNT);
                 expect((await getAccount(connection, solanaApproverATA)).delegate).to.be.null;
+            });
+
+            it('Test ownership change', async function () {
+                let initialOwner = await ERC20ForSPLMintable.owner();
+                console.log(initialOwner, 'initialOwner');
+
+                let tx = await ERC20ForSPLMintable.transferOwnership(user1.address);
+                await tx.wait(RECEIPTS_COUNT);
+
+                expect(await ERC20ForSPLMintable.owner()).to.equal(user1.address);
+                expect(await ERC20ForSPLMintable.owner()).to.not.equal(initialOwner);
+
+                // switch back to the initial owner
+                tx = await ERC20ForSPLMintable.connect(user1).transferOwnership(owner.address);
+                await tx.wait(RECEIPTS_COUNT);
+
+                expect(await ERC20ForSPLMintable.owner()).to.equal(initialOwner);
+            });
+
+            it('Test zero address ownership change', async function () {
+                await expect(
+                    ERC20ForSPLMintable.connect(owner).transferOwnership(ethers.ZeroAddress)
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLMintable,
+                    'OwnableInvalidOwner'
+                );
+            });
+
+            it('Test malicious ownership change', async function () {
+                await expect(
+                    ERC20ForSPLMintable.connect(user1).transferOwnership(user1.address)
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLMintable,
+                    'OwnableUnauthorizedAccount'
+                );
+            });
+
+            it('Test malicious ownership renounce', async function () {
+                await expect(
+                    ERC20ForSPLMintable.connect(user1).renounceOwnership()
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLMintable,
+                    'OwnableUnauthorizedAccount'
+                );
             });
 
             it('Test reverting of contract deployed with decimals greater than 9', async function () {
@@ -1583,11 +1632,11 @@ describe('Test init',  function () {
             })
         })
 
-        it('mint: malicious mint reverts with InvalidOwner custom error', async function () {
+        it('mint: malicious mint reverts with OwnableUnauthorizedAccount OZ error', async function () {
             // Call mint from user1 (not owner)
             await expect(ERC20ForSPLMintable.connect(user1).mint(user1.address, AMOUNT)).to.be.revertedWithCustomError(
                 ERC20ForSPLMintable,
-                'InvalidOwner'
+                'OwnableUnauthorizedAccount'
             );
         });
 
