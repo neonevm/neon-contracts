@@ -296,11 +296,11 @@ contract ERC20ForSplBackbone {
             toSolana = ataAccountTo;
         } else {
             toSolana = solanaAccount(to);
-        }
 
-        // If the recipient Solana account is not an initialized token account, we initialize it first
-        if (SPLTOKEN_PROGRAM.isSystemAccount(toSolana)) {
-            SPLTOKEN_PROGRAM.initializeAccount(_salt(to), tokenMint);
+            // If the recipient Solana account is not an initialized token account, we initialize it first
+            if (SPLTOKEN_PROGRAM.isSystemAccount(toSolana)) {
+                SPLTOKEN_PROGRAM.initializeAccount(_salt(to), tokenMint);
+            }
         }
 
         // The balance of NeonEVM's arbitrary token account associated to the `from` address is spent in priority. Then,
@@ -400,7 +400,7 @@ contract ERC20ForSplBackbone {
                 if (skipDelegateCheck || tokenMintATAData.delegate == getUserExtAuthority(account)) {
                     return (
                         tokenMintATA,
-                        (tokenMintATAData.delegated_amount > tokenMintATAData.amount) ? tokenMintATAData.amount : tokenMintATAData.delegated_amount
+                        (skipDelegateCheck) ? 0 : (tokenMintATAData.delegated_amount > tokenMintATAData.amount) ? tokenMintATAData.amount : tokenMintATAData.delegated_amount
                     );
                 }
             }
