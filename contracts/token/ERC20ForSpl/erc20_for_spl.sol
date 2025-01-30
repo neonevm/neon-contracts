@@ -44,20 +44,46 @@ contract ERC20ForSplBackbone {
     /// @dev Special event for SPL Token transfer to a Solana account
     event TransferSolana(address indexed from, bytes32 indexed to, uint64 amount);
 
-    /// @notice Passed EVM address is empty.
-    error EmptyAddress();
-    /// @notice Passed SVM account is empty.
-    error EmptyAccount();
-    /// @notice Spending more than the allowed amount.
-    error InvalidAllowance();
+    /**
+     * @dev Indicates a failure with the token `sender`. Used in transfers.
+     * @param sender Address whose tokens are being transferred.
+     */
+    error ERC20InvalidSender(address sender);
+    /**
+     * @dev Indicates a failure with the token `receiver`. Used in transfers.
+     * @param receiver Address to which tokens are being transferred.
+     */
+    error ERC20InvalidReceiver(address receiver);
+    /**
+     * @dev Indicates a failure with the `spender` to be approved. Used in approvals.
+     * @param spender Address that may be allowed to operate on tokens without being their owner.
+     */
+    error ERC20InvalidSpender(address spender);
+    /**
+     * @dev Indicates a failure with the `spender`’s `allowance`. Used in transfers.
+     * @param spender Address that may be allowed to operate on tokens without being their owner.
+     * @param allowance Amount of tokens a `spender` is allowed to operate with.
+     * @param needed Minimum amount required to perform a transfer.
+     */
+    error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
+    
     /// @notice Requested amount higher than the actual balance.
     error AmountExceedsBalance();
+    /**
+     * @dev Indicates an error related to the current `balance` of a `sender`. Used in transfers.
+     * @param sender Address whose tokens are being transferred.
+     * @param balance Current balance for the interacting account.
+     * @param needed Minimum amount required to perform a transfer.
+     */
+    error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
+    /// @notice Passed SVM account is empty.
+    error EmptyAccount(bytes32 account);
     /// @notice The token mint on Solana has no metadata stored in the Metaplex program.
-    error MissingMetaplex();
+    error MissingMetaplex(bytes32 tokenMint);
     /// @notice The token mint on Solana is invalid.
-    error InvalidTokenMint();
+    error InvalidTokenMint(bytes32 tokenMint);
     /// @notice Invalid token amount. 
-    error AmountExceedsUint64();
+    error AmountExceedsUint64(uint256 exceeded);
 
     /// @notice Token name getter function
     /// @return The name of the SPLToken fetched from Solana's Metaplex program.
@@ -117,7 +143,7 @@ contract ERC20ForSplBackbone {
     /// @notice ERC20 approve function
     /// @custom:getter allowance
     function approve(address spender, uint256 amount) external returns (bool) {
-        require(spender != address(0), EmptyAddress());
+        require(spender != address(0), ERC20InvalidSpender(address(0)));
 
         _approve(msg.sender, spender, amount);
         return true;
@@ -133,7 +159,7 @@ contract ERC20ForSplBackbone {
     /// @notice ERC20 transferFrom function: spends the ERC20 allowance provided by the `from` account to `msg.sender`
     /// @custom:getter balanceOf
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
-        require(from != address(0), EmptyAddress());
+        require(from != address(0), ERC20InvalidSender(address(0)));
 
         _spendAllowance(from, msg.sender, amount);
         _transfer(from, to, amount);
@@ -150,7 +176,7 @@ contract ERC20ForSplBackbone {
     /// @notice ERC20 burnFrom function: spends the ERC20 allowance provided by the `from` account to `msg.sender`
     /// @custom:getter balanceOf
     function burnFrom(address from, uint256 amount) external returns (bool) {
-        require(from != address(0), EmptyAddress());
+        require(from != address(0), ERC20InvalidSender(address(0)));
 
         _spendAllowance(from, msg.sender, amount);
         _burn(from, amount);
@@ -167,7 +193,7 @@ contract ERC20ForSplBackbone {
     /// @param amount The amount to be delegated to the delegate
     /// @custom:getter getAccountDelegateData
     function approveSolana(bytes32 spender, uint64 amount) external returns (bool) {
-        require(spender != bytes32(0), EmptyAccount());
+        require(spender != bytes32(0), EmptyAccount(bytes32(0)));
 
         bytes32 fromSolana = solanaAccount(msg.sender);
         if (amount > 0) {
@@ -194,7 +220,7 @@ contract ERC20ForSplBackbone {
     /// @param to The 32 bytes SPL Token account address of the recipient
     /// @custom:getter balanceOf
     function transferSolanaFrom(address from, bytes32 to, uint64 amount) external returns (bool) {
-        require(from != address(0), EmptyAddress());
+        require(from != address(0), ERC20InvalidSender(address(0)));
 
         _spendAllowance(from, msg.sender, amount);
         return _transferSolana(from, to, amount);
@@ -223,9 +249,12 @@ contract ERC20ForSplBackbone {
     }
 
     function _claimTo(bytes32 from, address to, uint64 amount) internal returns (bool) {
-        require(to != address(0), EmptyAddress());
+        require(to != address(0), ERC20InvalidReceiver(address(0)));
         bytes32 toSolana = solanaAccount(to);
-        require(SPLTOKEN_PROGRAM.getAccount(from).amount >= amount, AmountExceedsBalance());
+        require(
+            SPLTOKEN_PROGRAM.getAccount(from).amount >= amount, 
+            AmountExceedsBalance()
+        );
 
         if (SPLTOKEN_PROGRAM.isSystemAccount(toSolana)) {
             SPLTOKEN_PROGRAM.initializeAccount(_salt(to), tokenMint);
@@ -246,16 +275,20 @@ contract ERC20ForSplBackbone {
     function _spendAllowance(address owner, address spender, uint256 amount) internal {
         uint256 currentAllowance = _allowances[owner][spender];
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, InvalidAllowance());
+            require(currentAllowance >= amount, ERC20InsufficientAllowance(spender, currentAllowance, amount));
             _approve(owner, spender, currentAllowance - amount);
         }
     }
 
     /// @notice Internal function to burn tokens
     function _burn(address from, uint256 amount) internal {
-        require(amount <= type(uint64).max, AmountExceedsUint64());
+        require(amount <= type(uint64).max, AmountExceedsUint64(amount));
         bytes32 fromSolana = solanaAccount(from);
-        require(SPLTOKEN_PROGRAM.getAccount(fromSolana).amount >= amount, AmountExceedsBalance());
+        uint64 balance = SPLTOKEN_PROGRAM.getAccount(fromSolana).amount;
+        require(
+            balance >= amount, 
+            ERC20InsufficientBalance(from, balance, amount)
+        );
 
         SPLTOKEN_PROGRAM.burn(tokenMint, fromSolana, uint64(amount));
 
@@ -264,8 +297,8 @@ contract ERC20ForSplBackbone {
 
     /// @notice Internal function to transfer tokens
     function _transfer(address from, address to, uint256 amount) internal {
-        require(to != address(0), EmptyAddress());
-        require(amount <= type(uint64).max, AmountExceedsUint64());
+        require(to != address(0), ERC20InvalidReceiver(address(0)));
+        require(amount <= type(uint64).max, AmountExceedsUint64(amount));
 
         // First we get the token balance of NeonEVM's arbitrary token account associated to the `from` address
         bytes32 fromSolanaPDA = solanaAccount(from);
@@ -285,7 +318,7 @@ contract ERC20ForSplBackbone {
             }
         }
 
-        if (pdaBalance + availableATABalance < amount) revert AmountExceedsBalance();
+        if (pdaBalance + availableATABalance < amount) revert ERC20InsufficientBalance(from, pdaBalance + availableATABalance, amount);
 
         // If the `to` address refers to a native Solana account, we transfer to the associated token account (ATA)
         // derived from this Solana account. Otherwise, we transfer to NeonEVM's arbitrary token account associated to
@@ -322,9 +355,11 @@ contract ERC20ForSplBackbone {
 
     /// @notice Internal function to transfer tokens to a Solana SPL Token account
     function _transferSolana(address from, bytes32 to, uint64 amount) internal returns (bool) {
-        require(to != bytes32(0), EmptyAccount());
+        require(to != bytes32(0), EmptyAccount(bytes32(0)));
         bytes32 fromSolana = solanaAccount(from);
-        require(SPLTOKEN_PROGRAM.getAccount(fromSolana).amount >= amount, AmountExceedsBalance());
+
+        uint64 balance = SPLTOKEN_PROGRAM.getAccount(fromSolana).amount;
+        require(balance >= amount, ERC20InsufficientBalance(from, balance, amount));
 
         SPLTOKEN_PROGRAM.transfer(fromSolana, to, uint64(amount));
 
@@ -420,8 +455,8 @@ contract ERC20ForSplBackbone {
 contract ERC20ForSpl is ERC20ForSplBackbone {
     /// @param _tokenMint The 32 bytes Solana address of the underlying SPL Token
     constructor(bytes32 _tokenMint) {
-        require(SPLTOKEN_PROGRAM.getMint(_tokenMint).isInitialized, InvalidTokenMint());
-        require(METAPLEX_PROGRAM.isInitialized(_tokenMint), MissingMetaplex());
+        require(SPLTOKEN_PROGRAM.getMint(_tokenMint).isInitialized, InvalidTokenMint(_tokenMint));
+        require(METAPLEX_PROGRAM.isInitialized(_tokenMint), MissingMetaplex(_tokenMint));
 
         tokenMint = _tokenMint;
     }
@@ -445,10 +480,10 @@ contract ERC20ForSplMintable is ERC20ForSplBackbone, Ownable {
         require(_decimals <= 9, InvalidDecimals());
 
         tokenMint = SPLTOKEN_PROGRAM.initializeMint(bytes32(0), _decimals);
-        require(SPLTOKEN_PROGRAM.getMint(tokenMint).isInitialized, InvalidTokenMint());
+        require(SPLTOKEN_PROGRAM.getMint(tokenMint).isInitialized, InvalidTokenMint(tokenMint));
 
         METAPLEX_PROGRAM.createMetadata(tokenMint, _name, _symbol, "");
-        require(METAPLEX_PROGRAM.isInitialized(tokenMint), MissingMetaplex());
+        require(METAPLEX_PROGRAM.isInitialized(tokenMint), MissingMetaplex(tokenMint));
     }
 
     /// @notice Invalid token decimals. SPLToken program on Solana operates with u64 regarding the token balances.
@@ -462,8 +497,9 @@ contract ERC20ForSplMintable is ERC20ForSplBackbone, Ownable {
     /// @notice Mints new tokens to the NeonEVM arbitrary token account attributed to the 'to` address.
     /// @custom:getter balanceOf
     function mint(address to, uint256 amount) external onlyOwner {
-        require(to != address(0), EmptyAddress());
-        require(SPLTOKEN_PROGRAM.getMint(tokenMint).supply + amount <= type(uint64).max, AmountExceedsUint64());
+        require(to != address(0), ERC20InvalidReceiver(address(0)));
+        uint256 supplyAndAmount = SPLTOKEN_PROGRAM.getMint(tokenMint).supply + amount;
+        require(supplyAndAmount <= type(uint64).max, AmountExceedsUint64(supplyAndAmount));
 
         bytes32 toSolana = solanaAccount(to);
         if (SPLTOKEN_PROGRAM.isSystemAccount(toSolana)) {
