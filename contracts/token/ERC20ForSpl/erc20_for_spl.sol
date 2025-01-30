@@ -24,8 +24,6 @@ contract ERC20ForSplBackbone {
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
     /// @dev Instance of NeonEVM's SolanaNative precompiled smart contract
     ISolanaNative public constant SOLANA_NATIVE = ISolanaNative(0xfF00000000000000000000000000000000000007);
-    /// @dev Hex-encoding of Solana's base58-encoded Program id 53DfF883gyixYNXnM7s5xhdeyV8mVk9T4i2hGV9vG9io
-    bytes32 public constant NEON_EVM_PROGRAM = 0x3c00392b787d38a853d124057634c43c7133c612461d74feb17f4248155286c0;
     /// @dev Hex-encoding of Solana's base58-encoded Token program id TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
     bytes32 public constant TOKEN_PROGRAM_ID = 0x06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9;
     /// @dev Hex-encoding of Solana's base58-encoded Associated Token program id ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL
@@ -66,9 +64,6 @@ contract ERC20ForSplBackbone {
      * @param needed Minimum amount required to perform a transfer.
      */
     error ERC20InsufficientAllowance(address spender, uint256 allowance, uint256 needed);
-    
-    /// @notice Requested amount higher than the actual balance.
-    error AmountExceedsBalance();
     /**
      * @dev Indicates an error related to the current `balance` of a `sender`. Used in transfers.
      * @param sender Address whose tokens are being transferred.
@@ -76,14 +71,30 @@ contract ERC20ForSplBackbone {
      * @param needed Minimum amount required to perform a transfer.
      */
     error ERC20InsufficientBalance(address sender, uint256 balance, uint256 needed);
-    /// @notice Passed SVM account is empty.
+    /**
+     * @dev Indicates an error related to an empty account on Solana.
+     * @param account A Solana account which is been requested.
+     */
     error EmptyAccount(bytes32 account);
-    /// @notice The token mint on Solana has no metadata stored in the Metaplex program.
+    /**
+     * @dev Indicates an error with missing metadata stored in the Metaplex program on Solana.
+     * @param tokenMint A SPLToken Mint on Solana which is been requested.
+     */
     error MissingMetaplex(bytes32 tokenMint);
-    /// @notice The token mint on Solana is invalid.
+    /**
+     * @dev Indicates an error with missing token mint in the SPLToken program on Solana.
+     * @param tokenMint A SPLToken Mint on Solana which is been requested.
+     */
     error InvalidTokenMint(bytes32 tokenMint);
-    /// @notice Invalid token amount. 
+    /**
+     * @dev Indicates an error with uint64 overflow. The maximum amount of tokens for an SPL token mint is u64.
+     * @param exceeded The exceeded amount.
+     */
     error AmountExceedsUint64(uint256 exceeded);
+
+    function getNeonAddress() public view returns(bytes32) {
+        return CALL_SOLANA.getNeonAddress(address(this));
+    }
 
     /// @notice Token name getter function
     /// @return The name of the SPLToken fetched from Solana's Metaplex program.
@@ -348,7 +359,7 @@ contract ERC20ForSplBackbone {
         }
 
         if (amountFromATA != 0) {
-            SPLTOKEN_PROGRAM.transferWithSeed(_salt(from), fromSolanaATA, toSolana, amountFromATA);
+            SPLTOKEN_PROGRAM.transfer(fromSolanaATA, toSolana, amountFromATA);
         }
 
         emit Transfer(from, to, amount);
@@ -401,26 +412,6 @@ contract ERC20ForSplBackbone {
         );
     }
 
-    /// @notice Custom ERC20ForSPL getter function
-    /// @return The 'external authority' Solana account which must be set as the delegate of a Solana token account such
-    /// that the NeonEVM `account` passed as argument to the `getUserExtAuthority` function can call the `claim` or
-    /// `claimTo` function to transfer tokens from the delegated Solana token account.
-    /// @dev In the case where the `account` address refers to a native Solana account (32 bytes address returned by the
-    /// `SOLANA_NATIVE.solanaAddress(account)` function) any token amount delegated by the native Solana account's ATA
-    /// to this external authority is transferable using the `transfer` function and is added to the `account` balance
-    /// returned by the `balanceOf` function.
-    function getUserExtAuthority(address account) public view returns(bytes32) {
-        return CALL_SOLANA.getSolanaPDA(
-            NEON_EVM_PROGRAM,
-            abi.encodePacked(
-                hex"03",
-                hex"41555448", // AUTH
-                address(this),
-                _salt(account)
-            )
-        );
-    }
-
     /// @return The 32 bytes public key of the Solana SPL associated token account (ATA) owned by the Solana account
     /// associated to the NeonEVM `account` address, and the ATA balance that is delegated to the external authority of
     /// the _NeonEVM_ `account`. If `skipDelegateCheck` is set to `true` then the returned delegated ATA balance is `0`.
@@ -433,7 +424,7 @@ contract ERC20ForSplBackbone {
             bytes32 tokenMintATA = getTokenMintATA(solanaAddress);
             if (!SPLTOKEN_PROGRAM.isSystemAccount(tokenMintATA)) {
                 ISPLTokenProgram.Account memory tokenMintATAData = SPLTOKEN_PROGRAM.getAccount(tokenMintATA);
-                if (skipDelegateCheck || tokenMintATAData.delegate == getUserExtAuthority(account)) {
+                if (skipDelegateCheck || tokenMintATAData.delegate == CALL_SOLANA.getNeonAddress(address(this))) {
                     return (
                         tokenMintATA,
                         (skipDelegateCheck) ? 0 : (tokenMintATAData.delegated_amount > tokenMintATAData.amount) ? tokenMintATAData.amount : tokenMintATAData.delegated_amount

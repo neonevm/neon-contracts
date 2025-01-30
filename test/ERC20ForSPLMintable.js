@@ -608,7 +608,7 @@ describe('Test init',  function () {
                         DECIMALS,
                         ethers.ZeroAddress
                     )
-                ).to.be.revertedWith('ERC20 SPL Factory: SPL TOKEN MINTABLE IS NOT CREATED'); // because require(_owner != address(0), EmptyAddress());
+                ).to.be.revertedWith('ERC20 SPL Factory: SPL TOKEN MINTABLE IS NOT CREATED');
             });
 
             it('Malicious claimTo (insufficient owner balance): reverts with error message', async function () {
@@ -657,7 +657,7 @@ describe('Test init',  function () {
                     solanaApproverATAInBytes,
                     user2.address,
                     claimAmount
-                )).to.be.revertedWithCustomError(ERC20ForSPLMintable, 'AmountExceedsBalance');
+                )).to.be.revertedWithCustomError(ERC20ForSPLMintable, 'ERC20InsufficientBalance');
 
                 // Check balances after claim
                 expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.equal(
@@ -776,13 +776,13 @@ describe('Test init',  function () {
                 );
             });
 
-            it('Malicious burn: reverts with AmountExceedsBalance custom error', async function () {
+            it('Malicious burn: reverts with ERC20InsufficientBalance custom error', async function () {
                 // User3 has no balance
                 expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
                 // Call burn from user3
                 await expect(ERC20ForSPLMintable.connect(user3).burn(AMOUNT)).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'AmountExceedsBalance'
+                    'ERC20InsufficientBalance'
                 );
             });
 
@@ -808,13 +808,13 @@ describe('Test init',  function () {
                 }
             });
 
-            it('burnFrom:  reverts with InvalidAllowance custom error when called with ZERO_ADDRESS', async function () {
+            it('burnFrom:  reverts with ERC20InsufficientAllowance custom error when called with ZERO_ADDRESS', async function () {
                 // Call burnFrom with ZERO_ADDRESS
                 await expect(
                     ERC20ForSPLMintable.connect(user1).burnFrom(ZERO_ADDRESS, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'EmptyAddress'
+                    'ERC20InvalidSender'
                 );
             });
 
@@ -840,17 +840,17 @@ describe('Test init',  function () {
                 }
             });
 
-            it('transfer: reverts with EmptyAddress custom error', async function () {
+            it('transfer: reverts with ERC20InvalidReceiver custom error', async function () {
                 // Call transfer from user1
                 await expect(
                     ERC20ForSPLMintable.connect(user1).transfer(ZERO_ADDRESS, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'EmptyAddress'
+                    'ERC20InvalidReceiver'
                 );
             });
 
-            it('Malicious transfer: reverts with AmountExceedsBalance custom error', async function () {
+            it('Malicious transfer: reverts with ERC20InsufficientBalance custom error', async function () {
                 // User3 has no balance
                 expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
                 // Call transfer from user3
@@ -858,7 +858,7 @@ describe('Test init',  function () {
                     ERC20ForSPLMintable.connect(user3).transfer(user1.address, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'AmountExceedsBalance'
+                    'ERC20InsufficientBalance'
                 );
             });
 
@@ -885,7 +885,7 @@ describe('Test init',  function () {
                 }
             });
 
-            it('Malicious transferSolana: reverts with AmountExceedsBalance custom error', async function () {
+            it('Malicious transferSolana: reverts with ERC20InsufficientBalance custom error', async function () {
                 // User3 has no balance
                 expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
                 // Call transferSolana from user3
@@ -896,7 +896,7 @@ describe('Test init',  function () {
                     )
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'AmountExceedsBalance'
+                    'ERC20InsufficientBalance'
                 );
             });
 
@@ -914,13 +914,13 @@ describe('Test init',  function () {
                 );
             });
 
-            it('approve: reverts with EmptyAddress custom error', async function () {
+            it('approve: reverts with ERC20InvalidSpender custom error', async function () {
                 // Call approve passing ZERO_ADDRESS as spender
                 await expect(
                     ERC20ForSPLMintable.connect(user2).approve(ZERO_ADDRESS, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'EmptyAddress'
+                    'ERC20InvalidSpender'
                 );
             });
 
@@ -980,21 +980,21 @@ describe('Test init',  function () {
                 }
             });
 
-            it("Malicious transferFrom: reverts with EmptyAddress custom error", async function () {
+            it("Malicious transferFrom: reverts with ERC20InvalidSender custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // Call transferFrom from user3
                     await expect(
                         ERC20ForSPLMintable.connect(user3).transferFrom(ZERO_ADDRESS, user3.address, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
-                        'EmptyAddress'
+                        'ERC20InvalidSender'
                     );
                 } else {
                     this.skip();
                 }
             });
 
-            it('Malicious transferFrom: reverts with InvalidAllowance custom error', async function () {
+            it('Malicious transferFrom: reverts with ERC20InsufficientAllowance custom error', async function () {
                 // User3 has no allowance
                 expect(await ERC20ForSPLMintable.allowance(user2.address, user3.address)).to.eq(ZERO_AMOUNT);
                 // Call transferFrom from user3
@@ -1002,11 +1002,11 @@ describe('Test init',  function () {
                     ERC20ForSPLMintable.connect(user3).transferFrom(user2.address, user3.address, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
-                    'InvalidAllowance'
+                    'ERC20InsufficientAllowance'
                 );
             });
 
-            it("Malicious transferFrom: reverts with AmountExceedsBalance custom error", async function () {
+            it("Malicious transferFrom: reverts with ERC20InsufficientBalance custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // User3 has no balance
                     expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
@@ -1019,7 +1019,7 @@ describe('Test init',  function () {
                         ERC20ForSPLMintable.connect(user1).transferFrom(user3.address, user1.address, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
                 } else {
                     this.skip();
@@ -1135,7 +1135,7 @@ describe('Test init',  function () {
                 }
             });
 
-            it("Malicious transferSolanaFrom: reverts with EmptyAddress custom error", async function () {
+            it("Malicious transferSolanaFrom: reverts with ERC20InvalidSender custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // Call transferSolanaFrom from user3
                     const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(user3.address);
@@ -1143,14 +1143,14 @@ describe('Test init',  function () {
                         ERC20ForSPLMintable.connect(user3).transferSolanaFrom(ZERO_ADDRESS, recipientSolanaAccount, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
-                        'EmptyAddress'
+                        'ERC20InvalidSender'
                     );
                 } else {
                     this.skip();
                 }
             });
 
-            it("Malicious transferSolanaFrom: reverts with InvalidAllowance custom error", async function () {
+            it("Malicious transferSolanaFrom: reverts with ERC20InsufficientAllowance custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // User3 has no allowance
                     expect(await ERC20ForSPLMintable.allowance(user2.address, user3.address)).to.eq(ZERO_AMOUNT);
@@ -1160,14 +1160,14 @@ describe('Test init',  function () {
                         ERC20ForSPLMintable.connect(user3).transferSolanaFrom(user2.address, recipientSolanaAccount, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
-                        'InvalidAllowance'
+                        'ERC20InsufficientAllowance'
                     );
                 } else {
                     this.skip();
                 }
             });
 
-            it("Malicious transferSolanaFrom: reverts with AmountExceedsBalance custom error", async function () {
+            it("Malicious transferSolanaFrom: reverts with ERC20InsufficientBalance custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // User3 has no balance
                     expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
@@ -1181,7 +1181,7 @@ describe('Test init',  function () {
                         ERC20ForSPLMintable.connect(user1).transferSolanaFrom(user3.address, recipientSolanaAccount, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
                 } else {
                     this.skip();
@@ -1312,7 +1312,7 @@ describe('Test init',  function () {
                                 solanaApproverATA: solanaUser1ATA,
                                 solanaApprover: solanaUser1,
                                 amount: UINT64_MAX_AMOUNT
-                            });
+                            }, true);
                             await config.utils.asyncTimeout(TIMEOUT);
                         }
 
@@ -1523,7 +1523,7 @@ describe('Test init',  function () {
                                 solanaApproverATA: solanaUser3ATA,
                                 solanaApprover: solanaUser3,
                                 amount: UINT64_MAX_AMOUNT
-                            });
+                            }, true);
                             await config.utils.asyncTimeout(TIMEOUT);
                         }
 
@@ -1640,11 +1640,11 @@ describe('Test init',  function () {
             );
         });
 
-        it('mint: mint to address(0) reverts with EmptyAddress custom error', async function () {
+        it('mint: mint to address(0) reverts with ERC20InvalidReceiver custom error', async function () {
             // Call mint to ZERO_ADDRESS
             await expect(ERC20ForSPLMintable.connect(owner).mint(ZERO_ADDRESS, AMOUNT)).to.be.revertedWithCustomError(
                 ERC20ForSPLMintable,
-                'EmptyAddress'
+                'ERC20InvalidReceiver'
             );
         });
 

@@ -551,7 +551,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.connect(user3).transfer(user1.address, ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
                 } else {
                     this.skip();
@@ -595,7 +595,7 @@ describe('Test init', async function () {
                         )
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
                 } else {
                     this.skip();
@@ -608,7 +608,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.connect(user3).transferFrom(user2.address, user3.address, ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'InvalidAllowance'
+                        'ERC20InsufficientAllowance'
                     );
                 } else {
                     this.skip();
@@ -624,7 +624,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.connect(user2).transferFrom(user3.address, user2.address, ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
                 } else {
                     this.skip();
@@ -637,7 +637,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.connect(user3).transferSolanaFrom(user2.address, await ERC20ForSPL.solanaAccount(owner.address), ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'InvalidAllowance'
+                        'ERC20InsufficientAllowance'
                     );
                 } else {
                     this.skip();
@@ -653,7 +653,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.connect(user2).transferSolanaFrom(user3.address, await ERC20ForSPL.solanaAccount(owner.address), ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
 
                     // clear approval 
@@ -700,7 +700,7 @@ describe('Test init', async function () {
                         )
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
                 } else {
                     this.skip();
@@ -714,7 +714,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.connect(user3).burn(ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'AmountExceedsBalance'
+                        'ERC20InsufficientBalance'
                     );
                 } else {
                     this.skip();
@@ -727,7 +727,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.connect(user3).burnFrom(ethers.ZeroAddress, ethers.parseUnits('1', TOKEN_MINT_DECIMALS))
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPL,
-                        'EmptyAddress'
+                        'ERC20InvalidSender'
                     );
                 } else {
                     this.skip();
@@ -780,7 +780,7 @@ describe('Test init', async function () {
                     ERC20ForSPL.connect(user2).transfer(ethers.ZeroAddress, ethers.parseUnits('10', TOKEN_MINT_DECIMALS))
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPL,
-                    'EmptyAddress'
+                    'ERC20InvalidReceiver'
                 );
             });
 
@@ -789,7 +789,7 @@ describe('Test init', async function () {
                     ERC20ForSPL.connect(user2).approve(ethers.ZeroAddress, ethers.parseUnits('10', TOKEN_MINT_DECIMALS))
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPL,
-                    'EmptyAddress'
+                    'ERC20InvalidSpender'
                 );
             });
 
@@ -798,7 +798,7 @@ describe('Test init', async function () {
                     ERC20ForSPL.connect(user2).transferFrom(ethers.ZeroAddress, owner.address, ethers.parseUnits('10', TOKEN_MINT_DECIMALS))
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPL,
-                    'EmptyAddress'
+                    'ERC20InvalidSender'
                 );
             });
 
@@ -807,7 +807,7 @@ describe('Test init', async function () {
                     ERC20ForSPL.connect(user2).transferSolanaFrom(ethers.ZeroAddress, await ERC20ForSPL.solanaAccount(owner.address), ethers.parseUnits('10', TOKEN_MINT_DECIMALS))
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPL,
-                    'EmptyAddress'
+                    'ERC20InvalidSender'
                 );
             });
         });
@@ -858,16 +858,19 @@ describe('Test init', async function () {
                         solanaUser1.publicKey,
                         false
                     );
-                    const getUserExtAuthority = ethers.encodeBase58(await ERC20ForSPL.getUserExtAuthority(payer));
+                    const contractAccount = config.utils.calculateContractAccount(
+                        ERC20ForSPL.target,
+                        new web3.PublicKey(neon_getEvmParams.result.neonEvmProgramId)
+                    )[0];
                     const solanaUser1TokenAtaAccount = await getAccount(connection, solanaUser1TokenAta);
 
                     // Validate solanaUser1 have performed at least 1 scheduled transaction
                     // grant approval to the erc20forspl contract if needed
-                    if (solanaUser1TokenAtaAccount.delegate == null || solanaUser1TokenAtaAccount.delegate.toBase58() != getUserExtAuthority) {
+                    if (solanaUser1TokenAtaAccount.delegate == null || solanaUser1TokenAtaAccount.delegate.toBase58() != contractAccount.toBase58()) {
                         const transaction = new web3.Transaction();
                         transaction.add(createApproveInstruction(
                             solanaUser1TokenAta,
-                            new web3.PublicKey(getUserExtAuthority),
+                            contractAccount,
                             solanaUser1.publicKey,
                             '18446744073709551615' // max uint64
                         ));
@@ -1088,16 +1091,19 @@ describe('Test init', async function () {
                         solanaUser2.publicKey,
                         false
                     );
-                    const getUserExtAuthority = ethers.encodeBase58(await ERC20ForSPL.getUserExtAuthority(payer));
+                    const contractAccount = config.utils.calculateContractAccount(
+                        ERC20ForSPL.target,
+                        new web3.PublicKey(neon_getEvmParams.result.neonEvmProgramId)
+                    )[0];
                     const solanaUser2TokenAtaAccount = await getAccount(connection, solanaUser2TokenAta);
 
                     // Validate solanaUser1 have performed at least 1 scheduled transaction
                     // grant approval to the erc20forspl contract if needed
-                    if (solanaUser2TokenAtaAccount.delegate == null || solanaUser2TokenAtaAccount.delegate.toBase58() != getUserExtAuthority) {
+                    if (solanaUser2TokenAtaAccount.delegate == null || solanaUser2TokenAtaAccount.delegate.toBase58() != contractAccount.toBase58()) {
                         const transaction = new web3.Transaction();
                         transaction.add(createApproveInstruction(
                             solanaUser2TokenAta,
-                            new web3.PublicKey(getUserExtAuthority),
+                            contractAccount,
                             solanaUser2.publicKey,
                             '18446744073709551615' // max uint64
                         ));

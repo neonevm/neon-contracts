@@ -17,6 +17,15 @@ const config = {
         addressToBytes32: function(address) {
             return ethers.zeroPadValue(ethers.toBeHex(address), 32);
         },
+        calculateContractAccount: function (contractEvmAddress, neonEvmProgram) {
+            const neonContractAddressBytes = Buffer.from(config.utils.isValidHex(contractEvmAddress) ? contractEvmAddress.replace(/^0x/i, '') : contractEvmAddress, 'hex');
+            const seed = [
+                new Uint8Array([0x03]),
+                new Uint8Array(neonContractAddressBytes)
+            ];
+        
+            return web3.PublicKey.findProgramAddressSync(seed, neonEvmProgram);
+        },
         calculatePdaAccount: function (prefix, tokenEvmAddress, salt, neonEvmProgram) {
             const neonContractAddressBytes = Buffer.from(config.utils.isValidHex(tokenEvmAddress) ? tokenEvmAddress.replace(/^0x/i, '') : tokenEvmAddress, 'hex');
             const seed = [
@@ -48,7 +57,7 @@ const config = {
                 setTimeout(() => resolve(), timeout);
             })
         },
-        delegateSolana: async function delegateSolana(params) {
+        delegateSolana: async function delegateSolana(params, approveForScheduling) {
             // Get NeonEVM program Id
             const neon_getEvmParams = await fetch(params.curvestand, {
                 method: 'POST',
@@ -58,12 +67,21 @@ const config = {
             const neonEVMProgramId = (await neon_getEvmParams.json()).result.neonEvmProgramId;
 
             // Calculate delegate's Ext Authority
-            const delegateAuthorityPublicKey = this.calculatePdaAccount(
-                'AUTH',
-                params.ERC20ForSPLContractAddress,
-                params.delegateEVMAddress,
-                new params.web3.PublicKey(neonEVMProgramId)
-            )[0];
+            let delegateAuthorityPublicKey;
+
+            if (approveForScheduling != undefined && approveForScheduling == true) {
+                delegateAuthorityPublicKey = this.calculateContractAccount(
+                    params.ERC20ForSPLContractAddress,
+                    new params.web3.PublicKey(neonEVMProgramId)
+                )[0];
+            } else {
+                delegateAuthorityPublicKey = this.calculatePdaAccount(
+                    'AUTH',
+                    params.ERC20ForSPLContractAddress,
+                    params.delegateEVMAddress,
+                    new params.web3.PublicKey(neonEVMProgramId)
+                )[0];
+            }
 
             // Approve delegate
             const solanaTx = new params.web3.Transaction();
