@@ -92,10 +92,6 @@ contract ERC20ForSplBackbone {
      */
     error AmountExceedsUint64(uint256 exceeded);
 
-    function getNeonAddress() public view returns(bytes32) {
-        return CALL_SOLANA.getNeonAddress(address(this));
-    }
-
     /// @notice Token name getter function
     /// @return The name of the SPLToken fetched from Solana's Metaplex program.
     function name() external view returns (string memory) {
