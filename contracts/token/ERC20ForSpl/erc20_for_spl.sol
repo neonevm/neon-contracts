@@ -251,9 +251,10 @@ contract ERC20ForSplBackbone {
     function _claimTo(bytes32 from, address to, uint64 amount) internal returns (bool) {
         require(to != address(0), ERC20InvalidReceiver(address(0)));
         bytes32 toSolana = solanaAccount(to);
+        uint64 balance = SPLTOKEN_PROGRAM.getAccount(from).amount;
         require(
-            SPLTOKEN_PROGRAM.getAccount(from).amount >= amount, 
-            AmountExceedsBalance()
+            balance >= amount, 
+            ERC20InsufficientBalance(address(0), balance, amount)
         );
 
         if (SPLTOKEN_PROGRAM.isSystemAccount(toSolana)) {
