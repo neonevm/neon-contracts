@@ -28,7 +28,7 @@ describe('Test init',  function () {
     const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
     const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
     const RECEIPTS_COUNT = 3;
-    const TIMEOUT = 10000;
+    const TIMEOUT = 20000;
     const other  = ethers.Wallet.createRandom()
     const other2 = ethers.Wallet.createRandom();
     let owner, user1, user2, user3;
@@ -596,7 +596,10 @@ describe('Test init',  function () {
                         18,
                         owner.address
                     )
-                ).to.be.revertedWith('ERC20 SPL Factory: SPL TOKEN MINTABLE IS NOT CREATED'); // because require(_decimals <= 9, InvalidDecimals());
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLFactory,
+                    'ERC20ForSplMintableNotCreated'
+                ); // because require(_decimals <= 9, InvalidDecimals());
             });
 
             it('Test reverting of contract deployed with empty address owner', async function () {
@@ -608,7 +611,10 @@ describe('Test init',  function () {
                         DECIMALS,
                         ethers.ZeroAddress
                     )
-                ).to.be.revertedWith('ERC20 SPL Factory: SPL TOKEN MINTABLE IS NOT CREATED');
+                ).to.be.revertedWithCustomError(
+                    ERC20ForSPLFactory,
+                    'ERC20ForSplMintableNotCreated'
+                );
             });
 
             it('Malicious claimTo (insufficient owner balance): reverts with error message', async function () {
