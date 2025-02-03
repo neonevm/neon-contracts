@@ -39,7 +39,7 @@ describe('Test init', async function () {
 
     describe('ERC20ForSPL tests', function() {
         it('createErc20ForSpl', async function () {
-            if (TOKEN_MINT == '') {
+            if (TOKEN_MINT == '0x0000000000000000000000000000000000000000000000000000000000000000') {
                 this.skip();
             }
 
@@ -48,6 +48,7 @@ describe('Test init', async function () {
 
             const getErc20ForSpl = await ERC20ForSPLFactory.getErc20ForSpl(TOKEN_MINT);
             expect(getErc20ForSpl).to.not.eq(ethers.ZeroAddress);
+            expect(TOKEN_MINT).to.eq(await ERC20ForSPLFactory.getTokenMintByAddress(getErc20ForSpl));
             expect(await ethers.provider.getCode(getErc20ForSpl)).to.not.eq('0x');
 
             ERC20ForSPL = ERC20ForSplContractFactory.attach(getErc20ForSpl);
@@ -60,13 +61,23 @@ describe('Test init', async function () {
                 9,
                 owner.address
             );
-            await tx.wait(RECEIPTS_COUNT);
+            let receipt = await tx.wait(RECEIPTS_COUNT);
+
+            let tokenMint;
+            for (let i = 0, len = receipt.logs.length; i < len; ++i) {
+                if (receipt.logs[i].fragment != undefined && receipt.logs[i].fragment.name == 'ERC20ForSplCreated') {
+                    tokenMint = receipt.logs[i].args[0];
+                    break;
+                }
+            }
 
             const getErc20ForSplMintable = await ERC20ForSPLFactory.allErc20ForSpl(
                 parseInt((await ERC20ForSPLFactory.allErc20ForSplLength()).toString()) - 1
             );
             expect(getErc20ForSplMintable).to.not.eq(ethers.ZeroAddress);
+            expect(tokenMint).to.eq(await ERC20ForSPLFactory.getTokenMintByAddress(getErc20ForSplMintable));
             expect(await ethers.provider.getCode(getErc20ForSplMintable)).to.not.eq('0x');
+
 
             ERC20ForSPLMintable = ERC20ForSplMintableContractFactory.attach(getErc20ForSplMintable);
         });

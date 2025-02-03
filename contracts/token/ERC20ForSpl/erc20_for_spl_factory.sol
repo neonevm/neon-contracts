@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {ERC20ForSpl, ERC20ForSplMintable} from './erc20_for_spl.sol';
+import {ERC20ForSplBackbone, ERC20ForSpl, ERC20ForSplMintable} from './erc20_for_spl.sol';
 
 
 /// @title ERC20ForSplFactory
@@ -64,5 +64,9 @@ contract ERC20ForSplFactory {
 
     function allErc20ForSplLength() external view returns (uint) {
         return allErc20ForSpl.length;
+    }
+
+    function getTokenMintByAddress(address token) external view returns (bytes32) {
+        return ERC20ForSplBackbone(token).tokenMint();
     }
 }
