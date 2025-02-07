@@ -132,13 +132,19 @@ contract ERC20ForSplBackbone {
     /// `getTokenMintATA(bytes32)` function. However, this ATA balance is only spendable if the `account`'s external
     /// authority has been set as the delegate of the ATA, in which case it is added to the spendable token balance.
     function balanceOf(address account) external view returns (uint256) {
-        uint balance = SPLTOKEN_PROGRAM.getAccount(solanaAccount(account)).amount;
+        return _balanceOfPDA(solanaAccount(account)) + _balanceOfATA(account);
+    }
 
-        (bytes32 ataAccount, uint64 ataBalance) = _getSolanaATA(account, false);
-        if (ataAccount != bytes32(0)) {
-            balance += ataBalance;
-        }
-        return balance;
+    /// @notice Token balance getter function for the user's PDA account
+    /// @param account The NeonEVM address to get the balance of
+    function balanceOfPDA(address account) external view returns (uint64) {
+        return _balanceOfPDA(solanaAccount(account));
+    }
+
+    /// @notice Token balance getter function for the user's ATA account ( a Solana user )
+    /// @param account The NeonEVM address to get the balance of
+    function balanceOfATA(address account) external view returns (uint64) {
+        return _balanceOfATA(account);
     }
 
     /// @notice Token ERC20 allowance getter function
@@ -174,14 +180,14 @@ contract ERC20ForSplBackbone {
     }
 
     /// @notice ERC20 burn function
-    /// @custom:getter balanceOf
+    /// @custom:getter balanceOfPDA
     function burn(uint256 amount) external returns (bool) {
         _burn(msg.sender, amount);
         return true;
     }
 
     /// @notice ERC20 burnFrom function: spends the ERC20 allowance provided by the `from` account to `msg.sender`
-    /// @custom:getter balanceOf
+    /// @custom:getter balanceOfPDA
     function burnFrom(address from, uint256 amount) external returns (bool) {
         require(from != address(0), ERC20InvalidSender(address(0)));
 
@@ -217,7 +223,7 @@ contract ERC20ForSplBackbone {
     /// @notice Custom ERC20ForSPL function: transfers to a Solana SPL Token account
     /// @param to The 32 bytes SPL Token account address of the recipient
     /// @param amount The amount to be transferred to the recipient
-    /// @custom:getter balanceOf
+    /// @custom:getter balanceOfPDA
     function transferSolana(bytes32 to, uint64 amount) external returns (bool) {
         return _transferSolana(msg.sender, to, amount);
     }
@@ -225,7 +231,7 @@ contract ERC20ForSplBackbone {
     /// @notice Custom ERC20ForSPL function: spends the ERC20 allowance provided by the `from` account to `msg.sender` by
     /// transferring to a Solana SPL Token account
     /// @param to The 32 bytes SPL Token account address of the recipient
-    /// @custom:getter balanceOf
+    /// @custom:getter balanceOfPDA
     function transferSolanaFrom(address from, bytes32 to, uint64 amount) external returns (bool) {
         require(from != address(0), ERC20InvalidSender(address(0)));
 
@@ -238,7 +244,7 @@ contract ERC20ForSplBackbone {
     /// @param from The 32 bytes SPL Token account address which provided delegation to the external authority of
     /// NeonEVM arbitrary token account attributed to `msg.sender`
     /// @param amount The amount to be transferred to the NeonEVM arbitrary token account attributed to `msg.sender`
-    /// @custom:getter balanceOf
+    /// @custom:getter balanceOfPDA
     function claim(bytes32 from, uint64 amount) external returns (bool) {
         return _claimTo(from, msg.sender, amount);
     }
@@ -250,7 +256,7 @@ contract ERC20ForSplBackbone {
     /// NeonEVM arbitrary token account attributed to `msg.sender`
     /// @param to The NeonEVM address of the recipient
     /// @param amount The amount to be transferred to the NeonEVM arbitrary token account attributed to the `to` address
-    /// @custom:getter balanceOf
+    /// @custom:getter balanceOfPDA
     function claimTo(bytes32 from, address to, uint64 amount) external returns (bool) {
         return _claimTo(from, to, amount);
     }
@@ -258,7 +264,7 @@ contract ERC20ForSplBackbone {
     function _claimTo(bytes32 from, address to, uint64 amount) internal returns (bool) {
         require(to != address(0), ERC20InvalidReceiver(address(0)));
         bytes32 toSolana = solanaAccount(to);
-        uint64 balance = SPLTOKEN_PROGRAM.getAccount(from).amount;
+        uint64 balance = _balanceOfPDA(from);
         require(
             balance >= amount, 
             ERC20InsufficientBalance(address(0), balance, amount)
@@ -292,7 +298,7 @@ contract ERC20ForSplBackbone {
     function _burn(address from, uint256 amount) internal {
         require(amount <= type(uint64).max, AmountExceedsUint64(amount));
         bytes32 fromSolana = solanaAccount(from);
-        uint64 balance = SPLTOKEN_PROGRAM.getAccount(fromSolana).amount;
+        uint64 balance = _balanceOfPDA(fromSolana);
         require(
             balance >= amount, 
             ERC20InsufficientBalance(from, balance, amount)
@@ -310,7 +316,7 @@ contract ERC20ForSplBackbone {
 
         // First we get the token balance of NeonEVM's arbitrary token account associated to the `from` address
         bytes32 fromSolanaPDA = solanaAccount(from);
-        uint64 pdaBalance = SPLTOKEN_PROGRAM.getAccount(fromSolanaPDA).amount;
+        uint64 pdaBalance = _balanceOfPDA(fromSolanaPDA);
         // In the case where this balance is not enough to cover the transfer `amount`, and if the `from` address
         // refers to a native Solana account, we also fetch the token balance stored in the associated token account
         // (ATA) derived from this Solana account. However, this ATA balance is only spendable if the external authority
@@ -366,7 +372,7 @@ contract ERC20ForSplBackbone {
         require(to != bytes32(0), EmptyAccount(bytes32(0)));
         bytes32 fromSolana = solanaAccount(from);
 
-        uint64 balance = SPLTOKEN_PROGRAM.getAccount(fromSolana).amount;
+        uint64 balance = _balanceOfPDA(fromSolana);
         require(balance >= amount, ERC20InsufficientBalance(from, balance, amount));
 
         SPLTOKEN_PROGRAM.transfer(fromSolana, to, uint64(amount));
@@ -415,16 +421,22 @@ contract ERC20ForSplBackbone {
     /// return `(bytes32(0), 0)`.
     function _getSolanaATA(address account, bool skipDelegateCheck) internal view returns(bytes32, uint64) {
         bytes32 solanaAddress = SOLANA_NATIVE.solanaAddress(account);
-
         if (solanaAddress != bytes32(0)) {
             bytes32 tokenMintATA = getTokenMintATA(solanaAddress);
             if (!SPLTOKEN_PROGRAM.isSystemAccount(tokenMintATA)) {
-                ISPLTokenProgram.Account memory tokenMintATAData = SPLTOKEN_PROGRAM.getAccount(tokenMintATA);
-                if (skipDelegateCheck || tokenMintATAData.delegate == CALL_SOLANA.getNeonAddress(address(this))) {
+                if (skipDelegateCheck) {
                     return (
                         tokenMintATA,
-                        (skipDelegateCheck) ? 0 : (tokenMintATAData.delegated_amount > tokenMintATAData.amount) ? tokenMintATAData.amount : tokenMintATAData.delegated_amount
+                        0
                     );
+                } else {
+                    ISPLTokenProgram.Account memory tokenMintATAData = SPLTOKEN_PROGRAM.getAccount(tokenMintATA);
+                    if (tokenMintATAData.delegate == CALL_SOLANA.getNeonAddress(address(this))) {
+                        return (
+                            tokenMintATA,
+                            (tokenMintATAData.delegated_amount > tokenMintATAData.amount) ? tokenMintATAData.amount : tokenMintATAData.delegated_amount
+                        );
+                    }
                 }
             }
         }
@@ -434,6 +446,19 @@ contract ERC20ForSplBackbone {
     /// @return A 32 bytes salt used to derive the NeonEVM arbitrary token account attributed to the `account` address
     function _salt(address account) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(account)));
+    }
+
+    /// @notice Internal token balance getter function for the user's PDA account
+    /// @param account The NeonEVM address to get the balance of
+    function _balanceOfPDA(bytes32 account) internal view returns (uint64) {
+        return SPLTOKEN_PROGRAM.getAccount(account).amount;
+    }
+
+    /// @notice Internal token balance getter function for the user's ATA account ( a Solana user )
+    /// @param account The NeonEVM address to get the balance of
+    function _balanceOfATA(address account) internal view returns (uint64) {
+        (, uint64 ataBalance) = _getSolanaATA(account, false);
+        return ataBalance;
     }
 }
 

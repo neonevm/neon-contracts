@@ -31,12 +31,9 @@ const config = {
             const seed = [
                 new Uint8Array([0x03]),
                 new Uint8Array(Buffer.from(prefix, 'utf-8')),
-                new Uint8Array(neonContractAddressBytes)
+                new Uint8Array(neonContractAddressBytes),
+                Buffer.from(Buffer.concat([Buffer.alloc(12), Buffer.from(config.utils.isValidHex(salt) ? salt.substring(2) : salt, 'hex')]), 'hex')
             ];
-
-            if (salt != undefined) {
-                seed.push(Buffer.from(Buffer.concat([Buffer.alloc(12), Buffer.from(config.utils.isValidHex(salt) ? salt.substring(2) : salt, 'hex')]), 'hex'));
-            }
         
             return web3.PublicKey.findProgramAddressSync(seed, neonEvmProgram);
         },

@@ -47,7 +47,7 @@ let neon_getEvmParams;
 const TOKEN_MINT = config.utils.publicKeyToBytes32(config.DATA.ADDRESSES.ERC20ForSplTokenMint);
 const TOKEN_MINT_DECIMALS = 9;
 const RECEIPTS_COUNT = 1;
-const SOLANA_TX_TIMEOUT = 10000;
+const SOLANA_TX_TIMEOUT = 15000;
 
 describe('Test init', async function () {
     before(async function() {
@@ -890,6 +890,7 @@ describe('Test init', async function () {
                 it('validate balanceOf logic - only ATA balance should be increasing on token receive', async function () {
                     const payer = config.utils.SolanaNativeHelper.getPayer(solanaUser1);
                     const payerInitialBalanceOf = await ERC20ForSPL.balanceOf(payer);
+                    const payerInitialBalanceOfATA = await ERC20ForSPL.balanceOfATA(payer);
 
                     const solanaUser1ATA = await getAssociatedTokenAddress(
                         new web3.PublicKey(config.DATA.ADDRESSES.ERC20ForSplTokenMint),
@@ -914,8 +915,10 @@ describe('Test init', async function () {
 
                     // make sure only PDA account balance has increased
                     const payerBalanceOfAfter = await ERC20ForSPL.balanceOf(payer);
+                    const payerInitialBalanceOfATAAfter = await ERC20ForSPL.balanceOfATA(payer);
                     const amountInATAAccountAfter = (await getAccount(connection, solanaUser1ATA)).amount;
                     expect(payerBalanceOfAfter).to.be.greaterThan(payerInitialBalanceOf);
+                    expect(payerInitialBalanceOfATAAfter).to.be.greaterThan(payerInitialBalanceOfATA);
                     expect(amountInATAAccountAfter).to.be.greaterThan(amountInATAAccount);
                     expect(payerBalanceOfAfter).to.eq(amountInATAAccountAfter);
                 });
@@ -990,6 +993,7 @@ describe('Test init', async function () {
                         expect( await ERC20ForSPL.allowance(user2.address, payer)).to.be.greaterThan(0);
 
                         const currentBalancePayer = await ERC20ForSPL.balanceOf(payer);
+                        const currentBalancePayerATA = await ERC20ForSPL.balanceOfATA(payer);
                         const currentBalanceUser2 = await ERC20ForSPL.balanceOf(user2.address);
 
                         let balanceBeforeTx = await connection.getBalance(solanaUser1.publicKey);
@@ -1010,6 +1014,7 @@ describe('Test init', async function () {
                         expect(amountInATAAccountAfter).to.be.greaterThan(amountInATAAccount);
                         expect(amountInATAAccountAfter).to.eq(amountInATAAccount + transferAmount);
                         expect(await ERC20ForSPL.balanceOf(payer)).to.be.greaterThan(currentBalancePayer);
+                        expect(await ERC20ForSPL.balanceOfATA(payer)).to.be.greaterThan(currentBalancePayerATA);
                         expect(currentBalanceUser2).to.be.greaterThan(await ERC20ForSPL.balanceOf(user2.address));
                     } else {
                         this.skip();
@@ -1053,6 +1058,7 @@ describe('Test init', async function () {
                         expect(await ERC20ForSPL.allowance(payer, MockVault.target)).to.eq(transferAmount);
 
                         const currentBalancePayer = await ERC20ForSPL.balanceOf(payer);
+                        const currentBalancePayerATA = await ERC20ForSPL.balanceOfATA(payer);
                         const currentBalanceMockVault = await ERC20ForSPL.balanceOf(MockVault.target);
 
                         balanceBeforeTx = await connection.getBalance(solanaUser1.publicKey);
@@ -1073,6 +1079,7 @@ describe('Test init', async function () {
                         expect(amountInATAAccount).to.be.greaterThan(amountInATAAccountAfter);
                         expect(amountInATAAccount).to.eq(amountInATAAccountAfter + transferAmount);
                         expect(currentBalancePayer).to.be.greaterThan(await ERC20ForSPL.balanceOf(payer));
+                        expect(currentBalancePayerATA).to.be.greaterThan(await ERC20ForSPL.balanceOfATA(payer));
                         expect(currentBalancePayer).to.eq(await ERC20ForSPL.balanceOf(payer) + transferAmount);
                         expect(await ERC20ForSPL.balanceOf(MockVault.target)).to.be.greaterThan(currentBalanceMockVault);
                         expect(await ERC20ForSPL.balanceOf(MockVault.target)).to.eq(currentBalanceMockVault + transferAmount);
@@ -1281,6 +1288,7 @@ describe('Test init', async function () {
                 it('validate balanceOf logic - only PDA balance should be increasing on token receive', async function () {
                     const payer = config.utils.SolanaNativeHelper.getPayer(solanaUser3);
                     const payerInitialBalanceOf = await ERC20ForSPL.balanceOf(payer);
+                    const payerInitialBalanceOfPDA = await ERC20ForSPL.balanceOfPDA(payer);
 
                     const solanaUser3ATA = await getAssociatedTokenAddress(
                         new web3.PublicKey(config.DATA.ADDRESSES.ERC20ForSplTokenMint),
@@ -1306,8 +1314,10 @@ describe('Test init', async function () {
 
                     // make sure only PDA account balance has increased
                     const payerBalanceOfAfter = await ERC20ForSPL.balanceOf(payer);
+                    const payerBalanceOfPDAAfter = await ERC20ForSPL.balanceOf(payer);
                     const amountInPDAAccountAfter = (await getAccount(connection, solanaUser3PDA)).amount;
                     expect(payerBalanceOfAfter).to.be.greaterThan(payerInitialBalanceOf);
+                    expect(payerBalanceOfPDAAfter).to.be.greaterThan(payerInitialBalanceOfPDA);
                     expect(amountInPDAAccountAfter).to.be.greaterThan(amountInPDAAccount);
                     expect(payerBalanceOfAfter).to.eq(amountInPDAAccountAfter);
                 });
@@ -1315,6 +1325,7 @@ describe('Test init', async function () {
                 it('transfer part of the PDA balance to owner', async function () {
                     const payer = config.utils.SolanaNativeHelper.getPayer(solanaUser3);
                     const payerInitialBalanceOf = await ERC20ForSPL.balanceOf(payer);
+                    const payerInitialBalanceOfPDA = await ERC20ForSPL.balanceOfPDA(payer);
                     const ownerInitialBalanceOf = await ERC20ForSPL.balanceOf(owner.address);
                     
                     const solanaUser3PDA = config.utils.calculatePdaAccount(
@@ -1341,10 +1352,12 @@ describe('Test init', async function () {
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser3.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
 
                     const payerBalanceOfAfter = await ERC20ForSPL.balanceOf(payer);
+                    const payerInitialBalanceOfPDAAfter = await ERC20ForSPL.balanceOfPDA(payer);
                     const ownerBalanceOfAfter = await ERC20ForSPL.balanceOf(owner.address);
                     const amountInPDAAccountAfter = (await getAccount(connection, solanaUser3PDA)).amount;
 
                     expect(payerInitialBalanceOf).to.be.greaterThan(payerBalanceOfAfter);
+                    expect(payerInitialBalanceOfPDA).to.be.greaterThan(payerInitialBalanceOfPDAAfter);
                     expect(ownerBalanceOfAfter).to.be.greaterThan(ownerInitialBalanceOf);
                     expect(amountInPDAAccount).to.be.greaterThan(amountInPDAAccountAfter);
                     expect(amountInPDAAccount).to.eq(amountInPDAAccountAfter + transferAmount);
@@ -1353,6 +1366,7 @@ describe('Test init', async function () {
                 it('transferFrom all of the PDA balance to MockVault smart contract', async function () {
                     const payer = config.utils.SolanaNativeHelper.getPayer(solanaUser3);
                     const payerInitialBalanceOf = await ERC20ForSPL.balanceOf(payer);
+                    const payerInitialBalanceOfPDA = await ERC20ForSPL.balanceOfPDA(payer);
                     const mockVaultInitialBalanceOf = await ERC20ForSPL.balanceOf(MockVault.target);
                     
                     const solanaUser3PDA = config.utils.calculatePdaAccount(
@@ -1394,10 +1408,12 @@ describe('Test init', async function () {
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser3.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
 
                     const payerBalanceOfAfter = await ERC20ForSPL.balanceOf(payer);
+                    const payerInitialBalanceOfPDAAfter = await ERC20ForSPL.balanceOfPDA(payer);
                     const mockVaultBalanceOfAfter = await ERC20ForSPL.balanceOf(MockVault.target);
                     const amountInPDAAccountAfter = (await getAccount(connection, solanaUser3PDA)).amount;
 
                     expect(payerInitialBalanceOf).to.be.greaterThan(payerBalanceOfAfter);
+                    expect(payerInitialBalanceOfPDA).to.be.greaterThan(payerInitialBalanceOfPDAAfter);
                     expect(mockVaultBalanceOfAfter).to.be.greaterThan(mockVaultInitialBalanceOf);
                     expect(amountInPDAAccount).to.be.greaterThan(amountInPDAAccountAfter);
                     expect(amountInPDAAccount).to.eq(amountInPDAAccountAfter + transferAmount);
