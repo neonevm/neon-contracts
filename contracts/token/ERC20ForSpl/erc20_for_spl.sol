@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable, Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {ISPLTokenProgram} from "../../precompiles/ISPLTokenProgram.sol";
 import {IMetaplexProgram} from "../../precompiles/IMetaplexProgram.sol";
 import {ICallSolana} from "../../precompiles/ICallSolana.sol";
@@ -478,7 +478,7 @@ contract ERC20ForSpl is ERC20ForSplBackbone {
 /// @title ERC20ForSplMintable
 /// @author https://twitter.com/mnedelchev_
 /// @notice This contract deploys a new SPL Token on Solana and give its administrator permission to mint new tokens
-contract ERC20ForSplMintable is ERC20ForSplBackbone, Ownable {
+contract ERC20ForSplMintable is ERC20ForSplBackbone, Ownable2Step {
     /// @param _name The name of the SPL Token to be deployed
     /// @param _symbol The symbol of the SPL Token  to be deployed
     /// @param _decimals The decimals of the SPL Token to be deployed. This value cannot be bigger than 9 because of

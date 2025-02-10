@@ -268,7 +268,7 @@ describe('Test init',  function () {
                     solanaApprover.publicKey,
                     false
                 );
-                solanaApproverATAInBytes = '0x' + ethers.decodeBase58(solanaApproverATA.toBase58()).toString(16);
+                solanaApproverATAInBytes = config.utils.publicKeyToBytes32(solanaApproverATA.toBase58());
 
                 solanaTx = new web3.Transaction();
                 solanaTx.add(
@@ -350,11 +350,11 @@ describe('Test init',  function () {
                     testAccountKeyPair.publicKey,
                     false
                 );
-                let testAccountATAInBytes = '0x' + ethers.decodeBase58(testAccountATA.toBase58()).toString(16);
+                let testAccountATAInBytes = config.utils.publicKeyToBytes32(testAccountATA.toBase58());
 
                 // Get test account ATA from ERC20ForSPLMintable contract
                 let testAccountATAInBytesFromContract = await ERC20ForSPLMintable.getTokenMintATA(
-                    '0x' + ethers.decodeBase58(testAccountKeyPair.publicKey.toBase58()).toString(16)
+                    config.utils.publicKeyToBytes32(testAccountKeyPair.publicKey.toBase58())
                 )
 
                 // Check that both values are equal
@@ -550,6 +550,12 @@ describe('Test init',  function () {
                 let tx = await ERC20ForSPLMintable.transferOwnership(user1.address);
                 await tx.wait(RECEIPTS_COUNT);
 
+                // owner is still the owner, because user1 haven't claimed yet the ownership
+                expect(await ERC20ForSPLMintable.owner()).to.equal(owner.address);
+
+                tx = await ERC20ForSPLMintable.connect(user1).acceptOwnership();
+                await tx.wait(RECEIPTS_COUNT);
+
                 expect(await ERC20ForSPLMintable.owner()).to.equal(user1.address);
                 expect(await ERC20ForSPLMintable.owner()).to.not.equal(initialOwner);
 
@@ -557,21 +563,18 @@ describe('Test init',  function () {
                 tx = await ERC20ForSPLMintable.connect(user1).transferOwnership(owner.address);
                 await tx.wait(RECEIPTS_COUNT);
 
-                expect(await ERC20ForSPLMintable.owner()).to.equal(initialOwner);
-            });
+                // owner is still the user1, because owner haven't claimed yet the ownership
+                expect(await ERC20ForSPLMintable.owner()).to.equal(user1.address);
 
-            it('Test zero address ownership change', async function () {
-                await expect(
-                    ERC20ForSPLMintable.connect(owner).transferOwnership(ethers.ZeroAddress)
-                ).to.be.revertedWithCustomError(
-                    ERC20ForSPLMintable,
-                    'OwnableInvalidOwner'
-                );
+                tx = await ERC20ForSPLMintable.connect(owner).acceptOwnership();
+                await tx.wait(RECEIPTS_COUNT);
+
+                expect(await ERC20ForSPLMintable.owner()).to.equal(initialOwner);
             });
 
             it('Test malicious ownership change', async function () {
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).transferOwnership(user1.address)
+                    ERC20ForSPLMintable.connect(user1).acceptOwnership()
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'OwnableUnauthorizedAccount'
