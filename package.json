@@ -32,6 +32,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@solana/spl-token": "^0.4.12",
     "@solana/web3.js": "^1.95.4"
   }
 }
