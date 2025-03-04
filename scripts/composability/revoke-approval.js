@@ -18,15 +18,17 @@ async function main(callSPLTokenProgramContractAddress = null) {
     // =================================== Delegate deployer ATA to NeonEVM user ====================================
 
     const tokenMintInBytes =  await callSPLTokenProgram.getTokenMintAccount(deployer.address, Buffer.from(config.tokenMintSeed[network.name]))
-    const decimals = config.tokenMintDecimals[network.name]
-    const contractPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(callSPLTokenProgram.target)
     const deployerPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(deployer.address)
     const deployerATAInBytes = await callSPLTokenProgram.getAssociatedTokenAccount(
         tokenMintInBytes,
         deployerPublicKeyInBytes,
     )
+    /*
+    const decimals = config.tokenMintDecimals[network.name]
+    const contractPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(callSPLTokenProgram.target)
     const neonEVMUser = (await ethers.getSigners())[1]
     const neonEVMUserPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(neonEVMUser)
+
     let solanaTransaction = new web3.Transaction()
 
     const approveIx = createApproveInstruction(
@@ -49,7 +51,7 @@ async function main(callSPLTokenProgramContractAddress = null) {
 
     let info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
     console.log(info, '<-- deployer ATA info after approval')
-
+    */
     // =================================== Revoke all delegation from deployer ATA ====================================
 
     console.log('\nCalling callSPLTokenProgram.revokeApproval: ')

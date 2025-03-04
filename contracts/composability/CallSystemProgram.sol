@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { CallSolana } from './CallSolana.sol';
-
-import { LibCallSolana } from './libraries/LibCallSolana.sol';
+import { CallSolanaHelperLib } from '../utils/CallSolanaHelperLib.sol';
 import { LibSystemProgram } from "./libraries/system-program/LibSystemProgram.sol";
+
+import { ICallSolana } from '../precompiles/ICallSolana.sol';
 
 /// @title CallSystemProgram
 /// @notice Example contract showing how to use LibSystemProgram library to interact with Solana's System program
 /// @author maxpolizzo@gmail.com
-contract CallSystemProgram is CallSolana {
+contract CallSystemProgram {
+    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
+
+    function getNeonAddress(address user) external view returns (bytes32) {
+        return CALL_SOLANA.getNeonAddress(user);
+    }
 
     function getCreateWithSeedAccount(
         bytes32 basePubKey,
@@ -42,7 +47,7 @@ contract CallSystemProgram is CallSolana {
             rentExemptBalance
         );
         // Prepare createAccountWithSeed instruction
-        bytes memory createAccountWithSeedIx = LibCallSolana.prepareSolanaInstruction(
+        bytes memory createAccountWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSystemProgram.SYSTEM_PROGRAM_ID,
             accounts,
             isSigner,

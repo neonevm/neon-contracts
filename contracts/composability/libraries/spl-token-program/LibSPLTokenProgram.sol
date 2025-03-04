@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { LibDataConverter } from "../LibDataConverter.sol";
+import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
 import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
 
@@ -118,7 +118,7 @@ library LibSPLTokenProgram {
         isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
-        bytes32 amountLE = bytes32(LibDataConverter.toLittleEndianUnsigned256(uint256(amount)));
+        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
         data = abi.encodePacked(
             bytes1(0x07), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L508)
             bytes8(amountLE) // Amount (right-padded little-endian)
@@ -157,7 +157,7 @@ library LibSPLTokenProgram {
         isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
-        bytes32 amountLE = bytes32(LibDataConverter.toLittleEndianUnsigned256(uint256(amount)));
+        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
         data = abi.encodePacked(
             bytes1(0x03), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L506)
             bytes8(amountLE) // Amount (right-padded little-endian)
