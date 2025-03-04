@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { CallSolana } from './CallSolana.sol';
-
-import { LibCallSolana } from './libraries/LibCallSolana.sol';
+import { CallSolanaHelperLib } from '../utils/CallSolanaHelperLib.sol';
 import { LibSPLTokenProgram } from "./libraries/spl-token-program/LibSPLTokenProgram.sol";
+
+import { ICallSolana } from '../precompiles/ICallSolana.sol';
 
 /// @title CallSPLTokenProgram
 /// @notice Example contract showing how to use LibSPLTokenProgram library to interact with Solana's SPL Token program
 /// @author maxpolizzo@gmail.com
-contract CallSPLTokenProgram is CallSolana {
+contract CallSPLTokenProgram {
+    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
+
+    function getNeonAddress(address user) external view returns (bytes32) {
+        return CALL_SOLANA.getNeonAddress(user);
+    }
 
     function getAssociatedTokenAccount(
         bytes32 _tokenMint,
@@ -57,7 +62,7 @@ contract CallSPLTokenProgram is CallSolana {
         );
 
         // Prepare initializeMint2 instruction
-        bytes memory initializeMint2Ix = LibCallSolana.prepareSolanaInstruction(
+        bytes memory initializeMint2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
@@ -112,7 +117,7 @@ contract CallSPLTokenProgram is CallSolana {
             tokenOwner  // account which owns the ATA and can spend from it
         );
         // Prepare initializeAccount2 instruction
-        bytes memory initializeAccount2Ix = LibCallSolana.prepareSolanaInstruction(
+        bytes memory initializeAccount2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
@@ -144,7 +149,7 @@ contract CallSPLTokenProgram is CallSolana {
             amount
         );
         // Prepare mintTo instruction
-        bytes memory mintToIx = LibCallSolana.prepareSolanaInstruction(
+        bytes memory mintToIx = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
@@ -178,7 +183,7 @@ contract CallSPLTokenProgram is CallSolana {
             amount
         );
         // Prepare transfer instruction
-        bytes memory transferIx = LibCallSolana.prepareSolanaInstruction(
+        bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
@@ -208,7 +213,7 @@ contract CallSPLTokenProgram is CallSolana {
             newAuthority
         );
         // Prepare createSetAuthority instruction
-        bytes memory createSetAuthorityIx = LibCallSolana.prepareSolanaInstruction(
+        bytes memory createSetAuthorityIx = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
@@ -236,7 +241,7 @@ contract CallSPLTokenProgram is CallSolana {
             thisContract // ATA owner
         );
         // Prepare revoke instruction
-        bytes memory revokeIx = LibCallSolana.prepareSolanaInstruction(
+        bytes memory revokeIx = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSPLTokenProgram.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,

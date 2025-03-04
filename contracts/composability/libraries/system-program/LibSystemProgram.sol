@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import { LibDataConverter } from "../LibDataConverter.sol";
+import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
 /// @title LibSystemProgram
 /// @notice Helper library for interactions with Solana's System program
@@ -46,9 +46,9 @@ library LibSystemProgram {
         isWritable[2] = false;
 
         // Get values in right-padded little-endian bytes format
-        bytes32 seedLenLE = bytes32(LibDataConverter.toLittleEndianUnsigned256(seed.length));
-        bytes32 rentExemptBalanceLE = bytes32(LibDataConverter.toLittleEndianUnsigned256(uint256(rentExemptBalance)));
-        bytes32 accountSizeLE = bytes32(LibDataConverter.toLittleEndianUnsigned256(uint256(accountSize)));
+        bytes32 seedLenLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(seed.length));
+        bytes32 rentExemptBalanceLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(rentExemptBalance)));
+        bytes32 accountSizeLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(accountSize)));
         data = abi.encodePacked(
             bytes4(0x03000000), // Instruction variant
             basePubKey, // Base public key used for account  creation
