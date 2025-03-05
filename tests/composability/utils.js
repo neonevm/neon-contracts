@@ -59,7 +59,7 @@ async function deployContract(contractName, contractAddress = null) {
         contract = contractFactory.attach(deployedContractAddress)
     }
 
-    return { deployer, contract }
+    return { deployer, user, contract }
 }
 
 async function getSolanaTransactions(neonTxHash) {

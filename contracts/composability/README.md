@@ -18,9 +18,9 @@ program.
 This library provides helper functions for formatting instructions intended to be executed by _Solana_'s **SPL Token** 
 program.
 
-## LibUtils library
+## LibSPLTokenData library
 
-This library provides helper functions to **LibSystemProgram** and **LibSPLTokenProgram** libraries.
+This library provides a set of getter functions for querying SPL Token accounts data from Solana.
 
 ## CallSystemProgram contract
 
@@ -70,42 +70,12 @@ the `solanaUser` account. The `solanaUser` account cannot transfer tokens from t
 **CallSPLTokenProgram** contract, instead it must interact directly with the **SPL Token** program on _Solana_ by signing 
 and executing a `transfer` instruction.
 
-## Scripts
+## Tests
 
-The `CallSystemProgram` or `CallSPLTokenProgram` contract is deployed at the beginning of each script, unless a contract 
-address is passed to the script's `main` function, or the `config.js` file already contains an address for this contract.
+The `CallSystemProgram` or `CallSPLTokenProgram` contract is deployed at the beginning of each test, unless the 
+`config.js` file already contains an address for this contract.
 
-To run all test scripts in a row:
+To run all tests in a row on _Curvestand_ test network:
 
-`npx hardhat run ./scripts/composability/test.js --network <network_name>`
+`npm run test-composability-curvestand`
 
-### System Program interactions
-
-* The `create-account-with-seed.js` script lets you format and execute _Solana_'s **System** program 
-`createAccountWithSeed` instruction.
-
-### SPL Token Program interactions
-
-* The `create-init-token-mint` script lets you format and execute _Solana_'s **SPL Token** program `initializeMint2` 
-instruction after creating a SPL token mint account using _NeonEVM_ composability's `createResource` method.
-
-* The `create-init-ata` script lets you format and execute _Solana_'s **SPL Token** program `initializeAccount2` 
-instruction to create and initialize two associated token accounts using _NeonEVM_ composability's `createResource` 
-* method. Make sure to have run the `create-init-token-mint` script first before running this script.
-
-* The `mint-tokens` script lets you format and execute _Solana_'s **SPL Token** program `mintTo` instruction, minting 
-SPL tokens to a recipient's associated token account. Make sure to have run the `create-init-token-mint` and 
-`create-init-ata` scripts first before running this script.
-
-* The `transfer-tokens` script lets you format and execute _Solana_'s **SPL Token** program `transfer` instruction, 
-transferring SPL tokens from NeonEVM deployer ATA to another NeonEVM user ATA then from this NeonEVM user ATA to a 
-random Solana user ATA. Make sure to have run the `create-init-token-mint`, `create-init-ata` and `mint-tokens` scripts 
-first before running this script.
-
-* The `update-mint-authority` script lets you format and execute _Solana_'s **SPL Token** program `createSetAuthority` 
-instruction in a way that updates a token's mint authority to a new account. Make sure to have run the 
-`create-init-token-mint` script first before running this script.
-
-* The `revoke-appoval` script lets you format and execute _Solana_'s **SPL Token** program `revoke` instruction to 
-revoke all delegation from NeonEVM deployer ATA. Make sure to have run the `create-init-token-mint` and `create-init-ata`
-scripts first before running this script.
