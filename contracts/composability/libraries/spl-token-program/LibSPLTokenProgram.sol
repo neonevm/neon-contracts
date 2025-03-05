@@ -199,6 +199,46 @@ library LibSPLTokenProgram {
         );
     }
 
+    /// @notice Helper function to format an `approve` instruction in order to delegate some balance of an associated
+    /// token account to a third party account
+    /// @param ata The associated token account that we want to delegate
+    /// @param delegate The account that we want to delegate to
+    /// @param owner The account owning the associated token account that we want to delegate
+    /// @param amount The amount of token that we want to delegate
+    function formatApproveInstruction(
+        bytes32 ata,
+        bytes32 delegate,
+        bytes32 owner,
+        uint64 amount
+    ) internal pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](3);
+        accounts[0] = ata;
+        accounts[1] = delegate;
+        accounts[2] = owner;
+
+        isSigner = new bool[](3);
+        isSigner[0] = false;
+        isSigner[1] = false;
+        isSigner[2] = true;
+
+        isWritable = new bool[](3);
+        isWritable[0] = true;
+        isWritable[1] = false;
+        isWritable[2] = false;
+
+        // Get amount in right-padded little-endian format
+        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
+        data = abi.encodePacked(
+            bytes1(0x04), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L507)
+            bytes8(amountLE) // Amount (right-padded little-endian)
+        );
+    }
+
     /// @notice Helper function to format a `revoke` instruction in order to revoke all delegation granted by an
     // associated token account
     /// @param ata The associated token account for which we want to revoke all delegation
