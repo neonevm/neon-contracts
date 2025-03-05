@@ -1,7 +1,7 @@
 const { ethers, network, run } = require("hardhat")
 const web3 = require("@solana/web3.js")
-const { deployContract, getSolanaTransactions, executeSolanaInstruction } = require("./utils")
-const { createApproveInstruction, getAccount} = require("@solana/spl-token")
+const { deployContract, getSolanaTransactions } = require("./utils")
+const { getAccount } = require("@solana/spl-token")
 const config = require("./config");
 
 async function main(callSPLTokenProgramContractAddress = null) {
@@ -23,40 +23,12 @@ async function main(callSPLTokenProgramContractAddress = null) {
         tokenMintInBytes,
         deployerPublicKeyInBytes,
     )
-    /*
-    const decimals = config.tokenMintDecimals[network.name]
-    const contractPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(callSPLTokenProgram.target)
-    const neonEVMUser = (await ethers.getSigners())[1]
-    const neonEVMUserPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(neonEVMUser)
 
-    let solanaTransaction = new web3.Transaction()
-
-    const approveIx = createApproveInstruction(
-        new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)), // ATA to delegate
-        new web3.PublicKey(ethers.encodeBase58(neonEVMUserPublicKeyInBytes)), // Delegate
-        new web3.PublicKey(ethers.encodeBase58(contractPublicKeyInBytes)), // ATA owner
-        1000 * 10 ** decimals // Delegate 1000 tokens
-    )
-
-    solanaTransaction.add(approveIx)
-
-    let tx, receipt
-    [tx, receipt] = await executeSolanaInstruction(
-        solanaTransaction.instructions[0],
-        0,
-        callSPLTokenProgram,
-        undefined,
-        deployer
-    )
-
-    let info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
-    console.log(info, '<-- deployer ATA info after approval')
-    */
     // =================================== Revoke all delegation from deployer ATA ====================================
 
     console.log('\nCalling callSPLTokenProgram.revokeApproval: ')
 
-    tx = await callSPLTokenProgram.connect(deployer).revokeApproval(
+    let tx = await callSPLTokenProgram.connect(deployer).revokeApproval(
         tokenMintInBytes,
     )
 
@@ -73,7 +45,7 @@ async function main(callSPLTokenProgramContractAddress = null) {
     }
     console.log("\n")
 
-    info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
+    let info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
     console.log(info, '<-- deployer ATA info after revoke')
 
     console.log("\n\u{2705} \x1b[32mSuccess!\x1b[0m\n")
