@@ -411,49 +411,56 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
     describe('\n\u{231B} \x1b[33m Testing Solana\'s SPL Token program \x1b[36mdata getters\x1b[33m\x1b[0m', async function() {
 
-        it('Call SPL token data getters', async function() {
+        it('Call SPL token mint data getters', async function() {
+
+            info = await getMint(solanaConnection, new web3.PublicKey(ethers.encodeBase58(tokenMintInBytes)))
+
+            const tokenMintIsInitialized= await callSPLTokenProgram.getSPLTokenMintIsInitialized(tokenMintInBytes)
+            const tokenSupply = await callSPLTokenProgram.getSPLTokenSupply(tokenMintInBytes)
+            const tokenDecimals = await callSPLTokenProgram.getSPLTokenDecimals(tokenMintInBytes)
+            const tokenMintAuthority = await callSPLTokenProgram.getSPLTokenMintAuthority(tokenMintInBytes)
+            const tokenFreezeAuthority = await callSPLTokenProgram.getSPLTokenFreezeAuthority(tokenMintInBytes)
+            const tokenMintData = await callSPLTokenProgram.getSPLTokenMintData(tokenMintInBytes)
+
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
+
+            if(info.isInitialized) {
+                expect(tokenMintIsInitialized).to.eq('0x' + ONE_BYTE.toString('hex'))
+                expect(tokenMintData[4]).to.eq('0x' + ONE_BYTE.toString('hex'))
+            } else {
+                expect(tokenMintIsInitialized).to.eq('0x' + ZERO_BYTE.toString('hex'))
+                expect(tokenMintData[4]).to.eq('0x' + ZERO_BYTE.toString('hex'))
+            }
+
+            expect(info.supply).to.eq(tokenSupply)
+            expect(info.supply).to.eq(tokenMintData[2])
+
+            expect(info.decimals).to.eq(parseInt(tokenDecimals, 16))
+            expect(info.decimals).to.eq(parseInt(tokenMintData[3], 16))
+
+            expect(info.mintAuthority.toBase58()).to.eq(ethers.encodeBase58(tokenMintAuthority))
+            expect(info.mintAuthority.toBase58()).to.eq(ethers.encodeBase58(tokenMintData[1]))
+
+            expect(info.freezeAuthority.toBase58()).to.eq(ethers.encodeBase58(tokenFreezeAuthority))
+            expect(info.freezeAuthority.toBase58()).to.eq(ethers.encodeBase58(tokenMintData[6]))
+        })
+
+
+        it('Call SPL token account data getters', async function() {
 
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
 
+            const ataIsInitialized = await callSPLTokenProgram.getSPLTokenAccountIsInitialized(deployerATAInBytes)
+            const ataIsNative = await callSPLTokenProgram.getSPLTokenAccountIsNative(deployerATAInBytes)
             const ataBalance = await callSPLTokenProgram.getSPLTokenAccountBalance(deployerATAInBytes)
             const ataOwner = await callSPLTokenProgram.getSPLTokenAccountOwner(deployerATAInBytes)
             const ataMint = await callSPLTokenProgram.getSPLTokenAccountMint(deployerATAInBytes)
             const ataDelegate = await callSPLTokenProgram.getSPLTokenAccountDelegate(deployerATAInBytes)
             const ataDelegatedAmount = await callSPLTokenProgram.getSPLTokenAccountDelegatedAmount(deployerATAInBytes)
-            const ataIsInitialized = await callSPLTokenProgram.getSPLTokenAccountIsInitialized(deployerATAInBytes)
-            const ataIsNative = await callSPLTokenProgram.getSPLTokenAccountIsNative(deployerATAInBytes)
             const ataCloseAuthority = await callSPLTokenProgram.getSPLTokenAccountCloseAuthority(deployerATAInBytes)
             const ataData = await callSPLTokenProgram.getSPLTokenAccountData(deployerATAInBytes)
 
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
-
-            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(ataMint))
-            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(ataData[0]))
-
-            expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(ataOwner))
-            expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(ataData[1]))
-
-            if(info.delegate) {
-                expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(ataDelegate))
-                expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(ataData[4]))
-            } else { // This test fails... delegate is not null after revoking delegation... why?
-                // expect(ataDelegate).to.eq('0x' + ZERO_BYTES.toString('hex'))
-                // expect(ataData[4]).to.eq('0x' + ZERO_BYTES.toString('hex'))
-            }
-
-            if(info.closeAuthority) {
-                expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(ataCloseAuthority))
-                expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(ataData[10]))
-            } else {
-                expect(ataCloseAuthority).to.eq('0x' + ZERO_BYTES32.toString('hex'))
-                expect(ataData[10]).to.eq('0x' + ZERO_BYTES32.toString('hex'))
-            }
-
-            expect(info.amount).to.eq(ataBalance)
-            expect(info.amount).to.eq(ataData[2])
-
-            expect(info.delegatedAmount).to.eq(ataDelegatedAmount)
-            expect(info.delegatedAmount).to.eq(ataData[8])
 
             if(info.isInitialized) {
                 expect(ataIsInitialized).to.eq('0x' + ONE_BYTE.toString('hex'))
@@ -470,6 +477,35 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 expect(ataIsNative).to.eq('0x' + ZERO_BYTES8.toString('hex'))
                 expect(ataData[7]).to.eq('0x' + ZERO_BYTES8.toString('hex'))
             }
+
+            expect(info.amount).to.eq(ataBalance)
+            expect(info.amount).to.eq(ataData[2])
+
+            expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(ataOwner))
+            expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(ataData[1]))
+
+            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(ataMint))
+            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(ataData[0]))
+
+            if(info.delegate) {
+                expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(ataDelegate))
+                expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(ataData[4]))
+            } else { // This test fails... delegate is not null after revoking delegation... why?
+                // expect(ataDelegate).to.eq('0x' + ZERO_BYTES.toString('hex'))
+                // expect(ataData[4]).to.eq('0x' + ZERO_BYTES.toString('hex'))
+            }
+
+            expect(info.delegatedAmount).to.eq(ataDelegatedAmount)
+            expect(info.delegatedAmount).to.eq(ataData[8])
+
+            if(info.closeAuthority) {
+                expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(ataCloseAuthority))
+                expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(ataData[10]))
+            } else {
+                expect(ataCloseAuthority).to.eq('0x' + ZERO_BYTES32.toString('hex'))
+                expect(ataData[10]).to.eq('0x' + ZERO_BYTES32.toString('hex'))
+            }
+
             // expect(info.isFrozen).to.eq(false) // do we have ataData.isFrozen ??
             // expect(info.rentExemptReserve).to.eq(null) // do we have ataData.rentExemptReserve ??
         })
