@@ -13,25 +13,8 @@ import { ICallSolana } from '../precompiles/ICallSolana.sol';
 contract CallSPLTokenProgram {
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
-    function getNeonAddress(address user) external view returns (bytes32) {
-        return CALL_SOLANA.getNeonAddress(user);
-    }
-
-    function getAssociatedTokenAccount(
-        bytes32 _tokenMint,
-        bytes32 userPubKey
-    ) public view returns(bytes32) {
-        // Returns ATA derived with nonce == 0 by default
-        return LibSPLTokenProgram.getAssociatedTokenAccount(_tokenMint, userPubKey);
-    }
-
-    function getTokenMintAccount(address owner, bytes memory seed) public view returns(bytes32) {
-        // Returns the token mint account derived from from msg.sender and seed
-        return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            owner, // account that created and owns the token mint
-            seed // Seed that has been used to create token mint
-        )));
-    }
+    uint64 public constant MINT_RENT_EXEMPT_BALANCE = 1461600;
+    uint64 public constant ATA_RENT_EXEMPT_BALANCE = 2039280;
 
     function createInitializeTokenMint(bytes memory seed, uint8 decimals) external {
         // Create SPL token mint account: msg.sender and a seed are used to calculate the salt used to derive the token
@@ -43,9 +26,9 @@ contract CallSPLTokenProgram {
                 msg.sender, // msg.sender is included here for future authentication
                 seed // using different seeds allows msg.sender to create different token mint accounts
             )), // salt
-            LibSPLTokenProgram.MINT_SIZE, // space
-            LibSPLTokenProgram.MINT_RENT_EXEMPT_BALANCE, // lamports
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID // Owner must be SPL Token program
+            LibSPLTokenData.SPL_TOKEN_MINT_SIZE, // space
+            MINT_RENT_EXEMPT_BALANCE, // lamports
+            LibSPLTokenData.TOKEN_PROGRAM_ID // Owner must be SPL Token program
         );
 
         // This contract is mint/freeze authority
@@ -64,7 +47,7 @@ contract CallSPLTokenProgram {
 
         // Prepare initializeMint2 instruction
         bytes memory initializeMint2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -98,14 +81,14 @@ contract CallSPLTokenProgram {
         bytes32 ata = CALL_SOLANA.createResource(
             sha256(abi.encodePacked(
                 owner,
-                LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+                LibSPLTokenData.TOKEN_PROGRAM_ID,
                 tokenMint,
                 uint8(0), // Here we use nonce == 0 by default, however nonce can be incremented te create different ATAs for the same owner
-                LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
+                LibSPLTokenData.ASSOCIATED_TOKEN_PROGRAM_ID
             )), // salt
-            LibSPLTokenProgram.ATA_SIZE, // space
-            LibSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE, // lamports
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID // Owner must be SPL Token program
+            LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE, // space
+            ATA_RENT_EXEMPT_BALANCE, // lamports
+            LibSPLTokenData.TOKEN_PROGRAM_ID // Owner must be SPL Token program
         );
         // Format initializeAccount2 instruction
         (   bytes32[] memory accounts,
@@ -119,7 +102,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare initializeAccount2 instruction
         bytes memory initializeAccount2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -151,7 +134,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare mintTo instruction
         bytes memory mintToIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -185,7 +168,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare transfer instruction
         bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -223,7 +206,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare transfer instruction
         bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -253,7 +236,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare createSetAuthority instruction
         bytes memory createSetAuthorityIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -284,7 +267,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare approve instruction
         bytes memory approveIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -312,7 +295,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare revoke instruction
         bytes memory revokeIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -322,7 +305,63 @@ contract CallSPLTokenProgram {
         CALL_SOLANA.execute(0, revokeIx);
     }
 
-    // SPL Token data getters
+
+    // Returns Solana public key for NeonEVM address
+    function getNeonAddress(address user) external view returns (bytes32) {
+        return CALL_SOLANA.getNeonAddress(user);
+    }
+
+    // SPL Token mint data getters
+
+    function getTokenMintAccount(address owner, bytes memory seed) public view returns(bytes32) {
+        // Returns the token mint account derived from from msg.sender and seed
+        return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
+            owner, // account that created and owns the token mint
+            seed // Seed that has been used to create token mint
+        )));
+    }
+
+    function getSPLTokenMintIsInitialized(bytes32 tokenMint) external view returns(bytes1) {
+        return LibSPLTokenData.getSPLTokenMintIsInitialized(tokenMint);
+    }
+
+    function getSPLTokenSupply(bytes32 tokenMint) external view returns(uint64) {
+        return LibSPLTokenData.getSPLTokenSupply(tokenMint);
+    }
+
+    function getSPLTokenDecimals(bytes32 tokenMint) external view returns(bytes1) {
+        return LibSPLTokenData.getSPLTokenDecimals(tokenMint);
+    }
+
+    function getSPLTokenMintAuthority(bytes32 tokenMint) external view returns(bytes32) {
+        return LibSPLTokenData.getSPLTokenMintAuthority(tokenMint);
+    }
+
+    function getSPLTokenFreezeAuthority(bytes32 tokenMint) external view returns(bytes32) {
+        return LibSPLTokenData.getSPLTokenFreezeAuthority(tokenMint);
+    }
+
+    function getSPLTokenMintData(bytes32 tokenMint) external view returns(LibSPLTokenData.SPLTokenMintData memory) {
+        return LibSPLTokenData.getSPLTokenMintData(tokenMint);
+    }
+
+    // SPL Token account data getters
+
+    function getAssociatedTokenAccount(
+        bytes32 _tokenMint,
+        bytes32 userPubKey
+    ) public view returns(bytes32) {
+        // Returns ATA derived with nonce == 0 by default
+        return LibSPLTokenData.getAssociatedTokenAccount(_tokenMint, userPubKey, 0);
+    }
+
+    function getSPLTokenAccountIsInitialized(bytes32 tokenAccount) external view returns(bytes1) {
+        return LibSPLTokenData.getSPLTokenAccountIsInitialized(tokenAccount);
+    }
+
+    function getSPLTokenAccountIsNative(bytes32 tokenAccount) external view returns(bytes8) {
+        return LibSPLTokenData.getSPLTokenAccountIsNative(tokenAccount);
+    }
 
     function getSPLTokenAccountBalance(bytes32 tokenAccount) external view returns(uint64) {
         return LibSPLTokenData.getSPLTokenAccountBalance(tokenAccount);
@@ -342,14 +381,6 @@ contract CallSPLTokenProgram {
 
     function getSPLTokenAccountDelegatedAmount(bytes32 tokenAccount) public view returns(uint64) {
         return LibSPLTokenData.getSPLTokenAccountDelegatedAmount(tokenAccount);
-    }
-
-    function getSPLTokenAccountIsInitialized(bytes32 tokenAccount) external view returns(bytes1) {
-        return LibSPLTokenData.getSPLTokenAccountIsInitialized(tokenAccount);
-    }
-
-    function getSPLTokenAccountIsNative(bytes32 tokenAccount) external view returns(bytes8) {
-        return LibSPLTokenData.getSPLTokenAccountIsNative(tokenAccount);
     }
 
     function getSPLTokenAccountCloseAuthority(bytes32 tokenAccount) external view returns(bytes32) {

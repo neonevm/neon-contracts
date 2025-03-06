@@ -9,14 +9,7 @@ import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
 /// @notice Helper library for interactions with Solana's SPL Token program
 /// @author maxpolizzo@gmail.com
 library LibSPLTokenProgram {
-    bytes32 public constant TOKEN_PROGRAM_ID = 0x06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9;
-    bytes32 public constant ASSOCIATED_TOKEN_PROGRAM_ID = 0x8c97258f4e2489f1bb3d1029148e0d830b5a1399daff1084048e7bd8dbe9f859;
     bytes32 public constant SYSVAR_RENT_PUBKEY = 0x06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000;
-    uint64 public constant MINT_SIZE = 82;
-    uint64 public constant MINT_RENT_EXEMPT_BALANCE = 1461600;
-    uint64 public constant ATA_SIZE = 165;
-    uint64 public constant ATA_RENT_EXEMPT_BALANCE = 2039280;
-    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
     /// @notice Helper function to format a `initializeMint2` instruction
     /// @param decimals The decimals value for the new token mint to be initialized
@@ -267,35 +260,5 @@ library LibSPLTokenProgram {
         data = abi.encodePacked(
             bytes1(0x05) // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
         );
-    }
-
-    function getAssociatedTokenAccount(
-        bytes32 _tokenMint,
-        bytes32 userPubKey
-    ) internal view returns(bytes32) {
-        // Returns ATA derived with  nonce == 0 by default
-        return _getAssociatedTokenAccount(_tokenMint, userPubKey, 0);
-    }
-
-    function getAssociatedTokenAccount(
-        bytes32 _tokenMint,
-        bytes32 userPubKey,
-        uint8 nonce
-    ) internal view returns(bytes32) {
-        return _getAssociatedTokenAccount(_tokenMint, userPubKey, nonce);
-    }
-
-    function _getAssociatedTokenAccount(
-        bytes32 _tokenMint,
-        bytes32 userPubKey,
-        uint8 nonce
-    ) private view returns(bytes32) {
-        return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            userPubKey,
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
-            _tokenMint,
-            nonce,
-            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
-        )));
     }
 }
