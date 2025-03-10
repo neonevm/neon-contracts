@@ -75,7 +75,7 @@ and executing a `transfer` instruction.
 The `CallSystemProgram` or `CallSPLTokenProgram` contract is deployed at the beginning of each test, unless the 
 `config.js` file already contains an address for this contract.
 
-To run all tests in a row on _Curvestand_ test network:
+To run all composability test cases on _Curvestand_ test network:
 
 `npm run test-composability-curvestand`
 

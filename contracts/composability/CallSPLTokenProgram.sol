@@ -154,7 +154,7 @@ contract CallSPLTokenProgram {
         // Authentication: we derive the sender's associated token account from the sender account and the token mint account
         bytes32 senderATA = getAssociatedTokenAccount(tokenMint, senderPubKey);
         // This contract owns the sender's associated token account
-        bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format transfer instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -163,7 +163,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatTransferInstruction(
             senderATA,
             recipientATA,
-            thisContract, // ATA owner
+            thisContractPubKey, // ATA owner
             amount
         );
         // Prepare transfer instruction
@@ -192,7 +192,7 @@ contract CallSPLTokenProgram {
         uint64 senderATADelegatedAmount = getSPLTokenAccountDelegatedAmount(senderATA);
         require(senderATADelegatedAmount >= amount, 'CallSPLTokenProgram.claimTokens: insufficient amount delegated to msg.sender');
         // This contract owns the sender associated token account
-        bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format transfer instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -201,7 +201,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatTransferInstruction(
             senderATA,
             recipientATA,
-            thisContract, // ATA owner
+            thisContractPubKey, // ATA owner
             amount
         );
         // Prepare transfer instruction
@@ -216,34 +216,110 @@ contract CallSPLTokenProgram {
         CALL_SOLANA.execute(0, transferIx);
     }
 
-    function updateMintAuthority(
-        bytes memory seed,
+    function updateTokenMintAuthority(
+        bytes memory seed, // Seed that was used to create the token mint of which we want to update authority
+        LibSPLTokenProgram.AuthorityType authorityType, // MINT or FREEZE authority
         bytes32 newAuthority
     ) external {
         // Authentication: we derive the token mint account from msg.sender and seed
         bytes32 tokenMint = getTokenMintAccount(msg.sender, seed);
-        // This contract is the current mint authority
-        bytes32 currentAuthority = CALL_SOLANA.getNeonAddress(address(this));
-        // Format createSetAuthority instruction
+        // Check current authority
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
+        if (authorityType == LibSPLTokenProgram.AuthorityType.MINT) {
+            // Check that this contract is the current token mint's MINT authority (only token mint's MINT authority can
+            // update token mint's MINT authority)
+            // See: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/processor.rs#L486
+            require(
+                thisContractPubKey == LibSPLTokenData.getSPLTokenMintAuthority(tokenMint),
+                "CallSPLTokenProgram.updateTokenMintAuthority: only token mint's mint authority can update mint authority"
+            );
+        } else if (authorityType == LibSPLTokenProgram.AuthorityType.FREEZE) {
+            // Check that this contract is the current token mint's FREEZE authority (only token mint's FREEZE authority
+            // can update token mint's FREEZE authority)
+            // See: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/processor.rs#L500
+            require(
+                thisContractPubKey == LibSPLTokenData.getSPLTokenFreezeAuthority(tokenMint),
+                "CallSPLTokenProgram.updateTokenMintAuthority: only token mint's freeze authority can update freeze authority"
+            );
+        } else {
+            revert('CallSPLTokenProgram.updateTokenMintAuthority: authority type must be MINT or FREEZE');
+        }
+        // Format setAuthority instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibSPLTokenProgram.formatUpdateMintAuthorityInstruction(
-            tokenMint,
-            currentAuthority,
+        ) = LibSPLTokenProgram.formatSetAuthorityInstruction(
+            tokenMint, // account of which we want to update authority
+            authorityType,
+            thisContractPubKey, // current authority
             newAuthority
         );
-        // Prepare createSetAuthority instruction
-        bytes memory createSetAuthorityIx = CallSolanaHelperLib.prepareSolanaInstruction(
+        // Prepare setAuthority instruction
+        bytes memory setAuthorityIx = CallSolanaHelperLib.prepareSolanaInstruction(
             LibSPLTokenData.TOKEN_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
             data
         );
-        // Execute createSetAuthority instruction
-        CALL_SOLANA.execute(0, createSetAuthorityIx);
+        // Execute setAuthority instruction
+        CALL_SOLANA.execute(0, setAuthorityIx);
+    }
+
+    function updateTokenAccountAuthority(
+        bytes32 tokenMint, // SPL token mint associated with the SPL token account of which we want to update authority
+        LibSPLTokenProgram.AuthorityType authorityType, // OWNER or CLOSE authority
+        bytes32 newAuthority
+    ) external {
+        // Authentication: user's Solana account is derived from msg.sender
+        bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
+        // Authentication: we derive the user's associated token account from the user account and the token mint account
+        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        // Check current authority
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
+        if (authorityType == LibSPLTokenProgram.AuthorityType.OWNER) {
+            // Check that this contract is the current token account OWNER (only token account OWNER can update token
+            // account OWNER)
+            // See: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/processor.rs#L446
+            require(
+                thisContractPubKey == LibSPLTokenData.getSPLTokenAccountOwner(userATA),
+                'CallSPLTokenProgram.updateTokenAccountAuthority: only token account owner can update owner authority'
+            );
+        } else if (authorityType == LibSPLTokenProgram.AuthorityType.CLOSE) {
+            // Check that this contract is the current token account OWNER or the current token account's CLOSE authority
+            // (only token account OWNER or CLOSE authority can update token account's CLOSE authority)
+            // See: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/processor.rs#L465
+            if (thisContractPubKey != LibSPLTokenData.getSPLTokenAccountOwner(userATA)) {
+                require(
+                    thisContractPubKey == LibSPLTokenData.getSPLTokenAccountCloseAuthority(userATA),
+                    'CallSPLTokenProgram.updateTokenAccountAuthority: only token account owner or close authority can update close authority'
+                );
+            }
+        } else {
+            revert('CallSPLTokenProgram.updateTokenAccountAuthority: authority type must be OWNER or CLOSE');
+        }
+        // Format setAuthority instruction
+        (   bytes32[] memory accounts,
+            bool[] memory isSigner,
+            bool[] memory isWritable,
+            bytes memory data
+        ) = LibSPLTokenProgram.formatSetAuthorityInstruction(
+            userATA, // account of which we want to update authority
+            authorityType,
+            thisContractPubKey, // current authority
+            newAuthority
+        );
+        // Prepare setAuthority instruction
+        bytes memory setAuthorityIx = CallSolanaHelperLib.prepareSolanaInstruction(
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
+            accounts,
+            isSigner,
+            isWritable,
+            data
+        );
+        // Execute setAuthority instruction
+        CALL_SOLANA.execute(0, setAuthorityIx);
     }
 
     function approve(bytes32 tokenMint, bytes32 delegate, uint64 amount) external {
@@ -252,7 +328,7 @@ contract CallSPLTokenProgram {
         // Authentication: we derive the user's associated token account from the user account and the token mint account
         bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
         // This contract owns the user's associated token account
-        bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
 
         // Format approve instruction
         (   bytes32[] memory accounts,
@@ -262,7 +338,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatApproveInstruction(
             userATA,
             delegate,
-            thisContract, // ATA owner
+            thisContractPubKey, // ATA owner
             amount
         );
         // Prepare approve instruction
@@ -283,7 +359,7 @@ contract CallSPLTokenProgram {
         // Authentication: we derive the user's associated token account from the user account and the token mint account
         bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
         // This contract owns the user's associated token account
-        bytes32 thisContract = CALL_SOLANA.getNeonAddress(address(this));
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format revoke instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -291,7 +367,7 @@ contract CallSPLTokenProgram {
             bytes memory data
         ) = LibSPLTokenProgram.formatRevokeInstruction(
             userATA,
-            thisContract // ATA owner
+            thisContractPubKey // ATA owner
         );
         // Prepare revoke instruction
         bytes memory revokeIx = CallSolanaHelperLib.prepareSolanaInstruction(
@@ -305,6 +381,90 @@ contract CallSPLTokenProgram {
         CALL_SOLANA.execute(0, revokeIx);
     }
 
+    function burn(bytes32 tokenMint, uint64 amount) external {
+        // Authentication: user's Solana account is derived from msg.sender
+        bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
+        // Authentication: we derive the user's associated token account from the user account and the token mint account
+        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        // This contract owns the user's associated token account
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
+
+        // Format burn instruction
+        (   bytes32[] memory accounts,
+            bool[] memory isSigner,
+            bool[] memory isWritable,
+            bytes memory data
+        ) = LibSPLTokenProgram.formatBurnInstruction(
+            userATA,
+            tokenMint,
+            thisContractPubKey, // ATA owner
+            amount
+        );
+        // Prepare burn instruction
+        bytes memory burnIx = CallSolanaHelperLib.prepareSolanaInstruction(
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
+            accounts,
+            isSigner,
+            isWritable,
+            data
+        );
+        // Execute approve instruction
+        CALL_SOLANA.execute(0, burnIx);
+    }
+
+    function closeTokenAccount(bytes32 tokenMint, bytes32 destination) external {
+        // Authentication: user's Solana account is derived from msg.sender
+        bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
+        // Authentication: we derive the user's associated token account from the user account and the token mint account
+        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        // This contract owns the user's associated token account
+        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
+        // Format closeAccount instruction
+        (   bytes32[] memory accounts,
+            bool[] memory isSigner,
+            bool[] memory isWritable,
+            bytes memory data
+        ) = LibSPLTokenProgram.formatCloseAccountInstruction(
+            userATA,
+            destination, // The account which will receive the closed token account's SOL balance
+            thisContractPubKey // ATA owner
+        );
+        // Prepare approve instruction
+        bytes memory approveIx = CallSolanaHelperLib.prepareSolanaInstruction(
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
+            accounts,
+            isSigner,
+            isWritable,
+            data
+        );
+        // Execute approve instruction
+        CALL_SOLANA.execute(0, approveIx);
+    }
+
+    /// @notice Function to execute a `syncNative` instruction in order to sync a Wrapped SOL token account's
+    // balance
+    /// @param tokenAccount The Wrapped SOL token account that we want to sync
+    function syncWrappedSOLAccount(bytes32 tokenAccount) external {
+        // No authentication: anyone can sync any Wrapped SOL token account
+        // Format syncNative instruction
+        (   bytes32[] memory accounts,
+            bool[] memory isSigner,
+            bool[] memory isWritable,
+            bytes memory data
+        ) = LibSPLTokenProgram.formatSyncNativeInstruction(
+            tokenAccount
+        );
+        // Prepare syncNative instruction
+        bytes memory syncNativeIx = CallSolanaHelperLib.prepareSolanaInstruction(
+            LibSPLTokenData.TOKEN_PROGRAM_ID,
+            accounts,
+            isSigner,
+            isWritable,
+            data
+        );
+        // Execute syncNative instruction
+        CALL_SOLANA.execute(0, syncNativeIx);
+    }
 
     // Returns Solana public key for NeonEVM address
     function getNeonAddress(address user) external view returns (bytes32) {
