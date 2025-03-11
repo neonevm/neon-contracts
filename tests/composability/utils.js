@@ -52,6 +52,8 @@ async function deployContract(contractName, contractAddress = null) {
     ) {
         await airdropNEON(user.address, parseInt(ethers.formatUnits((minBalance - userBalance).toString(), 18)))
     }
+    const otherUser = ethers.Wallet.createRandom(ethers.provider)
+    await airdropNEON(otherUser.address, parseInt(ethers.formatUnits(minBalance.toString(), 18)))
 
     const contractFactory = await ethers.getContractFactory(contractName)
     let contract
@@ -70,7 +72,7 @@ async function deployContract(contractName, contractAddress = null) {
         contract = contractFactory.attach(deployedContractAddress)
     }
 
-    return { deployer, user, contract }
+    return { deployer, user, otherUser, contract }
 }
 
 async function getSolanaTransactions(neonTxHash) {
@@ -139,6 +141,7 @@ function publicKeyToBytes32(pubkey) {
 }
 
 module.exports = {
+    airdropNEON,
     airdropSOL,
     asyncTimeout,
     deployContract,

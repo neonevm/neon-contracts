@@ -1,7 +1,7 @@
 const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
-const { getMint, getAccount, createSyncNativeInstruction } = require("@solana/spl-token");
+const { getMint, getAccount } = require("@solana/spl-token");
 const config = require("./config");
 const { deployContract, airdropSOL } = require("./utils");
 
@@ -25,22 +25,26 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
     let deployer,
         neonEVMUser,
+        otherNeonEVMUser,
         callSPLTokenProgram,
         tx,
         contractPublicKeyInBytes,
         deployerPublicKeyInBytes,
         neonEVMUserPublicKeyInBytes,
+        otherNeonEVMUserPublicKeyInBytes,
         solanaUserPublicKey,
         tokenMintInBytes,
         deployerATAInBytes,
         deployerWSOLATAInBytes,
         neonEVMUserATAInBytes,
+        otherNeonEVMUserATAInBytes,
         solanaUserATAInBytes,
         newMintAuthorityInBytes,
         newFreezeAuthorityInBytes,
         newOwnerInBytes,
         newCloseAuthorityInBytes,
         initialDeployerBalance,
+        newDeployerBalance,
         initialDeployerATABalance,
         newDeployerATABalance,
         initialDeployerATASOLBalance,
@@ -48,6 +52,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         initialDeployerATAwSOLBalance,
         newDeployerATAwSOLBalance,
         initialNeonEVMUserATABalance,
+        newNeonEVMUserATABalance,
         initialSolanaUserATABalance,
         info
 
@@ -55,6 +60,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         const deployment = await deployContract('CallSPLTokenProgram', null)
         deployer = deployment.deployer
         neonEVMUser = deployment.user
+        otherNeonEVMUser = deployment.otherUser
         callSPLTokenProgram = deployment.contract
     })
 
@@ -101,14 +107,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
-            expect(info.delegate).to.eq(null)
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(ZERO_AMOUNT)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
         })
 
@@ -132,14 +138,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
-            expect(info.delegate).to.eq(null)
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(ZERO_AMOUNT)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
         })
 
@@ -163,14 +169,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(solanaUserATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(solanaUserPublicKey.toBase58())
-            expect(info.delegate).to.eq(null)
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(ZERO_AMOUNT)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
         })
     })
@@ -208,6 +214,28 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.value.decimals).to.eq(decimals)
             expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialDeployerATABalance + AMOUNT), decimals)))
             expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialDeployerATABalance + AMOUNT), decimals).split('.')[0])
+        })
+
+        it('Third party user cannot mint (transaction reverts)', async function() {
+
+            initialNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            )).value.amount)
+
+            // Mint tokens (transaction reverts)
+            await expect(callSPLTokenProgram.connect(neonEVMUser).mintTokens(
+                Buffer.from(seed), // Seed that was used to generate SPL token mint
+                neonEVMUserATAInBytes, // Recipient ATA
+                AMOUNT // Amount to mint
+            )).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x3"
+            )
+
+            newNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            )).value.amount)
+
+            expect(newNeonEVMUserATABalance).to.eq(initialNeonEVMUserATABalance)
         })
     })
 
@@ -288,10 +316,42 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialSolanaUserATABalance + SMALL_AMOUNT), decimals).split('.')[0])
         })
 
+        it('User with zero balance cannot transfer (transaction reverts)', async function() {
 
+            initialNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            )).value.amount)
+
+            expect(initialNeonEVMUserATABalance).to.eq(ZERO_AMOUNT)
+
+            await expect(callSPLTokenProgram.connect(neonEVMUser).transferTokens(
+                tokenMintInBytes,
+                neonEVMUserATAInBytes,
+                AMOUNT
+            )).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x1"
+            )
+
+            newNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            )).value.amount)
+
+            expect(newNeonEVMUserATABalance).to.eq(initialNeonEVMUserATABalance)
+        })
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36mapprove\x1b[33m instruction\x1b[0m', function() {
+
+        it('User without approval cannot claim (transaction reverts)', async function() {
+
+            await expect(callSPLTokenProgram.connect(neonEVMUser).claimTokens(
+                deployerATAInBytes, // Spend from deployer ATA
+                neonEVMUserATAInBytes, // Recipient ATA
+                SMALL_AMOUNT // Claimed amount
+            )).to.be.revertedWith(
+                "CallSPLTokenProgram.claimTokens: msg.sender is not approved to spend from ata"
+            )
+        })
 
         it('Delegate deployer ATA to NeonEVM user', async function() {
 
@@ -312,13 +372,13 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserPublicKeyInBytes))
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(initialDeployerATABalance)
             expect(info.delegatedAmount).to.eq(SMALL_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
         })
 
@@ -344,13 +404,13 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserPublicKeyInBytes))
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(initialDeployerATABalance - SMALL_AMOUNT)
             expect(info.delegatedAmount).to.eq(SMALL_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
 
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
@@ -358,15 +418,25 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
-            expect(info.delegate).to.eq(null)
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(initialNeonEVMUserATABalance + SMALL_AMOUNT)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
+        })
+
+        it('User without initialized ATA cannot delegate (transaction reverts)', async function() {
+            await expect(callSPLTokenProgram.connect(otherNeonEVMUser).approve(
+                tokenMintInBytes,
+                neonEVMUserPublicKeyInBytes,
+                AMOUNT
+            )).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: invalid account data for instruction"
+            )
         })
     })
 
@@ -388,19 +458,39 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
-            expect(info.delegate).to.eq(null)
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(initialDeployerATABalance)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
+        })
+
+        it('User without initialized ATA cannot revoke approval (transaction reverts)', async function() {
+            await expect(callSPLTokenProgram.connect(otherNeonEVMUser).revokeApproval(
+                tokenMintInBytes
+            )).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: invalid account data for instruction"
+            )
         })
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36msetAuthority\x1b[33m instruction\x1b[0m', function() {
+
+        it("User can only update SPL token mint's MINT or FREEZE authority (otherwise transaction reverts)", async function() {
+            newOwnerInBytes = (await web3.Keypair.generate()).publicKey.toBuffer()
+
+            await expect(callSPLTokenProgram.connect(otherNeonEVMUser).updateTokenMintAuthority(
+                Buffer.from(seed), // Seed that was used to generate SPL token mint
+                2, // OWNER authority
+                newOwnerInBytes
+            )).to.be.revertedWith(
+                "CallSPLTokenProgram.updateTokenMintAuthority: authority type must be MINT or FREEZE"
+            )
+        })
 
         it("Update SPL token mint's MINT authority", async function() {
 
@@ -409,7 +499,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             tx = await callSPLTokenProgram.connect(deployer).updateTokenMintAuthority(
                 Buffer.from(seed), // Seed that was used to generate SPL token mint
                 0, // MINT authority
-                newMintAuthorityInBytes,
+                newMintAuthorityInBytes
             )
             await tx.wait(1) // Wait for 1 confirmation
 
@@ -424,6 +514,26 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
+        it("Previous MINT authority cannot update SPL token mint's MINT authority anymore (transaction reverts)", async function() {
+            await expect(callSPLTokenProgram.connect(deployer).updateTokenMintAuthority(
+                Buffer.from(seed), // Seed that was used to generate SPL token mint
+                0, // MINT authority
+                newMintAuthorityInBytes
+            )).to.be.revertedWith(
+                "CallSPLTokenProgram.updateTokenMintAuthority: only token mint's mint authority can update mint authority"
+            )
+        })
+
+        it("Third party user cannot update SPL token mint's MINT authority (transaction reverts)", async function() {
+            await expect(callSPLTokenProgram.connect(otherNeonEVMUser).updateTokenMintAuthority(
+                Buffer.from(seed), // Seed that was used to generate SPL token mint
+                0, // MINT authority
+                newMintAuthorityInBytes
+            )).to.be.revertedWith(
+        "LibSPLTokenData.getSPLTokenMintAuthority: failed to query SPL Token mint data"
+            )
+        })
+
         it("Update SPL token mint's FREEZE authority", async function() {
 
             newFreezeAuthorityInBytes = (await web3.Keypair.generate()).publicKey.toBuffer()
@@ -431,7 +541,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             tx = await callSPLTokenProgram.connect(deployer).updateTokenMintAuthority(
                 Buffer.from(seed), // Seed that was used to generate SPL token mint
                 1, // FREEZE authority
-                newFreezeAuthorityInBytes,
+                newFreezeAuthorityInBytes
             )
             await tx.wait(1) // Wait for 1 confirmation
 
@@ -446,7 +556,56 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it("Update SPL token account's CLOSE authority", async function() {
+        it("Previous FREEZE authority cannot update SPL token mint's FREEZE authority anymore (transaction reverts)", async function() {
+            await expect(callSPLTokenProgram.connect(deployer).updateTokenMintAuthority(
+                Buffer.from(seed), // Seed that was used to generate SPL token mint
+                1, // FREEZE authority
+                newFreezeAuthorityInBytes
+            )).to.be.revertedWith(
+                "CallSPLTokenProgram.updateTokenMintAuthority: only token mint's freeze authority can update freeze authority"
+            )
+        })
+
+        it("Third party user cannot update SPL token mint's FREEZE authority (transaction reverts)", async function() {
+            await expect(callSPLTokenProgram.connect(otherNeonEVMUser).updateTokenMintAuthority(
+                Buffer.from(seed), // Seed that was used to generate SPL token mint
+                1, // FREEZE authority
+                newFreezeAuthorityInBytes
+            )).to.be.revertedWith(
+                "LibSPLTokenData.getSPLTokenFreezeAuthority: failed to query SPL Token mint data"
+            )
+        })
+
+        it("SPL token account's OWNER can update undefined SPL token account's CLOSE authority", async function() {
+
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            expect(info.closeAuthority).to.be.null
+
+            tx = await callSPLTokenProgram.connect(neonEVMUser).updateTokenAccountAuthority(
+                tokenMintInBytes, // Token mint associated with the token account of which we want to update authority
+                3, // CLOSE authority
+                contractPublicKeyInBytes,
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
+            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
+            expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
+            expect(info.isInitialized).to.eq(true)
+            expect(info.isFrozen).to.eq(false)
+            expect(info.isNative).to.eq(false)
+            expect(info.rentExemptReserve).to.be.null
+            expect(info.tlvData.length).to.eq(0)
+        })
+
+        it("SPL token account's CLOSE authority can update SPL token account's CLOSE authority", async function() {
+
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
 
             newCloseAuthorityInBytes = (await web3.Keypair.generate()).publicKey.toBuffer()
 
@@ -462,16 +621,37 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
-            expect(info.delegate).to.eq(null)
+            expect(info.delegate).to.be.null
             expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(newCloseAuthorityInBytes))
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it("Update SPL token account's OWNER authority", async function() {
+        it("SPL token account's OWNER cannot update already defined SPL token account's CLOSE authority (transaction reverts)", async function() {
+
+            await expect(callSPLTokenProgram.connect(neonEVMUser).updateTokenAccountAuthority(
+                tokenMintInBytes,
+                3,
+                contractPublicKeyInBytes,
+            )).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x4"
+            )
+        })
+
+        it("User without initialized ATA cannot update SPL token account's CLOSE authority (transaction reverts)", async function() {
+            await expect(callSPLTokenProgram.connect(otherNeonEVMUser).updateTokenAccountAuthority(
+                tokenMintInBytes, // Token mint associated with the token account of which we want to update authority
+                3, // CLOSE authority
+                newCloseAuthorityInBytes,
+            )).to.be.revertedWith(
+                "LibSPLTokenData.getSPLTokenAccountOwner: failed to query SPL Token account data"
+            )
+        })
+
+        it("SPL token account's OWNER can update SPL token account's OWNER authority", async function() {
 
             newOwnerInBytes = (await web3.Keypair.generate()).publicKey.toBuffer()
 
@@ -487,13 +667,37 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(newOwnerInBytes))
-            expect(info.delegate).to.eq(null)
+            expect(info.delegate).to.be.null
             expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(newCloseAuthorityInBytes))
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(false)
-            expect(info.rentExemptReserve).to.eq(null)
+            expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
+        })
+
+        it("Previous token account's OWNER cannot update SPL token account OWNER anymore (transaction reverts)", async function() {
+            newOwnerInBytes = (await web3.Keypair.generate()).publicKey.toBuffer()
+
+            await expect(callSPLTokenProgram.connect(neonEVMUser).updateTokenAccountAuthority(
+                tokenMintInBytes, // Token mint associated with the token account of which we want to update authority
+                2, // OWNER authority
+                newOwnerInBytes,
+            )).to.be.revertedWith(
+                "CallSPLTokenProgram.updateTokenAccountAuthority: only token account owner can update owner authority"
+            )
+        })
+
+        it("Previous token account's OWNER cannot update SPL token account CLOSE authority (transaction reverts)", async function() {
+            newCloseAuthorityInBytes = (await web3.Keypair.generate()).publicKey.toBuffer()
+
+            await expect(callSPLTokenProgram.connect(neonEVMUser).updateTokenAccountAuthority(
+                tokenMintInBytes, // Token mint associated with the token account of which we want to update authority
+                3, // CLOSE authority
+                newCloseAuthorityInBytes,
+            )).to.be.revertedWith(
+                "CallSPLTokenProgram.updateTokenAccountAuthority: only token account owner or close authority can update close authority"
+            )
         })
     })
 
@@ -522,6 +726,21 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
             expect(initialDeployerATABalance - newDeployerATABalance).to.eq(SMALL_AMOUNT)
         })
+
+        it("User cannot burn more than token balance (transaction reverts)", async function() {
+
+            // Check initial token balance of deployer ATA
+            info = await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+            )
+            initialDeployerATABalance = BigInt(info.value.amount)
+
+            // Burn tokens
+            await expect(callSPLTokenProgram.connect(deployer).burn(
+                tokenMintInBytes,
+                initialDeployerATABalance + SMALL_AMOUNT,
+            )).to.be.revertedWith("External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x1")
+        })
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36msyncNative\x1b[33m instruction\x1b[0m', function() {
@@ -545,8 +764,8 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerWSOLATAInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(WSOL_MINT_PUBKEY))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
-            expect(info.delegate).to.eq(null)
-            expect(info.closeAuthority).to.eq(null)
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(ZERO_AMOUNT)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
@@ -579,9 +798,41 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             newDeployerATAwSOLBalance = info.amount
             expect(newDeployerATAwSOLBalance - initialDeployerATAwSOLBalance).to.eq(SMALL_AMOUNT) // wSOL balance has been synced
         })
+
+        it("User cannot sync a non-native token account (transaction reverts)", async function() {
+
+            // Airdrop SOL to deployer's non-native token account
+            await airdropSOL(ethers.encodeBase58(deployerATAInBytes), parseInt(SMALL_AMOUNT.toString()))
+            initialDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
+            expect(initialDeployerATASOLBalance).to.eq((await callSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE()) + SMALL_AMOUNT)
+
+            // Sync native
+            await expect(callSPLTokenProgram.syncWrappedSOLAccount(deployerATAInBytes)).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x13"
+            )
+        })
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36mcloseAccount\x1b[33m instruction\x1b[0m', function() {
+
+        it("User cannot close SPL token account which has non-zero token balance (transaction reverts)", async function() {
+
+            // Check initial token balance of deployer ATA
+            info = await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+            )
+            initialDeployerATABalance = BigInt(info.value.amount)
+
+            expect(BigInt(initialDeployerATABalance)).to.be.greaterThan(ZERO_AMOUNT)
+
+            // Close deployer ATA
+            await expect(callSPLTokenProgram.connect(deployer).closeTokenAccount(
+                tokenMintInBytes,
+                deployerPublicKeyInBytes
+            )).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0xb"
+            )
+        })
 
         it("Close SPL token account", async function() {
 
@@ -606,8 +857,9 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 expect(info.value.amount).to.eq(ZERO_AMOUNT.toString())
             }
 
-            // Deployer ATA's SOL balance will be transferred to deployer account (check initial deployer account  balance)
+            // Deployer ATA's SOL balance will be transferred to deployer account
             initialDeployerBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerPublicKeyInBytes)))
+            initialDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
 
             // Close deployer ATA
             tx = await callSPLTokenProgram.connect(deployer).closeTokenAccount(
@@ -617,11 +869,26 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             await tx.wait(1) // Wait for 1 confirmation
 
             // Check that ATA does not exist anymore
-            expect(callSPLTokenProgram.getSPLTokenAccountData(deployerATAInBytes)).to.be.reverted
+            await expect(callSPLTokenProgram.getSPLTokenAccountData(deployerATAInBytes)).to.be.revertedWith(
+                "LibSPLTokenData: failed to query SPL Token account data"
+            )
 
             // Check that ATA balance was transferred to deployer account
-            let newDeployerBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerPublicKeyInBytes)))
-            expect(newDeployerBalance - initialDeployerBalance).to.eq((await callSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE()))
+            newDeployerBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerPublicKeyInBytes)))
+            expect(newDeployerBalance - initialDeployerBalance).to.eq(initialDeployerATASOLBalance)
+        })
+
+        it("User cannot close SPL token account which has not been initialized (transaction reverts)", async function() {
+
+            otherNeonEVMUserPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(otherNeonEVMUser.address)
+
+            // Close user ATA
+            await expect(callSPLTokenProgram.connect(otherNeonEVMUser).closeTokenAccount(
+                tokenMintInBytes,
+                otherNeonEVMUserPublicKeyInBytes
+            )).to.be.revertedWith(
+                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: invalid account data for instruction"
+            )
         })
     })
 
@@ -706,9 +973,6 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             if(info.delegate) {
                 expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(ataDelegate))
                 expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(ataData[4]))
-            } else { // This test fails... delegate is not null after revoking delegation... why?
-                // expect(ataDelegate).to.eq('0x' + ZERO_BYTES.toString('hex'))
-                // expect(ataData[4]).to.eq('0x' + ZERO_BYTES.toString('hex'))
             }
 
             expect(info.delegatedAmount).to.eq(ataDelegatedAmount)
@@ -723,7 +987,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             }
 
             // expect(info.isFrozen).to.eq(false) // do we have ataData.isFrozen ??
-            // expect(info.rentExemptReserve).to.eq(null) // do we have ataData.rentExemptReserve ??
+            // expect(info.rentExemptReserve).to.be.null // do we have ataData.rentExemptReserve ??
         })
     })
 })
