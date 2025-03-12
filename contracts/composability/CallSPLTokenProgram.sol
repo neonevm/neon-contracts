@@ -112,7 +112,7 @@ contract CallSPLTokenProgram {
         CALL_SOLANA.execute(0, initializeAccount2Ix);
     }
 
-    function mintTokens(
+    function mint(
         bytes memory seed,
         bytes32 recipientATA,
         uint64 amount
@@ -144,7 +144,7 @@ contract CallSPLTokenProgram {
         CALL_SOLANA.execute(0, mintToIx);
     }
 
-    function transferTokens(
+    function transfer(
         bytes32 tokenMint,
         bytes32 recipientATA,
         uint64 amount
@@ -178,7 +178,7 @@ contract CallSPLTokenProgram {
         CALL_SOLANA.execute(0, transferIx);
     }
 
-    function claimTokens(
+    function claim(
         bytes32 senderATA,
         bytes32 recipientATA,
         uint64 amount
@@ -188,9 +188,9 @@ contract CallSPLTokenProgram {
         // Authentication: we verify that the sender ATA has been delegated to the spender account and that delegated
         // amount is larger than or equal to claimed amount
         bytes32 senderATADelegate = getSPLTokenAccountDelegate(senderATA);
-        require(senderATADelegate == spenderPubKey, 'CallSPLTokenProgram.claimTokens: msg.sender is not approved to spend from ata');
+        require(senderATADelegate == spenderPubKey, 'CallSPLTokenProgram.claim: msg.sender is not approved to spend from ata');
         uint64 senderATADelegatedAmount = getSPLTokenAccountDelegatedAmount(senderATA);
-        require(senderATADelegatedAmount >= amount, 'CallSPLTokenProgram.claimTokens: insufficient amount delegated to msg.sender');
+        require(senderATADelegatedAmount >= amount, 'CallSPLTokenProgram.claim: insufficient amount delegated to msg.sender');
         // This contract owns the sender associated token account
         bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format transfer instruction
@@ -489,7 +489,7 @@ contract CallSPLTokenProgram {
         return LibSPLTokenData.getSPLTokenSupply(tokenMint);
     }
 
-    function getSPLTokenDecimals(bytes32 tokenMint) external view returns(bytes1) {
+    function getSPLTokenDecimals(bytes32 tokenMint) external view returns(uint8) {
         return LibSPLTokenData.getSPLTokenDecimals(tokenMint);
     }
 

@@ -198,7 +198,7 @@ library LibSPLTokenProgram {
         data = abi.encodePacked(
             bytes1(0x06), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L514)
             authorityType, // Authority type (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L753)
-            bytes1(0x01), // Flag (how is it used?)
+            bytes1(0x01),
             newAuthority
         );
     }

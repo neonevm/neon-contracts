@@ -37,7 +37,6 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         deployerATAInBytes,
         deployerWSOLATAInBytes,
         neonEVMUserATAInBytes,
-        otherNeonEVMUserATAInBytes,
         solanaUserATAInBytes,
         newMintAuthorityInBytes,
         newFreezeAuthorityInBytes,
@@ -189,7 +188,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
             )).value.amount)
 
-            tx = await callSPLTokenProgram.connect(deployer).mintTokens(
+            tx = await callSPLTokenProgram.connect(deployer).mint(
                 Buffer.from(seed), // Seed that was used to generate SPL token mint
                 deployerATAInBytes, // Recipient ATA
                 AMOUNT // Amount to mint
@@ -223,7 +222,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )).value.amount)
 
             // Mint tokens (transaction reverts)
-            await expect(callSPLTokenProgram.connect(neonEVMUser).mintTokens(
+            await expect(callSPLTokenProgram.connect(neonEVMUser).mint(
                 Buffer.from(seed), // Seed that was used to generate SPL token mint
                 neonEVMUserATAInBytes, // Recipient ATA
                 AMOUNT // Amount to mint
@@ -255,7 +254,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 neonEVMUserPublicKeyInBytes,
             )
 
-            tx = await callSPLTokenProgram.connect(deployer).transferTokens(
+            tx = await callSPLTokenProgram.connect(deployer).transfer(
                 tokenMintInBytes,
                 neonEVMUserATAInBytes, // Recipient is NeonEVM user ATA
                 SMALL_AMOUNT // Amount to transfer
@@ -290,7 +289,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 new web3.PublicKey(ethers.encodeBase58(solanaUserATAInBytes))
             )).value.amount)
 
-            tx = await callSPLTokenProgram.connect(neonEVMUser).transferTokens(
+            tx = await callSPLTokenProgram.connect(neonEVMUser).transfer(
                 tokenMintInBytes,
                 solanaUserATAInBytes, // Recipient is NeonEVM user ATA
                 SMALL_AMOUNT // Amount to transfer
@@ -324,7 +323,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
             expect(initialNeonEVMUserATABalance).to.eq(ZERO_AMOUNT)
 
-            await expect(callSPLTokenProgram.connect(neonEVMUser).transferTokens(
+            await expect(callSPLTokenProgram.connect(neonEVMUser).transfer(
                 tokenMintInBytes,
                 neonEVMUserATAInBytes,
                 AMOUNT
@@ -344,12 +343,12 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it('User without approval cannot claim (transaction reverts)', async function() {
 
-            await expect(callSPLTokenProgram.connect(neonEVMUser).claimTokens(
+            await expect(callSPLTokenProgram.connect(neonEVMUser).claim(
                 deployerATAInBytes, // Spend from deployer ATA
                 neonEVMUserATAInBytes, // Recipient ATA
                 SMALL_AMOUNT // Claimed amount
             )).to.be.revertedWith(
-                "CallSPLTokenProgram.claimTokens: msg.sender is not approved to spend from ata"
+                "CallSPLTokenProgram.claim: msg.sender is not approved to spend from ata"
             )
         })
 
@@ -391,7 +390,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
             )).value.amount)
 
-            tx = await callSPLTokenProgram.connect(neonEVMUser).claimTokens(
+            tx = await callSPLTokenProgram.connect(neonEVMUser).claim(
                 deployerATAInBytes, // Spend from deployer ATA
                 neonEVMUserATAInBytes, // Recipient ATA
                 SMALL_AMOUNT // Claimed amount
@@ -844,7 +843,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
             // SPL token account must have zero token balance before being closed
             if(initialDeployerATABalance > 0) {
-                tx = await callSPLTokenProgram.connect(deployer).transferTokens(
+                tx = await callSPLTokenProgram.connect(deployer).transfer(
                     tokenMintInBytes,
                     neonEVMUserATAInBytes, // Recipient is NeonEVM user ATA
                     initialDeployerATABalance // Amount to transfer
@@ -918,8 +917,8 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.supply).to.eq(tokenSupply)
             expect(info.supply).to.eq(tokenMintData[2])
 
-            expect(info.decimals).to.eq(parseInt(tokenDecimals, 16))
-            expect(info.decimals).to.eq(parseInt(tokenMintData[3], 16))
+            expect(info.decimals).to.eq(tokenDecimals)
+            expect(info.decimals).to.eq(tokenMintData[3])
 
             expect(info.mintAuthority.toBase58()).to.eq(ethers.encodeBase58(tokenMintAuthority))
             expect(info.mintAuthority.toBase58()).to.eq(ethers.encodeBase58(tokenMintData[1]))
@@ -985,9 +984,6 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 expect(ataCloseAuthority).to.eq('0x' + ZERO_BYTES32.toString('hex'))
                 expect(ataData[10]).to.eq('0x' + ZERO_BYTES32.toString('hex'))
             }
-
-            // expect(info.isFrozen).to.eq(false) // do we have ataData.isFrozen ??
-            // expect(info.rentExemptReserve).to.be.null // do we have ataData.rentExemptReserve ??
         })
     })
 })

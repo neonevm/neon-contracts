@@ -49,7 +49,7 @@ by providing the `seed` that was used to create the token mint account.
 
 The `createInitializeATA` function can be used for three different purposes:
 
-* To create and in initialize an associated token account (ATA) to be used by `msg.sender` to send tokens through the 
+* To create and initialize an associated token account (ATA) to be used by `msg.sender` to send tokens through the 
 **CallSPLTokenProgram** contract. In this case, both the `owner` and `tokenOwner` parameters passed to the function 
 should be left empty. The ATA to be created is derived from `msg.sender` and a `nonce` (that can be incremented to 
 create different ATAs). The owner of the ATA is the **CallSPLTokenProgram** contract. The `transferTokens` function 
@@ -62,7 +62,7 @@ derived from the `user` account and a `nonce` (that can be incremented to create
 is the **CallSPLTokenProgram** contract. The `transferTokens` function grants `user` permission to transfer tokens 
 from this ATA by providing the `nonce` that was used to create the ATA.
 
-* To create and in initialize an associated token account (ATA) to be used by a third party `solanaUser` _Solana_ account
+* To create and initialize an associated token account (ATA) to be used by a third party `solanaUser` _Solana_ account
 to send tokens directly on _Solana_ without interacting with the **CallSPLTokenProgram** contract. In this case, both the 
 `owner` and the `tokenOwner` parameters passed to the function should be `solanaUser`. The ATA to be created is derived 
 from the `solanaUser` account and a `nonce` (that can be incremented to create different ATAs). The owner of the ATA is 
