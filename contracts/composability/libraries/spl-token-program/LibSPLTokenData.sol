@@ -6,6 +6,9 @@ import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.so
 
 import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
 
+/// @title LibSPLTokenData
+/// @notice Helper library for getting data from Solana's SPL Token program
+/// @author maxpolizzo@gmail.com
 library LibSPLTokenData {
     using SolanaDataConverterLib for bytes;
     using SolanaDataConverterLib for uint64;
@@ -35,7 +38,7 @@ library LibSPLTokenData {
         bytes4 mintAuthorityOption;
         bytes32 mintAuthority;
         uint64 supply;
-        bytes1 decimals;
+        uint8 decimals;
         bytes1 isInitialized;
         bytes4 freezeAuthorityOption;
         bytes32 freezeAuthority;
@@ -43,6 +46,8 @@ library LibSPLTokenData {
 
     // SPL token mint data getters
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return bytes1(0x01) if the token mint is initialized, bytes1(0x00) otherwise
     function getSPLTokenMintIsInitialized(bytes32 tokenMint) internal view returns(bytes1) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenMint),
@@ -54,6 +59,8 @@ library LibSPLTokenData {
         return bytes1(data.toUint8(0));
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return token supply as uint64
     function getSPLTokenSupply(bytes32 tokenMint) internal view returns(uint64) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenMint),
@@ -65,7 +72,9 @@ library LibSPLTokenData {
         return (data.toUint64(0)).readLittleEndianUnsigned64();
     }
 
-    function getSPLTokenDecimals(bytes32 tokenMint) internal view returns(bytes1) {
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return token decimals as uint8
+    function getSPLTokenDecimals(bytes32 tokenMint) internal view returns(uint8) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenMint),
             44,
@@ -73,9 +82,11 @@ library LibSPLTokenData {
         );
         require(success, "LibSPLTokenData.getSPLTokenDecimals: failed to query SPL Token mint data");
 
-        return bytes1(data.toUint8(0));
+        return data.toUint8(0);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return 32 bytes public key of the token's MINT authority
     function getSPLTokenMintAuthority(bytes32 tokenMint) internal view returns(bytes32) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenMint),
@@ -87,6 +98,8 @@ library LibSPLTokenData {
         return data.toBytes32(0);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return 32 bytes public key of the token's FREEZE authority
     function getSPLTokenFreezeAuthority(bytes32 tokenMint) internal view returns(bytes32) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenMint),
@@ -98,6 +111,8 @@ library LibSPLTokenData {
         return data.toBytes32(0);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return the full token mint data formatted as a SPLTokenMintData struct
     function getSPLTokenMintData(bytes32 tokenMint) internal view returns(SPLTokenMintData memory) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenMint),
@@ -110,7 +125,7 @@ library LibSPLTokenData {
             bytes4(data.toUint32(0)), // 4 bytes mintAuthorityOption
             data.toBytes32(4), // 32 bytes mintAuthority
             (data.toUint64(36)).readLittleEndianUnsigned64(), // 8 bytes token supply
-            bytes1(data.toUint8(44)), // 1 byte token decimals
+            data.toUint8(44), // 1 byte token decimals
             bytes1(data.toUint8(45)), // 1 byte isInitialized
             bytes4(data.toUint32(46)), // 4 bytes freezeAuthorityOption
             data.toBytes32(50) // 32 bytes freezeAuthority
@@ -119,6 +134,8 @@ library LibSPLTokenData {
 
     // SPL token account data getters
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return bytes1(0x01) if the token account is initialized, bytes1(0x00) otherwise
     function getSPLTokenAccountIsInitialized(bytes32 tokenAccount) internal view returns(bytes1) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -130,6 +147,8 @@ library LibSPLTokenData {
         return bytes1(data.toUint8(0));
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return bytes1(0x01) if the token account is a Wrapped SOL token account, bytes1(0x00) otherwise
     function getSPLTokenAccountIsNative(bytes32 tokenAccount) internal view returns(bytes8) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -141,6 +160,8 @@ library LibSPLTokenData {
         return bytes8(data.toUint64(0));
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return token account balance as uint64
     function getSPLTokenAccountBalance(bytes32 tokenAccount) internal view returns(uint64) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -152,6 +173,8 @@ library LibSPLTokenData {
         return (data.toUint64(0)).readLittleEndianUnsigned64();
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token account owner
     function getSPLTokenAccountOwner(bytes32 tokenAccount) internal view returns(bytes32) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -163,6 +186,8 @@ library LibSPLTokenData {
         return data.toBytes32(0);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token mint account associated with the token account
     function getSPLTokenAccountMint(bytes32 tokenAccount) internal view returns(bytes32) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -174,6 +199,8 @@ library LibSPLTokenData {
         return data.toBytes32(0);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token account's delegate
     function getSPLTokenAccountDelegate(bytes32 tokenAccount) internal view returns(bytes32) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -185,6 +212,8 @@ library LibSPLTokenData {
         return data.toBytes32(0);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return the token account's delegated amount as uint64
     function getSPLTokenAccountDelegatedAmount(bytes32 tokenAccount) internal view returns(uint64) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -196,6 +225,8 @@ library LibSPLTokenData {
         return (data.toUint64(0)).readLittleEndianUnsigned64();
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token account's CLOSE authority
     function getSPLTokenAccountCloseAuthority(bytes32 tokenAccount) internal view returns(bytes32) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -207,6 +238,8 @@ library LibSPLTokenData {
         return data.toBytes32(0);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return the full token account data formatted as a SPLTokenAccountData struct
     function getSPLTokenAccountData(bytes32 tokenAccount) internal view returns(SPLTokenAccountData memory) {
         (bool success, bytes memory data) = QueryAccountLib.data(
             uint256(tokenAccount),
@@ -230,6 +263,13 @@ library LibSPLTokenData {
         );
     }
 
+    /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key, a
+    /// user public key and a nonce
+    /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
+    /// @param userPubKey The 32 bytes public key of the user
+    /// @param nonce A uint8 nonce (can be incremented to get different token accounts)
+    /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
+    /// key and the nonce
     function getAssociatedTokenAccount(
         bytes32 tokenMint,
         bytes32 userPubKey,

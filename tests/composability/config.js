@@ -10,7 +10,7 @@ module.exports = {
         neonmainnet: "",
     },
     tokenMintSeed: {
-        curvestand: "myTokenMintSeed2",
+        curvestand: "myTokenMintSeed",
         neondevnet: "myTokenMintSeed",
         neonmainnet: "myTokenMintSeed",
     },
