@@ -2,7 +2,7 @@ const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
 const { getAccount, TOKEN_PROGRAM_ID, ACCOUNT_SIZE } = require("@solana/spl-token");
-const { deployContract } = require("./utils");
+const { deployContract, airdropSOL } = require("./utils");
 
 describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async function() {
 
@@ -12,6 +12,8 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
 
     const ZERO_AMOUNT = BigInt(0)
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
+    const AMOUNT = ethers.parseUnits('1', 9)
+
     let deployer,
         neonEVMUser,
         callSystemProgram,
@@ -20,7 +22,9 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
         basePubKey,
         rentExemptBalance,
         createWithSeedAccountInBytes,
-        info
+        info,
+        initialRecipientSOLBalance,
+        newRecipientSOLBalance
 
     before(async function() {
         const deployment = await deployContract('CallSystemProgram', null)
@@ -36,14 +40,16 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
 
         it('Create account with seed', async function() {
 
+            // Generate the public key of the account we want to create from a seed and the id of the program it will
+            // be assigned to
             seed = 'seed' + Date.now().toString()
-
             createWithSeedAccountInBytes = await callSystemProgram.getCreateWithSeedAccount(
                 basePubKey,
                 TOKEN_PROGRAM_ID.toBuffer(),
                 Buffer.from(seed)
             )
 
+            // Assign the account to the specified program, allocate space to it and fund it
             tx = await callSystemProgram.createAccountWithSeed(
                 TOKEN_PROGRAM_ID.toBuffer(), // SPL token program
                 Buffer.from(seed),
@@ -51,6 +57,12 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
                 rentExemptBalance  // SPL token account minimum balance for rent exemption
             )
             await tx.wait(1) // Wait for 1 confirmation
+
+            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
+            expect(info.owner.toBase58()).to.eq(TOKEN_PROGRAM_ID.toBase58())
+            expect(info.executable).to.be.false
+            expect(info.lamports).to.eq(rentExemptBalance)
+            expect(info.space).to.eq(ACCOUNT_SIZE)
 
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(createWithSeedAccountInBytes))
@@ -65,6 +77,94 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             expect(info.isNative).to.eq(false)
             expect(info.rentExemptReserve).to.eq(null)
             expect(info.tlvData.length).to.eq(0)
+        })
+    })
+
+    describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s System program \x1b[36mtransfer\x1b[33m instruction\x1b[0m', function() {
+        it('Transfer SOL', async function() {
+
+            // Generate a random key pair
+            const recipient = web3.Keypair.generate()
+            initialRecipientSOLBalance = await solanaConnection.getBalance(recipient.publicKey)
+
+            // Transfer SOL to the recipient account
+            tx = await callSystemProgram.transfer(
+                recipient.publicKey.toBuffer(), // Transfer recipient public key
+                AMOUNT // Amount of SOL to transfer
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            newRecipientSOLBalance = await solanaConnection.getBalance(recipient.publicKey)
+            expect(newRecipientSOLBalance - initialRecipientSOLBalance).to.eq(AMOUNT)
+        })
+    })
+
+    describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s System program \x1b[36massignWithSeed\x1b[33m instruction\x1b[0m', function() {
+        it('Assign an account to the Token program', async function() {
+            // Generate a new account public key from a seed and the id of the program we want to assign that account to
+            seed = 'assign' + Date.now().toString()
+            createWithSeedAccountInBytes = await callSystemProgram.getCreateWithSeedAccount(
+                basePubKey,
+                TOKEN_PROGRAM_ID.toBuffer(),
+                Buffer.from(seed)
+            )
+
+            // Fund the account to be able to get account info
+            await airdropSOL(ethers.encodeBase58(createWithSeedAccountInBytes), rentExemptBalance)
+
+            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
+            expect(info.owner.toBase58()).to.eq(web3.SystemProgram.programId.toBase58()) // Account belongs to System program initially
+            expect(info.executable).to.be.false
+            expect(info.lamports).to.eq(rentExemptBalance)
+            expect(info.space).to.eq(0)
+
+            // Assign the account to the specified program
+            tx = await callSystemProgram.assign(
+                TOKEN_PROGRAM_ID.toBuffer(),
+                Buffer.from(seed)
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
+            expect(info.owner.toBase58()).to.eq(TOKEN_PROGRAM_ID.toBase58()) // Account has been assigned to Token program
+            expect(info.executable).to.be.false
+            expect(info.lamports).to.eq(rentExemptBalance)
+            expect(info.space).to.eq(0)
+        })
+    })
+
+    describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s System program \x1b[36mallocateWithSeed\x1b[33m instruction\x1b[0m', function() {
+        it('Allocate storage space to an account', async function() {
+            // Generate a new account public key from a seed and program id
+            seed = 'allocate' + Date.now().toString()
+            createWithSeedAccountInBytes = await callSystemProgram.getCreateWithSeedAccount(
+                basePubKey,
+                TOKEN_PROGRAM_ID.toBuffer(),
+                Buffer.from(seed)
+            )
+
+            // Fund the account to be able to get account info
+            await airdropSOL(ethers.encodeBase58(createWithSeedAccountInBytes), parseInt(rentExemptBalance.toString()))
+
+            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
+            expect(info.owner.toBase58()).to.eq(web3.SystemProgram.programId.toBase58()) // Account belongs to System program
+            expect(info.executable).to.be.false
+            expect(info.lamports).to.eq(rentExemptBalance)
+            expect(info.space).to.eq(0)
+
+            // Allocate storage space to the account
+            tx = await callSystemProgram.allocate(
+                TOKEN_PROGRAM_ID.toBuffer(),
+                Buffer.from(seed),
+                ACCOUNT_SIZE
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
+            expect(info.owner.toBase58()).to.eq(TOKEN_PROGRAM_ID.toBase58()) // Account has been assigned to Token program
+            expect(info.executable).to.be.false
+            expect(info.lamports).to.eq(rentExemptBalance)
+            expect(info.space).to.eq(ACCOUNT_SIZE) // Storage space has been allocated to the account
         })
     })
 })
