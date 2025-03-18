@@ -14,18 +14,6 @@ import { ICallSolana } from '../precompiles/ICallSolana.sol';
 contract CallSystemProgram {
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
-    function getNeonAddress(address user) external view returns (bytes32) {
-        return CALL_SOLANA.getNeonAddress(user);
-    }
-
-    function getCreateWithSeedAccount(
-        bytes32 basePubKey,
-        bytes32 programId,
-        bytes memory seed
-    ) public pure returns(bytes32) {
-        return LibSystemData.getCreateWithSeedAccount(basePubKey, programId, seed);
-    }
-
     function createAccountWithSeed(
         bytes32 programId,
         bytes memory seed,
@@ -80,7 +68,7 @@ contract CallSystemProgram {
         );
         // Prepare transfer instruction
         bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSystemProgram.SYSTEM_PROGRAM_ID,
+            Constants.SYSTEM_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -108,7 +96,7 @@ contract CallSystemProgram {
         );
         // Prepare assignWithSeed instruction
         bytes memory assignWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSystemProgram.SYSTEM_PROGRAM_ID,
+            Constants.SYSTEM_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -138,7 +126,7 @@ contract CallSystemProgram {
         );
         // Prepare allocateWithSeed instruction
         bytes memory allocateWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSystemProgram.SYSTEM_PROGRAM_ID,
+            Constants.SYSTEM_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,
@@ -147,4 +135,61 @@ contract CallSystemProgram {
         // Execute allocateWithSeed instruction
         CALL_SOLANA.execute(0, allocateWithSeedIx);
     }
+
+    // Returns the account public key derived from the provided basePubKey, programId and seed
+    function getCreateWithSeedAccount(
+        bytes32 basePubKey,
+        bytes32 programId,
+        bytes memory seed
+    ) public pure returns(bytes32) {
+        return LibSystemData.getCreateWithSeedAccount(basePubKey, programId, seed);
+    }
+
+    // Returns Solana public key for NeonEVM address
+    function getNeonAddress(address user) external view returns (bytes32) {
+        return CALL_SOLANA.getNeonAddress(user);
+    }
+
+    // System account data getters
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return lamport balance of the account as uint64
+    function getBalance(bytes32 accountPubKey) external view returns(uint64) {
+        return LibSystemData.getBalance(accountPubKey);
+    }
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return The 32 bytes public key of the account's owner
+    function getOwner(bytes32 accountPubKey) external view returns(bytes32) {
+        return LibSystemData.getOwner(accountPubKey);
+    }
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return true if the token mint is a program account, false otherwise
+    function getIsExecutable(bytes32 accountPubKey) external view returns(bool) {
+        return LibSystemData.getIsExecutable(accountPubKey);
+
+    }
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return account's rent epoch as uint64
+    function getRentEpoch(bytes32 accountPubKey) external view returns(uint64) {
+        return LibSystemData.getRentEpoch(accountPubKey);
+    }
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return account's allocated storage space in bytes as uint64
+    function getSpace(bytes32 accountPubKey) external view returns(uint64) {
+        return LibSystemData.getSpace(accountPubKey);
+    }
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @param size The uint8 bytes size of the data we want to get
+    /// @return the account data bytes
+    function getSystemAccountData(bytes32 accountPubKey, uint8 size) external view returns(bytes memory) {
+        return LibSystemData.getSystemAccountData(accountPubKey, size);
+    }
+
+
+
 }
