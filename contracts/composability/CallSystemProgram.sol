@@ -190,6 +190,15 @@ contract CallSystemProgram {
         return LibSystemData.getSystemAccountData(accountPubKey, size);
     }
 
+    /// @param space The storage space allocated to considered Solana account in bytes
+    /// @return account's minimum balance for rent exemption
+    function getRentExemptionBalance(uint64 space) external pure returns(uint64) {
+        return LibSystemData.getRentExemptionBalance(space);
+    }
 
-
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return true if account is rent exempt, false otherwise
+    function isRentExempt(bytes32 accountPubKey) external view returns(bool) {
+        return LibSystemData.isRentExempt(accountPubKey);
+    }
 }

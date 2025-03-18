@@ -172,15 +172,13 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     describe('\n\u{231B} \x1b[33m Testing Solana\'s System program \x1b[36mdata getters\x1b[33m\x1b[0m', async function() {
 
         it('Call account data getters', async function() {
-            deployerPublicKeyInBytes = createWithSeedAccountInBytes //await callSystemProgram.getNeonAddress(deployer.address)
-
-            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(deployerPublicKeyInBytes)))
-            const balance = await callSystemProgram.getBalance(deployerPublicKeyInBytes)
-            const owner = await callSystemProgram.getOwner(deployerPublicKeyInBytes)
-            const executable = await callSystemProgram.getIsExecutable(deployerPublicKeyInBytes)
-            const rentEpoch = await callSystemProgram.getRentEpoch(deployerPublicKeyInBytes)
-            const space = await callSystemProgram.getSpace(deployerPublicKeyInBytes)
-            const data = await callSystemProgram.getSystemAccountData(deployerPublicKeyInBytes, space)
+            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
+            const balance = await callSystemProgram.getBalance(createWithSeedAccountInBytes)
+            const owner = await callSystemProgram.getOwner(createWithSeedAccountInBytes)
+            const executable = await callSystemProgram.getIsExecutable(createWithSeedAccountInBytes)
+            const rentEpoch = await callSystemProgram.getRentEpoch(createWithSeedAccountInBytes)
+            const space = await callSystemProgram.getSpace(createWithSeedAccountInBytes)
+            const data = await callSystemProgram.getSystemAccountData(createWithSeedAccountInBytes, space)
 
             expect(info.lamports).to.eq(balance)
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(owner))
@@ -188,6 +186,12 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             expect(BigInt(info.rentEpoch)).to.be.approximately(rentEpoch, BigInt(1))
             expect(info.space).to.eq(space)
             expect('0x' + info.data.toString('hex')).to.eq(data)
+
+            const rentExemptionBalance = await callSystemProgram.getRentExemptionBalance(space)
+            const isRentExempt = await callSystemProgram.isRentExempt(createWithSeedAccountInBytes)
+
+            expect(rentExemptionBalance).to.eq(await solanaConnection.getMinimumBalanceForRentExemption(parseInt(space)))
+            expect(isRentExempt).to.eq(true)
         })
     })
 })
