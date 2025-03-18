@@ -2,7 +2,6 @@ const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
 const { getAccount, TOKEN_PROGRAM_ID, ACCOUNT_SIZE } = require("@solana/spl-token");
-const config = require("./config");
 const { deployContract } = require("./utils");
 
 describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async function() {
@@ -30,7 +29,6 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
         callSystemProgram = deployment.contract
 
         basePubKey = await callSystemProgram.getNeonAddress(callSystemProgram.target)
-
         rentExemptBalance = await solanaConnection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE)
     })
 
@@ -55,7 +53,6 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             await tx.wait(1) // Wait for 1 confirmation
 
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
-
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(createWithSeedAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(ZERO_BYTES32))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(ZERO_BYTES32))
