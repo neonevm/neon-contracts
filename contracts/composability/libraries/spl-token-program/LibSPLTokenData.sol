@@ -2,7 +2,7 @@
 pragma solidity 0.8.28;
 
 import { Constants } from "../Constants.sol";
-import { Errors } from "../Errors.sol";
+import { LibSPLTokenErrors } from "./LibSPLTokenErrors.sol";
 import { QueryAccount } from "../../../precompiles/QueryAccount.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
@@ -54,7 +54,7 @@ library LibSPLTokenData {
             45,
             1
         );
-        require(success, Errors.TokenMintDataQuery());
+        require(success, LibSPLTokenErrors.TokenMintDataQuery());
 
         return to_bool(data);
     }
@@ -67,7 +67,7 @@ library LibSPLTokenData {
             36,
             8
         );
-        require(success, Errors.TokenMintDataQuery());
+        require(success, LibSPLTokenErrors.TokenMintDataQuery());
 
         return (data.toUint64(0)).readLittleEndianUnsigned64();
     }
@@ -80,7 +80,7 @@ library LibSPLTokenData {
             44,
             1
         );
-        require(success, Errors.TokenMintDataQuery());
+        require(success, LibSPLTokenErrors.TokenMintDataQuery());
 
         return data.toUint8(0);
     }
@@ -93,7 +93,7 @@ library LibSPLTokenData {
             4,
             32
         );
-        require(success, Errors.TokenMintDataQuery());
+        require(success, LibSPLTokenErrors.TokenMintDataQuery());
 
         return data.toBytes32(0);
     }
@@ -106,7 +106,7 @@ library LibSPLTokenData {
             50,
             32
         );
-        require(success, Errors.TokenMintDataQuery());
+        require(success, LibSPLTokenErrors.TokenMintDataQuery());
 
         return data.toBytes32(0);
     }
@@ -119,7 +119,7 @@ library LibSPLTokenData {
             0,
             SPL_TOKEN_MINT_SIZE
         );
-        require(success, Errors.TokenMintDataQuery());
+        require(success, LibSPLTokenErrors.TokenMintDataQuery());
 
         return SPLTokenMintData (
             bytes4(data.toUint32(0)), // 4 bytes mintAuthorityOption
@@ -142,7 +142,7 @@ library LibSPLTokenData {
             108,
             1
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return to_bool(data);
     }
@@ -155,7 +155,7 @@ library LibSPLTokenData {
             113,
             8
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return to_bool(data);
     }
@@ -168,7 +168,7 @@ library LibSPLTokenData {
             64,
             8
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return (data.toUint64(0)).readLittleEndianUnsigned64();
     }
@@ -181,7 +181,7 @@ library LibSPLTokenData {
             32,
             32
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return data.toBytes32(0);
     }
@@ -194,7 +194,7 @@ library LibSPLTokenData {
             0,
             32
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return data.toBytes32(0);
     }
@@ -207,7 +207,7 @@ library LibSPLTokenData {
             76,
             32
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return data.toBytes32(0);
     }
@@ -220,7 +220,7 @@ library LibSPLTokenData {
             121,
             8
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return (data.toUint64(0)).readLittleEndianUnsigned64();
     }
@@ -233,7 +233,7 @@ library LibSPLTokenData {
             133,
             32
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return data.toBytes32(0);
     }
@@ -246,7 +246,7 @@ library LibSPLTokenData {
             0,
             SPL_TOKEN_ACCOUNT_SIZE
         );
-        require(success, Errors.TokenAccountDataQuery());
+        require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
         return SPLTokenAccountData (
             data.toBytes32(0), // 32 bytes token mint
