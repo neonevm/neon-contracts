@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import { LibSystemErrors } from "./LibSystemErrors.sol";
-import { QueryAccountLib } from "../../../utils/QueryAccountLib.sol";
+import { QueryAccount } from "../../../precompiles/QueryAccount.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
 import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
@@ -27,7 +27,7 @@ library LibSystemData {
     /// @param accountPubKey The 32 bytes Solana account public key
     /// @return lamport balance of the account as uint64
     function getBalance(bytes32 accountPubKey) internal view returns(uint64) {
-        (bool success,  uint256 lamports) = QueryAccountLib.lamports(uint256(accountPubKey));
+        (bool success,  uint256 lamports) = QueryAccount.lamports(uint256(accountPubKey));
         require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return uint64(lamports);
@@ -36,7 +36,7 @@ library LibSystemData {
     /// @param accountPubKey The 32 bytes Solana account public key
     /// @return The 32 bytes public key of the account's owner
     function getOwner(bytes32 accountPubKey) internal view returns(bytes32) {
-        (bool success,  bytes memory result) = QueryAccountLib.owner(uint256(accountPubKey));
+        (bool success,  bytes memory result) = QueryAccount.owner(uint256(accountPubKey));
         require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return result.toBytes32(0);
@@ -45,7 +45,7 @@ library LibSystemData {
     /// @param accountPubKey The 32 bytes Solana account public key
     /// @return true if the token mint is a program account, false otherwise
     function getIsExecutable(bytes32 accountPubKey) internal view returns(bool) {
-        (bool success,  bool result) = QueryAccountLib.executable(uint256(accountPubKey));
+        (bool success,  bool result) = QueryAccount.executable(uint256(accountPubKey));
         require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return result;
@@ -54,7 +54,7 @@ library LibSystemData {
     /// @param accountPubKey The 32 bytes Solana account public key
     /// @return account's rent epoch as uint64
     function getRentEpoch(bytes32 accountPubKey) internal view returns(uint64) {
-        (bool success,  uint256 result) = QueryAccountLib.rent_epoch(uint256(accountPubKey));
+        (bool success,  uint256 result) = QueryAccount.rent_epoch(uint256(accountPubKey));
         require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return uint64(result);
@@ -63,7 +63,7 @@ library LibSystemData {
     /// @param accountPubKey The 32 bytes Solana account public key
     /// @return account's allocated storage space in bytes as uint64
     function getSpace(bytes32 accountPubKey) internal view returns(uint64) {
-        (bool success,  uint256 result) = QueryAccountLib.length(uint256(accountPubKey));
+        (bool success,  uint256 result) = QueryAccount.length(uint256(accountPubKey));
         require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return uint64(result);
@@ -76,7 +76,7 @@ library LibSystemData {
         if (size == 0) {
             return new bytes(0);
         }
-        (bool success, bytes memory data) = QueryAccountLib.data(
+        (bool success, bytes memory data) = QueryAccount.data(
             uint256(accountPubKey),
             0,
             size
