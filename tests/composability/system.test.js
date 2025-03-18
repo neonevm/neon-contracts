@@ -24,7 +24,8 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
         createWithSeedAccountInBytes,
         info,
         initialRecipientSOLBalance,
-        newRecipientSOLBalance
+        newRecipientSOLBalance,
+        deployerPublicKeyInBytes
 
     before(async function() {
         const deployment = await deployContract('CallSystemProgram', null)
@@ -165,6 +166,28 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             expect(info.executable).to.be.false
             expect(info.lamports).to.eq(rentExemptBalance)
             expect(info.space).to.eq(ACCOUNT_SIZE) // Storage space has been allocated to the account
+        })
+    })
+
+    describe('\n\u{231B} \x1b[33m Testing Solana\'s System program \x1b[36mdata getters\x1b[33m\x1b[0m', async function() {
+
+        it('Call account data getters', async function() {
+            deployerPublicKeyInBytes = createWithSeedAccountInBytes //await callSystemProgram.getNeonAddress(deployer.address)
+
+            info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(deployerPublicKeyInBytes)))
+            const balance = await callSystemProgram.getBalance(deployerPublicKeyInBytes)
+            const owner = await callSystemProgram.getOwner(deployerPublicKeyInBytes)
+            const executable = await callSystemProgram.getIsExecutable(deployerPublicKeyInBytes)
+            const rentEpoch = await callSystemProgram.getRentEpoch(deployerPublicKeyInBytes)
+            const space = await callSystemProgram.getSpace(deployerPublicKeyInBytes)
+            const data = await callSystemProgram.getSystemAccountData(deployerPublicKeyInBytes, space)
+
+            expect(info.lamports).to.eq(balance)
+            expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(owner))
+            expect(info.executable).to.eq(executable)
+            expect(BigInt(info.rentEpoch)).to.be.approximately(rentEpoch, BigInt(1))
+            expect(info.space).to.eq(space)
+            expect('0x' + info.data.toString('hex')).to.eq(data)
         })
     })
 })
