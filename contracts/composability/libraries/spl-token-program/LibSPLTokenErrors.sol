@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-library Errors {
+library LibSPLTokenErrors {
     // SPL Token mint/account data query errors
     error TokenMintDataQuery();
     error TokenAccountDataQuery();

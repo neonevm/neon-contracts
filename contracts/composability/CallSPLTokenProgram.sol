@@ -3,8 +3,8 @@ pragma solidity 0.8.28;
 
 import { CallSolanaHelperLib } from '../utils/CallSolanaHelperLib.sol';
 import { Constants } from "./libraries/Constants.sol";
-import { Errors } from "./libraries/Errors.sol";
 import { LibSPLTokenData } from "./libraries/spl-token-program/LibSPLTokenData.sol";
+import { LibSPLTokenErrors } from "./libraries/spl-token-program/LibSPLTokenErrors.sol";
 import { LibSPLTokenProgram } from "./libraries/spl-token-program/LibSPLTokenProgram.sol";
 
 import { ICallSolana } from '../precompiles/ICallSolana.sol';
@@ -192,7 +192,7 @@ contract CallSPLTokenProgram {
         bytes32 senderATADelegate = getSPLTokenAccountDelegate(senderATA);
         require(
             senderATADelegate == spenderPubKey,
-            Errors.InvalidSpender(
+            LibSPLTokenErrors.InvalidSpender(
                 senderATA,
                 senderATADelegate,
                 spenderPubKey
@@ -201,7 +201,7 @@ contract CallSPLTokenProgram {
         uint64 senderATADelegatedAmount = getSPLTokenAccountDelegatedAmount(senderATA);
         require(
             senderATADelegatedAmount >= amount,
-            Errors.InsufficientDelegatedAmount(
+            LibSPLTokenErrors.InsufficientDelegatedAmount(
                 senderATA,
                 senderATADelegatedAmount,
                 amount
@@ -248,7 +248,7 @@ contract CallSPLTokenProgram {
             bytes32 mintAuthority = LibSPLTokenData.getSPLTokenMintAuthority(tokenMint);
             require(
                 thisContractPubKey == mintAuthority,
-                Errors.InvalidMintAuthority(
+                LibSPLTokenErrors.InvalidMintAuthority(
                     tokenMint,
                     mintAuthority,
                     thisContractPubKey,
@@ -262,7 +262,7 @@ contract CallSPLTokenProgram {
             bytes32 freezeAuthority = LibSPLTokenData.getSPLTokenFreezeAuthority(tokenMint);
             require(
                 thisContractPubKey == freezeAuthority,
-                Errors.InvalidFreezeAuthority(
+                LibSPLTokenErrors.InvalidFreezeAuthority(
                     tokenMint,
                     freezeAuthority,
                     thisContractPubKey,
@@ -270,7 +270,7 @@ contract CallSPLTokenProgram {
                 )
             );
         } else {
-            revert Errors.InvalidTokenMintAuthorityType(
+            revert LibSPLTokenErrors.InvalidTokenMintAuthorityType(
                 tokenMint,
                 "Authority type must be MINT or FREEZE"
             );
@@ -316,7 +316,7 @@ contract CallSPLTokenProgram {
             bytes32 tokenAccountOwner = LibSPLTokenData.getSPLTokenAccountOwner(userATA);
             require(
                 thisContractPubKey == tokenAccountOwner,
-                Errors.InvalidOwnerAuthority(
+                LibSPLTokenErrors.InvalidOwnerAuthority(
                     userATA,
                     tokenAccountOwner,
                     thisContractPubKey,
@@ -332,7 +332,7 @@ contract CallSPLTokenProgram {
                 bytes32 tokenAccountCloseAuthority = LibSPLTokenData.getSPLTokenAccountCloseAuthority(userATA);
                 require(
                     thisContractPubKey == tokenAccountCloseAuthority,
-                    Errors.InvalidCloseAuthority(
+                    LibSPLTokenErrors.InvalidCloseAuthority(
                         userATA,
                         tokenAccountOwner,
                         tokenAccountCloseAuthority,
@@ -342,7 +342,7 @@ contract CallSPLTokenProgram {
                 );
             }
         } else {
-            revert Errors.InvalidTokenAccountAuthorityType(
+            revert LibSPLTokenErrors.InvalidTokenAccountAuthorityType(
                 userATA,
                 "Authority type must be OWNER or CLOSE"
             );
