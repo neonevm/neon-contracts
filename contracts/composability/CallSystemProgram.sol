@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import { CallSolanaHelperLib } from '../utils/CallSolanaHelperLib.sol';
+import { Constants } from "./libraries/Constants.sol";
 import { LibSystemProgram } from "./libraries/system-program/LibSystemProgram.sol";
 
 import { ICallSolana } from '../precompiles/ICallSolana.sol';
@@ -48,7 +49,7 @@ contract CallSystemProgram {
         );
         // Prepare createAccountWithSeed instruction
         bytes memory createAccountWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            LibSystemProgram.SYSTEM_PROGRAM_ID,
+            Constants.SYSTEM_PROGRAM_ID,
             accounts,
             isSigner,
             isWritable,

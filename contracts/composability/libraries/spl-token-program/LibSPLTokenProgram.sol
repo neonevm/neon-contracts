@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
+import { Constants } from "../Constants.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
 import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
@@ -9,9 +10,6 @@ import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
 /// @notice Helper library for interactions with Solana's SPL Token program
 /// @author maxpolizzo@gmail.com
 library LibSPLTokenProgram {
-    bytes32 public constant SYSVAR_RENT_PUBKEY = 0x06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000;
-    bytes32 public constant WSOL_MINT_PUBKEY = 0x069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001;
-
     // See: https://github.com/solana-program/token/blob/c4689b111789e272600f79e213a3d31bb0ae2f3c/program/src/instruction.rs#L753
     enum AuthorityType {
         MINT, // Authority to mint tokens
@@ -70,7 +68,7 @@ library LibSPLTokenProgram {
         accounts = new bytes32[](3);
         accounts[0] = ata;
         accounts[1] = tokenMint;
-        accounts[2] = SYSVAR_RENT_PUBKEY;
+        accounts[2] = Constants.SYSVAR_RENT_PUBKEY;
 
         isSigner = new bool[](3);
         isSigner[0] = false;
@@ -268,9 +266,7 @@ library LibSPLTokenProgram {
         isWritable[0] = true;
         isWritable[1] = false;
 
-        data = abi.encodePacked(
-            bytes1(0x05) // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
-        );
+        data = hex'05'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
     }
 
     /// @notice Helper function to format a `burn` instruction in order to burn tokens from a token account
@@ -341,9 +337,7 @@ library LibSPLTokenProgram {
         isWritable[1] = true;
         isWritable[2] = false;
 
-        data = abi.encodePacked(
-            bytes1(0x09) // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L526)
-        );
+        data = hex'09'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L526)
     }
 
     /// @notice Helper function to format a `syncNative` instruction in order to sync a Wrapped SOL token account's
@@ -364,8 +358,6 @@ library LibSPLTokenProgram {
         isWritable = new bool[](1);
         isWritable[0] = true;
 
-        data = abi.encodePacked(
-            bytes1(0x11) // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L549)
-        );
+        data = hex'11'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L549)
     }
 }
