@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test-composability-curvestand": "npx hardhat test ./tests/composability/system.test.js --network curvestand && npx hardhat test ./tests/composability/spl-token.test.js --network curvestand"
   },
   "author": "",
   "license": "ISC",

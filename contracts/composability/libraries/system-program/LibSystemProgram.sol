@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
@@ -7,8 +7,6 @@ import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.so
 /// @notice Helper library for interactions with Solana's System program
 /// @author maxpolizzo@gmail.com
 library LibSystemProgram {
-    bytes32 public constant SYSTEM_PROGRAM_ID = bytes32(0);
-
     /// @notice Helper function to format a `createAccountWithSeed` instruction
     /// @param payer The payer account which will fund the newly created account
     /// @param basePubKey The base public key used to derive the newly created account

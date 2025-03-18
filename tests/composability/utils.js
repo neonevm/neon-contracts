@@ -17,6 +17,17 @@ async function airdropNEON(address, amount) {
     await asyncTimeout(3000)
 }
 
+async function airdropSOL(pubKey, amount) {
+    const params = [pubKey, amount]
+    const res = await fetch(process.env.SOLANA_NODE, {
+        method: 'POST',
+        body: JSON.stringify({"jsonrpc":"2.0", "id":1, "method": "requestAirdrop", "params": params}),
+        headers: { 'Content-Type': 'application/json' }
+    })
+    // console.log("\nAirdropping " + ethers.formatUnits(amount.toString(), 9) + " SOL to " + pubKey)
+    await asyncTimeout(3000)
+}
+
 async function deployContract(contractName, contractAddress = null) {
     if (!process.env.PRIVATE_KEY_OWNER) {
         throw new Error("\nMissing private key: PRIVATE_KEY_OWNER")
@@ -41,6 +52,8 @@ async function deployContract(contractName, contractAddress = null) {
     ) {
         await airdropNEON(user.address, parseInt(ethers.formatUnits((minBalance - userBalance).toString(), 18)))
     }
+    const otherUser = ethers.Wallet.createRandom(ethers.provider)
+    await airdropNEON(otherUser.address, parseInt(ethers.formatUnits(minBalance.toString(), 18)))
 
     const contractFactory = await ethers.getContractFactory(contractName)
     let contract
@@ -59,7 +72,7 @@ async function deployContract(contractName, contractAddress = null) {
         contract = contractFactory.attach(deployedContractAddress)
     }
 
-    return { deployer, contract }
+    return { deployer, user, otherUser, contract }
 }
 
 async function getSolanaTransactions(neonTxHash) {
@@ -128,6 +141,9 @@ function publicKeyToBytes32(pubkey) {
 }
 
 module.exports = {
+    airdropNEON,
+    airdropSOL,
+    asyncTimeout,
     deployContract,
     getSolanaTransactions,
     executeSolanaInstruction

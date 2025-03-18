@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
+import { Constants } from "../Constants.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
 import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
@@ -9,14 +10,13 @@ import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
 /// @notice Helper library for interactions with Solana's SPL Token program
 /// @author maxpolizzo@gmail.com
 library LibSPLTokenProgram {
-    bytes32 public constant TOKEN_PROGRAM_ID = 0x06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9;
-    bytes32 public constant ASSOCIATED_TOKEN_PROGRAM_ID = 0x8c97258f4e2489f1bb3d1029148e0d830b5a1399daff1084048e7bd8dbe9f859;
-    bytes32 public constant SYSVAR_RENT_PUBKEY = 0x06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000;
-    uint64 public constant MINT_SIZE = 82;
-    uint64 public constant MINT_RENT_EXEMPT_BALANCE = 1461600;
-    uint64 public constant ATA_SIZE = 165;
-    uint64 public constant ATA_RENT_EXEMPT_BALANCE = 2039280;
-    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
+    // See: https://github.com/solana-program/token/blob/c4689b111789e272600f79e213a3d31bb0ae2f3c/program/src/instruction.rs#L753
+    enum AuthorityType {
+        MINT, // Authority to mint tokens
+        FREEZE, // Authority to freeze any account associated with the token mint
+        OWNER, // Owner of a token account
+        CLOSE // Authority to close a token account
+    }
 
     /// @notice Helper function to format a `initializeMint2` instruction
     /// @param decimals The decimals value for the new token mint to be initialized
@@ -68,7 +68,7 @@ library LibSPLTokenProgram {
         accounts = new bytes32[](3);
         accounts[0] = ata;
         accounts[1] = tokenMint;
-        accounts[2] = SYSVAR_RENT_PUBKEY;
+        accounts[2] = Constants.SYSVAR_RENT_PUBKEY;
 
         isSigner = new bool[](3);
         isSigner[0] = false;
@@ -164,13 +164,15 @@ library LibSPLTokenProgram {
         );
     }
 
-    /// @notice Helper function to format a `createSetAuthority` instruction in order to update a SPL token's mint
-    /// authority
-    /// @param tokenMint The token mint account to be updated
-    /// @param currentAuthority The current token mint authority to be revoked
-    /// @param newAuthority The new mint authority to be set
-    function formatUpdateMintAuthorityInstruction(
-        bytes32 tokenMint,
+    /// @notice Helper function to format a `setAuthority` instruction in order to update a SPL token mint's mint or freeze
+    /// authority or a a SPL token account's owner or close authority
+    /// @param account The SPL token mint or account of which we want to update authority
+    /// @param authorityType The type of authority to be updated
+    /// @param currentAuthority The current authority to be revoked
+    /// @param newAuthority The new authority to be set
+    function formatSetAuthorityInstruction(
+        bytes32 account,
+        AuthorityType authorityType,
         bytes32 currentAuthority,
         bytes32 newAuthority
     ) internal pure returns (
@@ -180,7 +182,7 @@ library LibSPLTokenProgram {
         bytes memory data
     ) {
         accounts = new bytes32[](2);
-        accounts[0] = tokenMint;
+        accounts[0] = account;
         accounts[1] = currentAuthority;
 
         isSigner = new bool[](2);
@@ -193,9 +195,49 @@ library LibSPLTokenProgram {
 
         data = abi.encodePacked(
             bytes1(0x06), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L514)
-            bytes1(0x00), // MintTokens authority type (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L744)
-            bytes1(0x01), // Flag (how is it used?)
+            authorityType, // Authority type (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L753)
+            bytes1(0x01),
             newAuthority
+        );
+    }
+
+    /// @notice Helper function to format an `approve` instruction in order to delegate some balance of an associated
+    /// token account to a third party account
+    /// @param ata The associated token account that we want to delegate
+    /// @param delegate The account that we want to delegate to
+    /// @param owner The account owning the associated token account that we want to delegate
+    /// @param amount The amount of token that we want to delegate
+    function formatApproveInstruction(
+        bytes32 ata,
+        bytes32 delegate,
+        bytes32 owner,
+        uint64 amount
+    ) internal pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](3);
+        accounts[0] = ata;
+        accounts[1] = delegate;
+        accounts[2] = owner;
+
+        isSigner = new bool[](3);
+        isSigner[0] = false;
+        isSigner[1] = false;
+        isSigner[2] = true;
+
+        isWritable = new bool[](3);
+        isWritable[0] = true;
+        isWritable[1] = false;
+        isWritable[2] = false;
+
+        // Get amount in right-padded little-endian format
+        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
+        data = abi.encodePacked(
+            bytes1(0x04), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L507)
+            bytes8(amountLE) // Amount (right-padded little-endian)
         );
     }
 
@@ -224,38 +266,98 @@ library LibSPLTokenProgram {
         isWritable[0] = true;
         isWritable[1] = false;
 
+        data = hex'05'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
+    }
+
+    /// @notice Helper function to format a `burn` instruction in order to burn tokens from a token account
+    /// @param ata The associated token account which we want to burn tokens from
+    /// @param tokenMint The token mint corresponding to the tokens we want to burn
+    /// @param owner The owner of the ata which we want to burn tokens from
+    /// @param amount The amount of tokens we want to burn
+    function formatBurnInstruction(
+        bytes32 ata,
+        bytes32 tokenMint,
+        bytes32 owner,
+        uint64 amount
+    ) internal pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](3);
+        accounts[0] = ata;
+        accounts[1] = tokenMint;
+        accounts[2] = owner;
+
+        isSigner = new bool[](3);
+        isSigner[0] = false;
+        isSigner[1] = false;
+        isSigner[2] = true;
+
+        isWritable = new bool[](3);
+        isWritable[0] = true;
+        isWritable[1] = true;
+        isWritable[2] = false;
+
+        // Get amount in right-padded little-endian format
+        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
         data = abi.encodePacked(
-            bytes1(0x05) // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
+            bytes1(0x08), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L509)
+            bytes8(amountLE) // Amount (right-padded little-endian)
         );
     }
 
-    function getAssociatedTokenAccount(
-        bytes32 _tokenMint,
-        bytes32 userPubKey
-    ) internal view returns(bytes32) {
-        // Returns ATA derived with  nonce == 0 by default
-        return _getAssociatedTokenAccount(_tokenMint, userPubKey, 0);
+    /// @notice Helper function to format a `closeAccount` instruction in order to close an associated token account
+    /// @param ata The associated token account that we want to close
+    /// @param destination The account that will receive the closed ata's SOL balance
+    /// @param authority The ata's current close authority
+    function formatCloseAccountInstruction(
+        bytes32 ata,
+        bytes32 destination,
+        bytes32 authority
+    ) internal pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](3);
+        accounts[0] = ata;
+        accounts[1] = destination;
+        accounts[2] = authority;
+
+        isSigner = new bool[](3);
+        isSigner[0] = false;
+        isSigner[1] = false;
+        isSigner[2] = true;
+
+        isWritable = new bool[](3);
+        isWritable[0] = true;
+        isWritable[1] = true;
+        isWritable[2] = false;
+
+        data = hex'09'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L526)
     }
 
-    function getAssociatedTokenAccount(
-        bytes32 _tokenMint,
-        bytes32 userPubKey,
-        uint8 nonce
-    ) internal view returns(bytes32) {
-        return _getAssociatedTokenAccount(_tokenMint, userPubKey, nonce);
-    }
+    /// @notice Helper function to format a `syncNative` instruction in order to sync a Wrapped SOL token account's
+    // balance
+    /// @param tokenAccount The Wrapped SOL token account that we want to sync
+    function formatSyncNativeInstruction(bytes32 tokenAccount) internal pure returns (
+        bytes32[] memory accounts,
+        bool[] memory isSigner,
+        bool[] memory isWritable,
+        bytes memory data
+    ) {
+        accounts = new bytes32[](1);
+        accounts[0] = tokenAccount;
 
-    function _getAssociatedTokenAccount(
-        bytes32 _tokenMint,
-        bytes32 userPubKey,
-        uint8 nonce
-    ) private view returns(bytes32) {
-        return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            userPubKey,
-            LibSPLTokenProgram.TOKEN_PROGRAM_ID,
-            _tokenMint,
-            nonce,
-            LibSPLTokenProgram.ASSOCIATED_TOKEN_PROGRAM_ID
-        )));
+        isSigner = new bool[](1);
+        isSigner[0] = false;
+
+        isWritable = new bool[](1);
+        isWritable[0] = true;
+
+        data = hex'11'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L549)
     }
 }
