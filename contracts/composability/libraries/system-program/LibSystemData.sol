@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import { LibSystemErrors } from "./LibSystemErrors.sol";
 import { QueryAccountLib } from "../../../utils/QueryAccountLib.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
@@ -27,7 +28,7 @@ library LibSystemData {
     /// @return lamport balance of the account as uint64
     function getBalance(bytes32 accountPubKey) internal view returns(uint64) {
         (bool success,  uint256 lamports) = QueryAccountLib.lamports(uint256(accountPubKey));
-        require(success, "LibSystemData.getBalance: failed to query Solana account balance");
+        require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return uint64(lamports);
     }
@@ -36,7 +37,7 @@ library LibSystemData {
     /// @return The 32 bytes public key of the account's owner
     function getOwner(bytes32 accountPubKey) internal view returns(bytes32) {
         (bool success,  bytes memory result) = QueryAccountLib.owner(uint256(accountPubKey));
-        require(success, "LibSystemData.getOwner: failed to query Solana account owner");
+        require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return result.toBytes32(0);
     }
@@ -45,7 +46,7 @@ library LibSystemData {
     /// @return true if the token mint is a program account, false otherwise
     function getIsExecutable(bytes32 accountPubKey) internal view returns(bool) {
         (bool success,  bool result) = QueryAccountLib.executable(uint256(accountPubKey));
-        require(success, "LibSystemData.getIsExecutable: failed to query Solana account executable");
+        require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return result;
     }
@@ -54,7 +55,7 @@ library LibSystemData {
     /// @return account's rent epoch as uint64
     function getRentEpoch(bytes32 accountPubKey) internal view returns(uint64) {
         (bool success,  uint256 result) = QueryAccountLib.rent_epoch(uint256(accountPubKey));
-        require(success, "LibSystemData.getIsExecutable: failed to query Solana account executable");
+        require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return uint64(result);
     }
@@ -63,7 +64,7 @@ library LibSystemData {
     /// @return account's allocated storage space in bytes as uint64
     function getSpace(bytes32 accountPubKey) internal view returns(uint64) {
         (bool success,  uint256 result) = QueryAccountLib.length(uint256(accountPubKey));
-        require(success, "LibSystemData.getSpace: failed to query Solana account storage space");
+        require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return uint64(result);
     }
@@ -80,7 +81,7 @@ library LibSystemData {
             0,
             size
         );
-        require(success, "LibSystemData.getSystemAccountData: failed to query System account data");
+        require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return data;
     }
