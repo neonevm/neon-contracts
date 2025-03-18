@@ -14,6 +14,8 @@ library LibSystemData {
     using SolanaDataConverterLib for bytes;
     using SolanaDataConverterLib for uint64;
 
+    uint16 public constant RENT_EXEMPTION_LAMPORTS_PER_BYTE_YEAR = 3480;
+
     struct AccountInfo {
         bytes32 pubkey;
         uint64 lamports;
@@ -84,6 +86,22 @@ library LibSystemData {
         require(success, LibSystemErrors.SystemAccountDataQuery());
 
         return data;
+    }
+
+    /// @param space The storage space allocated to considered Solana account in bytes
+    /// @return account's minimum balance for rent exemption in lamports
+    function getRentExemptionBalance(uint64 space) internal pure returns(uint64) {
+        return 2 * (128 + space) * RENT_EXEMPTION_LAMPORTS_PER_BYTE_YEAR;
+    }
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return true if account is rent exempt, false otherwise
+    function isRentExempt(bytes32 accountPubKey) internal view returns(bool) {
+        if(getBalance(accountPubKey) >= getRentExemptionBalance(getSpace(accountPubKey))) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /// @notice Helper function to derive the address of the Solana account which would be created by executing a
