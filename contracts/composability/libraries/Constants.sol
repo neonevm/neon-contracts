@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+/// @title Constants
+/// @notice Helper library providing values used for interactions with Solana programs
+/// @author maxpolizzo@gmail.com
 library Constants {
     bytes32 public constant SYSTEM_PROGRAM_ID = bytes32(0);
     bytes32 public constant TOKEN_PROGRAM_ID = 0x06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9;
