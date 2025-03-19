@@ -6,12 +6,14 @@ formatting instructions in ways that are specific to each program.
 Here we provide a set of **Solidity** libraries which make it possible to easily implement secure interactions with 
 _Solana_'s **System** and **SPL Token** programs.
 
-This work is an example of what program-specific **Solidity** libraries for _NeonEVM_ composability could look like.
-
 ## LibSystemProgram library
 
 This library provides helper functions for formatting instructions intended to be executed by _Solana_'s **System** 
 program.
+
+## LibSystemData library
+
+This library provides a set of getter functions for querying System accounts data from Solana.
 
 ## LibSPLTokenProgram library
 

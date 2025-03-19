@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+/// @title LibSPLTokenErrors
+/// @notice Custom errors library for interactions with Solana's SPL Token program
+/// @author maxpolizzo@gmail.com
 library LibSPLTokenErrors {
     // SPL Token mint/account data query errors
     error TokenMintDataQuery();
