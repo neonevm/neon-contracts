@@ -20,6 +20,7 @@ library LibSPLTokenProgram {
 
     /// @notice Helper function to format a `initializeMint2` instruction
     /// @param decimals The decimals value for the new token mint to be initialized
+    /// @param tokenMint The token mint account to be initialized
     /// @param mintAuthority The account to be granted authority to mint tokens
     /// @param freezeAuthority The account to be granted authority to freeze the token mint
     function formatInitializeMint2Instruction(

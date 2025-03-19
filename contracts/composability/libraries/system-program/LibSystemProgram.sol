@@ -93,11 +93,12 @@ library LibSystemProgram {
         );
     }
 
-    /// @notice Helper function to format a `assignWithSeed` instruction to assign a Solana account to a Solana program
-    /// @param basePubKey The base public key used to derive the account that we want to assign
-    /// @param programId The public key of the program that was used to derive the account and to which we want to
-    /// assign the account
-    /// @param seed The bytes seed that was used to generate the account that we want to assign
+    /// @notice Helper function to format a `assignWithSeed` instruction to assign a Solana PDA (program-derived
+    /// account) to a Solana program
+    /// @param basePubKey The base public key used to derive the PDA that we want to assign
+    /// @param programId The public key of the program that was used to derive the PDA and to which we want to assign
+    /// the PDA
+    /// @param seed The bytes seed that was used to generate the PDA that we want to assign
     function formatAssignWithSeedInstruction(
         bytes32 basePubKey,
         bytes32 programId,
@@ -131,12 +132,12 @@ library LibSystemProgram {
         );
     }
 
-    /// @notice Helper function to format a `allocateWithSeed` instruction to allocate storage space to a Solana account
-    /// @param basePubKey The base public key used to derive the account that we want to allocate space to
-    /// @param programId The public key of the program that was used to derive the account that we want to allocate
-    /// space to
-    /// @param seed The bytes seed that was used to generate the account that we want to allocate space to
-    /// @param accountSize The on-chain storage space that we ant to allocate to the account
+    /// @notice Helper function to format a `allocateWithSeed` instruction to allocate storage space to a Solana PDA
+    // (program-derived account)
+    /// @param basePubKey The base public key used to derive the PDA that we want to allocate space to
+    /// @param programId The public key of the program that was used to derive the PDA that we want to allocate space to
+    /// @param seed The bytes seed that was used to generate the PDA that we want to allocate space to
+    /// @param accountSize The on-chain storage space that we want to allocate to the PDA
     function formatAllocateWithSeedInstruction(
         bytes32 basePubKey,
         bytes32 programId,
