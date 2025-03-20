@@ -529,72 +529,107 @@ contract CallSPLTokenProgram {
         )));
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return true if the token mint is initialized, false otherwise
     function getSPLTokenMintIsInitialized(bytes32 tokenMint) external view returns(bool) {
         return LibSPLTokenData.getSPLTokenMintIsInitialized(tokenMint);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return token supply as uint64
     function getSPLTokenSupply(bytes32 tokenMint) external view returns(uint64) {
         return LibSPLTokenData.getSPLTokenSupply(tokenMint);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return token decimals as uint8
     function getSPLTokenDecimals(bytes32 tokenMint) external view returns(uint8) {
         return LibSPLTokenData.getSPLTokenDecimals(tokenMint);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return 32 bytes public key of the token's MINT authority
     function getSPLTokenMintAuthority(bytes32 tokenMint) external view returns(bytes32) {
         return LibSPLTokenData.getSPLTokenMintAuthority(tokenMint);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return 32 bytes public key of the token's FREEZE authority
     function getSPLTokenFreezeAuthority(bytes32 tokenMint) external view returns(bytes32) {
         return LibSPLTokenData.getSPLTokenFreezeAuthority(tokenMint);
     }
 
+    /// @param tokenMint The 32 bytes SPL token mint account public key
+    /// @return the full token mint data formatted as a SPLTokenMintData struct
     function getSPLTokenMintData(bytes32 tokenMint) external view returns(LibSPLTokenData.SPLTokenMintData memory) {
         return LibSPLTokenData.getSPLTokenMintData(tokenMint);
     }
 
     // SPL Token account data getters
 
+    /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key and a
+    /// user public key
+    /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
+    /// @param userPubKey The 32 bytes public key of the user
+    /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
+    /// key and a nonce value of 0
     function getAssociatedTokenAccount(
-        bytes32 _tokenMint,
+        bytes32 tokenMint,
         bytes32 userPubKey
     ) public view returns(bytes32) {
-        // Returns ATA derived with nonce == 0 by default
-        return LibSPLTokenData.getAssociatedTokenAccount(_tokenMint, userPubKey, 0);
+        return LibSPLTokenData.getAssociatedTokenAccount(tokenMint, userPubKey);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return true if the token account is initialized, false otherwise
     function getSPLTokenAccountIsInitialized(bytes32 tokenAccount) external view returns(bool) {
         return LibSPLTokenData.getSPLTokenAccountIsInitialized(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return true if the token account is a Wrapped SOL token account, false otherwise
     function getSPLTokenAccountIsNative(bytes32 tokenAccount) external view returns(bool) {
         return LibSPLTokenData.getSPLTokenAccountIsNative(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return token account balance as uint64
     function getSPLTokenAccountBalance(bytes32 tokenAccount) external view returns(uint64) {
         return LibSPLTokenData.getSPLTokenAccountBalance(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token account owner
     function getSPLTokenAccountOwner(bytes32 tokenAccount) external view returns(bytes32) {
         return LibSPLTokenData.getSPLTokenAccountOwner(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token mint account associated with the token account
     function getSPLTokenAccountMint(bytes32 tokenAccount) external view returns(bytes32) {
         return LibSPLTokenData.getSPLTokenAccountMint(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token account's delegate
     function getSPLTokenAccountDelegate(bytes32 tokenAccount) public view returns(bytes32) {
         return LibSPLTokenData.getSPLTokenAccountDelegate(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return the token account's delegated amount as uint64
     function getSPLTokenAccountDelegatedAmount(bytes32 tokenAccount) public view returns(uint64) {
         return LibSPLTokenData.getSPLTokenAccountDelegatedAmount(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return 32 bytes public key of the token account's CLOSE authority
     function getSPLTokenAccountCloseAuthority(bytes32 tokenAccount) external view returns(bytes32) {
         return LibSPLTokenData.getSPLTokenAccountCloseAuthority(tokenAccount);
     }
 
+    /// @param tokenAccount The 32 bytes SPL token account public key
+    /// @return the full token account data formatted as a SPLTokenAccountData struct
     function getSPLTokenAccountData(bytes32 tokenAccount) external view returns(LibSPLTokenData.SPLTokenAccountData memory) {
         return LibSPLTokenData.getSPLTokenAccountData(tokenAccount);
     }
