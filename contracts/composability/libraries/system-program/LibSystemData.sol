@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity 0.8.28;
 
 import { LibSystemErrors } from "./LibSystemErrors.sol";
 import { QueryAccount } from "../../../precompiles/QueryAccount.sol";
@@ -74,10 +74,8 @@ library LibSystemData {
     /// @param accountPubKey The 32 bytes Solana account public key
     /// @param size The uint8 bytes size of the data we want to get
     /// @return the account data bytes
-    function getSystemAccountData(bytes32 accountPubKey, uint8 size) internal view returns(bytes memory) {
-        if (size == 0) {
-            return new bytes(0);
-        }
+    function getSystemAccountData(bytes32 accountPubKey, uint64 size) internal view returns(bytes memory) {
+        require(size > 0, LibSystemErrors.SystemAccountDataQuery());
         (bool success, bytes memory data) = QueryAccount.data(
             uint256(accountPubKey),
             0,
@@ -97,7 +95,7 @@ library LibSystemData {
     /// @param accountPubKey The 32 bytes Solana account public key
     /// @return true if account is rent exempt, false otherwise
     function isRentExempt(bytes32 accountPubKey) internal view returns(bool) {
-        if(getBalance(accountPubKey) >= getRentExemptionBalance(getSpace(accountPubKey))) {
+        if(getRentEpoch(accountPubKey) >= type(uint64).max) {
             return true;
         } else {
             return false;

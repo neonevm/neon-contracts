@@ -45,16 +45,16 @@ library LibSystemProgram {
         isWritable[2] = false;
 
         // Get values in right-padded little-endian bytes format
-        bytes32 seedLenLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(seed.length));
-        bytes32 rentExemptBalanceLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(rentExemptBalance)));
-        bytes32 accountSizeLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(accountSize)));
+        bytes8 seedLenLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(uint64(seed.length)));
+        bytes8 rentExemptBalanceLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(rentExemptBalance));
+        bytes8 accountSizeLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(accountSize));
         data = abi.encodePacked(
             bytes4(0x03000000), // Instruction variant (see: https://github.com/solana-program/system/blob/17d70bc0e56354cc7811e22a28776e7f379bcd04/interface/src/instruction.rs#L121)
             basePubKey, // Base public key used for account  creation
-            bytes8(seedLenLE), // Seed bytes length (right-padded little-endian)
+            seedLenLE, // Seed bytes length (right-padded little-endian)
             seed, // Seed bytes
-            bytes8(rentExemptBalanceLE), // Rent exemption balance for created account (right-padded little endian)
-            bytes8(accountSizeLE), // Storage space for created account (right-padded little endian)
+            rentExemptBalanceLE, // Rent exemption balance for created account (right-padded little endian)
+            accountSizeLE, // Storage space for created account (right-padded little endian)
             programId // program id
         );
     }
@@ -86,10 +86,10 @@ library LibSystemProgram {
         isWritable[1] = true;
 
         // Get amount in right-padded little-endian bytes format
-        bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
+        bytes8 amountLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(amount));
         data = abi.encodePacked(
             bytes4(0x02000000), // Instruction variant (see: https://github.com/solana-program/system/blob/17d70bc0e56354cc7811e22a28776e7f379bcd04/interface/src/instruction.rs#L111)
-            bytes8(amountLE) // Amount (right-padded little-endian)
+            amountLE // Amount (right-padded little-endian)
         );
     }
 
@@ -121,11 +121,11 @@ library LibSystemProgram {
         isWritable[1] = false;
 
         // Get seed length value in right-padded little-endian bytes format
-        bytes32 seedLenLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(seed.length));
+        bytes8 seedLenLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(uint64(seed.length)));
         data = abi.encodePacked(
             bytes4(0x0a000000), // Instruction variant (see: https://github.com/solana-program/system/blob/17d70bc0e56354cc7811e22a28776e7f379bcd04/interface/src/instruction.rs#L216)
             basePubKey,
-            bytes8(seedLenLE), // Seed bytes length (right-padded little-endian)
+            seedLenLE, // Seed bytes length (right-padded little-endian)
             seed, // Seed bytes
             programId // program id
         );
@@ -161,14 +161,14 @@ library LibSystemProgram {
         isWritable[1] = false;
 
         // Get values in right-padded little-endian bytes format
-        bytes32 seedLenLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(seed.length));
-        bytes32 accountSizeLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(accountSize)));
+        bytes8 seedLenLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(uint64(seed.length)));
+        bytes8 accountSizeLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(accountSize));
         data = abi.encodePacked(
             bytes4(0x09000000), // Instruction variant (see: https://github.com/solana-program/system/blob/17d70bc0e56354cc7811e22a28776e7f379bcd04/interface/src/instruction.rs#L197)
             basePubKey,
-            bytes8(seedLenLE), // Seed bytes length (right-padded little-endian)
+            seedLenLE, // Seed bytes length (right-padded little-endian)
             seed, // Seed bytes
-            bytes8(accountSizeLE), // Storage space for created account (right-padded little endian)
+            accountSizeLE, // Storage space for created account (right-padded little endian)
             programId // program id
         );
     }
