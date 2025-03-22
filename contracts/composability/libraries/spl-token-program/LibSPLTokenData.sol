@@ -263,19 +263,6 @@ library LibSPLTokenData {
         );
     }
 
-    /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key and a
-    /// user public key
-    /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
-    /// @param userPubKey The 32 bytes public key of the user
-    /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
-    /// key and a nonce value of 0
-    function getAssociatedTokenAccount(
-        bytes32 tokenMint,
-        bytes32 userPubKey
-    ) internal view returns(bytes32) {
-        return _getAssociatedTokenAccount(tokenMint, userPubKey, 0);
-    }
-
     /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key, a
     /// user public key and a nonce
     /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
@@ -283,19 +270,11 @@ library LibSPLTokenData {
     /// @param nonce A uint8 nonce (can be incremented to get different token accounts)
     /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
     /// key and the nonce
-    function getAssociatedTokenAccount(
+    function getArbitraryTokenAccount(
         bytes32 tokenMint,
         bytes32 userPubKey,
         uint8 nonce
     ) internal view returns(bytes32) {
-        return _getAssociatedTokenAccount(tokenMint, userPubKey, nonce);
-    }
-
-    function _getAssociatedTokenAccount(
-        bytes32 tokenMint,
-        bytes32 userPubKey,
-        uint8 nonce
-    ) private view returns(bytes32) {
         return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
             userPubKey,
             Constants.TOKEN_PROGRAM_ID,
@@ -303,6 +282,26 @@ library LibSPLTokenData {
             nonce,
             Constants.ASSOCIATED_TOKEN_PROGRAM_ID
         )));
+    }
+
+    /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key, a
+    /// user public key and a nonce
+    /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
+    /// @param userPubKey The 32 bytes public key of the user
+    /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
+    /// key and the nonce
+    function getAssociatedTokenAccount(
+        bytes32 tokenMint,
+        bytes32 userPubKey
+    ) internal view returns(bytes32) {
+        return CALL_SOLANA.getSolanaPDA(
+            Constants.ASSOCIATED_TOKEN_PROGRAM_ID,
+            abi.encodePacked(
+                userPubKey,
+                Constants.TOKEN_PROGRAM_ID,
+                tokenMint
+            )
+        );
     }
 
     function to_bool(bytes memory data) private pure returns (bool result) {
