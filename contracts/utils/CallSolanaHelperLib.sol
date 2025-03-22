@@ -28,7 +28,18 @@ library CallSolanaHelperLib {
 
             // define the instructionData length
             let instructionDataLen := mload(instructionData)
-            
+
+             // define the total output bytes length
+                // first 32 bytes are the Solana programId
+                // next 8 bytes are defining the length of the accounts list
+                // next x bytes are the account list
+                // next 8 bytes are defining the length of the Solana instruction data
+                // next x bytes are the instruction data
+            let dataLength := add(32, add(8, mul(accountsLen, 34)))
+            if gt(instructionDataLen, 0) {
+                dataLength := add(dataLength, add(8, instructionDataLen))
+            }
+
             // define the total output bytes length
             let dataLength := add(instructionDataLen, add(32, add(8, add(8, mul(accountsLen, 34)))))
 
@@ -56,13 +67,15 @@ library CallSolanaHelperLib {
                 dataPtr := add(dataPtr, 34)
             }
 
-            // store instructionDataLen
-            mstore8(dataPtr, instructionDataLen)
-            dataPtr := add(dataPtr, 8)
+            if gt(instructionDataLen, 0) {
+                // store instructionDataLen
+                mstore8(dataPtr, instructionDataLen)
+                dataPtr := add(dataPtr, 8)
 
-            // loop store instructionData
-            for { let i := 0 } lt(i, instructionDataLen) { i := add(i, 0x20) } {
-                mstore(add(dataPtr, i), mload(add(instructionData, add(0x20, i))))
+                // loop store instructionData
+                for { let i := 0 } lt(i, instructionDataLen) { i := add(i, 0x20) } {
+                    mstore(add(dataPtr, i), mload(add(instructionData, add(0x20, i))))
+                }
             }
         }
         return programIdAndAccounts;

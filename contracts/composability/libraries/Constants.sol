@@ -16,4 +16,5 @@ library Constants {
     bytes32 public constant SYSVAR_RENT_PUBKEY = 0x06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000;
     bytes32 public constant CREATE_CPMM_POOL_FEE_ACC_PUBKEY = 0xdedf953b2e71837bb572ab091421997463fa9f21967cc2f503201e8415b3e4bf;
     bytes32 public constant LOCK_CPMM_POOL_AUTH_PUBKEY = 0x5b84b7b4bd6b01e36118873168e4ffbcb9afd2c18ac15440bb3b790f4ca279d1;
+    bytes32 public constant CREATE_CPMM_POOL_AUTH = 0x65cd985f02a93c6a9d0c1c82c037ba621e302f4a5666f5af6be37f50a37c1406;
 }
