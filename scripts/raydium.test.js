@@ -15,7 +15,7 @@ async function main() {
     const [owner] = await ethers.getSigners();
     const connection = new web3.Connection("https://api.devnet.solana.com", "processed");
 
-    let CallRaydiumProgramAddress = "0x4817DA129394145faEF1D42698a3305bB1c4a926";
+    let CallRaydiumProgramAddress = "0xEEDb4C7B1BB91Df85DDD314A62A87AebC058eBDe";
     const CallRaydiumProgramFactory = await ethers.getContractFactory("CallRaydiumProgram");
     let CallRaydiumProgram;
 
@@ -37,7 +37,7 @@ async function main() {
     const payer = await CallRaydiumProgram.getPayer();
     console.log(payer, 'getPayer');
     const tokenA = 'So11111111111111111111111111111111111111112';
-    const tokenB = '2WQ3LBoA9AoC7eXwQopfiTZEkZaqocZfQQBtCrVafgwb';
+    const tokenB = 'GDjDoYF47Es9ffM4h17nHSmJy1hxcQv8YZwUTDpegZov';
 
     /* let tx = await CallRaydiumProgram.createPoolAndLockLP(
         ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
@@ -65,56 +65,21 @@ async function main() {
     return; */
 
 
-    const poolId = '97FeKQfA1hn6LyZgFYb61tPC5UbJvRZK7ahqgd3nPaKd';
+    const poolId = '2amySAHQBitNonz5NAjcuTbRroUUsVUkrKfr38QXt5Zc';
     const poolData = await CallRaydiumProgram.getPoolData(
         ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
         ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
     );
     console.log(poolData, 'getPoolData');
 
-    console.log(await CallRaydiumProgram.getSwapOutput(
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
-        poolData[0],
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
-        20000
-    ), 'getSwapOutput');
-
-    console.log(await CallRaydiumProgram.getSwapInput(
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
-        poolData[0],
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
-        20000
-    ), 'getSwapOutput');
-
-    tx = await CallRaydiumProgram.swapOutput(
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
-        20000,
-        1
-    );
-    await tx.wait(1);
-    console.log(tx, 'tx');
-
-    /* tx = await CallRaydiumProgram.swapInput(
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
-        20000,
-        1
-    );
-    await tx.wait(1);
-    console.log(tx, 'tx'); */
-    return;
+    
     const getPdaLpMint = await CallRaydiumProgram.getPdaLpMint(ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32));
     const lpMintATA = await getAssociatedTokenAddress( // calculates Token Account PDA of some account
         new web3.PublicKey(ethers.encodeBase58(getPdaLpMint)),
         new web3.PublicKey(ethers.encodeBase58(await CallRaydiumProgram.getPayer())),
         true
     );
-    const poolTokens = await CallRaydiumProgram.getPoolTokens(
-        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32)
-    );
+    const poolTokens = [poolData[5], poolData[6]];
     console.log(poolTokens, 'getPoolTokens');
     console.log(await CallRaydiumProgram.getTokenReserve(ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32), poolTokens[0]), 'reserve 0');
     console.log(await CallRaydiumProgram.getTokenReserve(ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32), poolTokens[1]), 'reserve 1');
@@ -166,11 +131,12 @@ async function main() {
     console.log(tx, 'tx WITHDRAW LP');
 
     // LOCK LIQUDITY EXAMPLE
+    const salt = ethers.zeroPadValue(ethers.toBeHex(ethers.Wallet.createRandom().address), 32);
     tx = await CallRaydiumProgram.lockLiquidity(
         ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
         parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 5),
         true,
-        ethers.zeroPadValue(ethers.toBeHex(owner.address), 32) // salt
+        salt
     );
     await tx.wait(1);
     console.log(tx, 'tx LOCK LP');
@@ -179,10 +145,45 @@ async function main() {
     tx = await CallRaydiumProgram.collectFees(
         ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
         99999999,
-        ethers.zeroPadValue(ethers.toBeHex(owner.address), 32) // salt
+        salt
     );
     await tx.wait(1);
     console.log(tx, 'tx CLAIM FEES');
+
+    // SWAP INPUT & OUTPUT EXAMPLES
+    console.log(await CallRaydiumProgram.getSwapOutput(
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
+        poolData[0],
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
+        20000
+    ), 'getSwapOutput');
+
+    console.log(await CallRaydiumProgram.getSwapInput(
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
+        poolData[0],
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
+        20000
+    ), 'getSwapOutput');
+
+    tx = await CallRaydiumProgram.swapOutput(
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
+        20000,
+        1
+    );
+    await tx.wait(1);
+    console.log(tx, 'tx SWAP OUTPUT');
+
+    tx = await CallRaydiumProgram.swapInput(
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(poolId)), 32),
+        ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
+        20000,
+        1
+    );
+    await tx.wait(1);
+    console.log(tx, 'tx SWAP INPUT');
 }
 
 // We recommend this pattern to be able to use async/await everywhere

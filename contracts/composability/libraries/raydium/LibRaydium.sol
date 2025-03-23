@@ -33,7 +33,6 @@ library LibRaydium {
     ) {
         require(tokenA != tokenB, LibRaydiumErrors.IdenticalTokenAddresses());
         require(tokenA != bytes32(0) && tokenB != bytes32(0) , LibRaydiumErrors.EmptyTokenAddress());
-        require(mintAAmount > 0 && mintBAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         bytes32 configAccount = LibRaydiumData.getConfigAccount(0);
         bytes32 poolId = LibRaydiumData.getCpmmPdaPoolId(configAccount, tokenA, tokenB);
         require(LibSystemData.getSpace(poolId) == 0, LibRaydiumErrors.AlreadyExistingPool(poolId));
@@ -54,8 +53,8 @@ library LibRaydium {
         accounts[12] = Constants.CREATE_CPMM_POOL_FEE_ACC_PUBKEY;
         accounts[13] = LibRaydiumData.getPdaObservationId(accounts[3]);
         accounts[14] = Constants.TOKEN_PROGRAM_ID;
-        accounts[15] = Constants.TOKEN_PROGRAM_ID;
-        accounts[16] = Constants.TOKEN_PROGRAM_ID;
+        accounts[15] = LibSystemData.getOwner(tokenA);
+        accounts[16] = LibSystemData.getOwner(tokenB);
         accounts[17] = Constants.ASSOCIATED_TOKEN_PROGRAM_ID;
         accounts[18] = Constants.SYSTEM_PROGRAM_ID;
         accounts[19] = Constants.SYSVAR_RENT_PUBKEY;
@@ -101,6 +100,7 @@ library LibRaydium {
     }
 
     function buildCreatePoolData(uint64 amountMaxA, uint64 amountMaxB, uint64 startTime) internal pure returns (bytes memory) {
+        require(amountMaxA > 0 && amountMaxB > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"afaf6d1f0d989bed", // initialize: [175, 175, 109, 31, 13, 152, 155, 237]
             abi.encodePacked(
@@ -124,7 +124,6 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        require(inputAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
 
         accounts = new bytes32[](13);
@@ -174,6 +173,7 @@ library LibRaydium {
                 tokenBReserve,
                 poolLpAmount
             );
+            slippage = (slippage > 100) ? 100 : slippage;
             
             data = buildAddLiquidityData(
                 lpAmount, 
@@ -184,6 +184,7 @@ library LibRaydium {
     }
 
     function buildAddLiquidityData(uint64 lpAmount, uint64 amountMaxA, uint64 amountMaxB) internal pure returns (bytes memory) {
+        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"f223c68952e1f2b6", // deposit: [242, 35, 198, 137, 82, 225, 242, 182]
             abi.encodePacked(
@@ -206,7 +207,6 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
 
         accounts = new bytes32[](14);
@@ -249,6 +249,7 @@ library LibRaydium {
 
         if (returnData) {
             uint64 poolLpAmount = LibRaydiumData.getPoolLpAmount(poolId);
+            slippage = (slippage > 100) ? 100 : slippage;
             data = buildWithdrawLiquidityData(
                 lpAmount, 
                 (((lpAmount * LibRaydiumData.getTokenReserve(poolId, poolData.tokenA)) / poolLpAmount) * (100 - slippage)) / 100, 
@@ -258,6 +259,7 @@ library LibRaydium {
     }
 
     function buildWithdrawLiquidityData(uint64 lpAmount, uint64 amountMinA, uint64 amountMinB) internal pure returns (bytes memory) {
+        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"b712469c946da122", // withdraw: [183, 18, 70, 156, 148, 109, 161, 34],
             abi.encodePacked(
@@ -282,14 +284,14 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
-        LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
-        lamports = 23328400;
-
+        LibRaydiumData.PoolData memory poolData;
         accounts = new bytes32[](19);
         if (premadeAccounts.length == 0) {
+            poolData = LibRaydiumData.getPoolData(poolId);
             premadeAccounts = new bytes32[](accounts.length);
         }
+        lamports = 23328400;
+
         accounts[0] = Constants.LOCK_CPMM_POOL_AUTH_PUBKEY;
         accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : CALL_SOLANA.getPayer();
         accounts[2] = accounts[1];
@@ -358,6 +360,7 @@ library LibRaydium {
     }
 
     function buildLockLiquidityData(uint64 lpAmount, bool withMetadata) internal pure returns (bytes memory) {
+        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"d89d1d4e26331f1a", // lockCpLiquidity: [216, 157, 29, 78, 38, 51, 31, 26]
             abi.encodePacked(
@@ -379,7 +382,6 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        require(lpFeeAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
         bytes32 nftMintAccount = CALL_SOLANA.getExtAuthority(salt);
 
@@ -449,6 +451,7 @@ library LibRaydium {
     }
 
     function buildCollectFeesData(uint64 lpFeeAmount) internal pure returns (bytes memory) {
+        require(lpFeeAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"081e33c7d1b8f785", // collectCpFee: [8, 30, 51, 199, 209, 184, 247, 133]
             abi.encodePacked(
@@ -470,7 +473,6 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        require(amountIn > 0, LibRaydiumErrors.InsufficientInputAmount());
         LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
         bytes32 outputToken = (inputToken == poolData.tokenA) ? poolData.tokenB : poolData.tokenA;
         (
@@ -488,6 +490,7 @@ library LibRaydium {
     }
 
     function buildSwapInputData(uint64 amountIn, uint64 amounOutMin) internal pure returns (bytes memory) {
+        require(amountIn > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"8fbe5adac41e33de", // swapBaseInput: [143, 190, 90, 218, 196, 30, 51, 222]
             abi.encodePacked(
@@ -510,7 +513,6 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        require(amountOut > 0, LibRaydiumErrors.InsufficientOutputAmount());
         LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
         bytes32 outputToken = (inputToken == poolData.tokenA) ? poolData.tokenB : poolData.tokenA;
         (
@@ -528,6 +530,7 @@ library LibRaydium {
     }
 
     function buildSwapOutputData(uint64 amountInMax, uint64 amountOut) internal pure returns (bytes memory) {
+        require(amountOut > 0, LibRaydiumErrors.InsufficientOutputAmount());
         return abi.encodePacked(
             hex"37d96256a34ab4ad", // swapBaseOutput: [55, 217, 98, 86, 163, 74, 180, 173]
             abi.encodePacked(
@@ -556,8 +559,8 @@ library LibRaydium {
         accounts[5] = LibSPLTokenData.getAssociatedTokenAccount(outputToken, accounts[0]);
         accounts[6] = (inputToken == poolData.tokenA) ? poolData.tokenAVault : poolData.tokenBVault;
         accounts[7] = (inputToken == poolData.tokenA) ? poolData.tokenBVault : poolData.tokenAVault;
-        accounts[8] = Constants.TOKEN_PROGRAM_ID;
-        accounts[9] = Constants.TOKEN_PROGRAM_ID;
+        accounts[8] = (inputToken == poolData.tokenA) ? poolData.tokenAProgram : poolData.tokenBProgram;
+        accounts[9] = (inputToken == poolData.tokenA) ? poolData.tokenBProgram : poolData.tokenAProgram;
         accounts[10] = inputToken;
         accounts[11] = outputToken;
         accounts[12] = poolData.observationKey;
