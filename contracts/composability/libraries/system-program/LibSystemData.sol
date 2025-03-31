@@ -2,6 +2,7 @@
 pragma solidity 0.8.28;
 
 import { LibSystemErrors } from "./LibSystemErrors.sol";
+import { Constants } from "../Constants.sol";
 import { QueryAccount } from "../../../precompiles/QueryAccount.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
@@ -14,7 +15,7 @@ library LibSystemData {
     using SolanaDataConverterLib for bytes;
     using SolanaDataConverterLib for uint64;
 
-    uint16 public constant RENT_EXEMPTION_LAMPORTS_PER_BYTE_YEAR = 3480;
+    uint8 public constant ACCOUNT_STORAGE_OVERHEAD = 128;
 
     struct AccountInfo {
         bytes32 pubkey;
@@ -22,6 +23,11 @@ library LibSystemData {
         bytes32 owner;
         bool executable;
         uint64 rent_epoch;
+    }
+
+    struct DecodedFloat64 {
+        uint64 fraction;
+        uint64 exponent;
     }
 
     // System account data getters
@@ -86,22 +92,6 @@ library LibSystemData {
         return data;
     }
 
-    /// @param space The storage space allocated to considered Solana account in bytes
-    /// @return account's minimum balance for rent exemption in lamports
-    function getRentExemptionBalance(uint64 space) internal pure returns(uint64) {
-        return 2 * (128 + space) * RENT_EXEMPTION_LAMPORTS_PER_BYTE_YEAR;
-    }
-
-    /// @param accountPubKey The 32 bytes Solana account public key
-    /// @return true if account is rent exempt, false otherwise
-    function isRentExempt(bytes32 accountPubKey) internal view returns(bool) {
-        if(getRentEpoch(accountPubKey) >= type(uint64).max) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     /// @notice Helper function to derive the address of the Solana account which would be created by executing a
     /// `createAccountWithSeed` instruction formatted with the same parameters
     /// @param basePubKey The base public key used to derive the newly created account
@@ -114,5 +104,77 @@ library LibSystemData {
         bytes memory seed
     ) internal pure returns(bytes32) {
         return sha256(abi.encodePacked(basePubKey, seed, programId));
+    }
+
+    /// @param accountPubKey The 32 bytes Solana account public key
+    /// @return true if account is rent exempt, false otherwise
+    function isRentExempt(bytes32 accountPubKey) internal view returns(bool) {
+        if(getRentEpoch(accountPubKey) >= type(uint64).max) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /// @param accountBytesSize The storage space allocated to considered Solana account in bytes
+    /// @return account's minimum balance for rent exemption in lamports
+    function getRentExemptionBalance(uint64 accountBytesSize) internal view returns(uint256) {
+        // We get the latest rent data from Solana's SysvarRent111111111111111111111111111111111 account
+        uint64 rentDataSize = getSpace(Constants.SYSVAR_RENT_PUBKEY);
+        bytes memory rentDataBytes = getSystemAccountData(Constants.SYSVAR_RENT_PUBKEY, rentDataSize);
+        // Extract the first 8 bytes of data which represent the rent in lamports per byte per year encoded as a uint64
+        uint64 lamportsPerByteYear = (rentDataBytes.toUint64(0)).readLittleEndianUnsigned64();
+        // Calculate the account's rent per year
+        uint256 rentPerYear = (ACCOUNT_STORAGE_OVERHEAD + accountBytesSize) * lamportsPerByteYear;
+        // Extract the next 8 bytes of data which represent the rent exemption threshold in years encoded as a IEEE754
+        // double precision floating point value (float64)
+        bytes8 rentExemptionThresholdFloat64Bytes = bytes8(rentDataBytes.toUint64(8).readLittleEndianUnsigned64());
+        // Decode the IEEE754 double precision floating point value (float64) into its fraction and exponent components
+        DecodedFloat64 memory decodedRentExemptionThresholdFloat64 = decodeFloat64(rentExemptionThresholdFloat64Bytes);
+        if(decodedRentExemptionThresholdFloat64.exponent < 1023) { // Exponent is encoded with the zero offset
+            // being 1023, so the actual exponent value is: (exponent - 1023). Any exponent below 1023 is actually a
+            // negative exponent value in which case we return a uint value rounded down to 0.
+            return 0;
+        }
+        uint64 exponent = decodedRentExemptionThresholdFloat64.exponent - 1023;
+        // IEEE754 double precision encoding: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+        // IEEE754 quadruple precision encoding: https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format
+        // Reference implementation: https://github.com/abdk-consulting/abdk-libraries-solidity/blob/d8817cb600381319992d7caa038bf4faceb1097f/ABDKMathQuad.sol#L127
+        // The conversion from float64 to uint64 is calculated as: (1 + fraction) * 2 ^ exponent
+        // We return rentPerYear * (1 + fraction) * 2 ^ exponent
+        uint256 rentExemptionBalance = rentPerYear * (decodedRentExemptionThresholdFloat64.fraction + 0x10000000000000);
+        if (exponent < 52) {
+            // If the actual exponent value is less than 52: divide by 2 ^ (52 - exponent)
+            rentExemptionBalance >>= (52 - exponent);
+        } else if (exponent > 52) {
+            // Else if the actual exponent value is greater than 52: multiply by 2 ^ (exponent - 52)
+            rentExemptionBalance <<= (exponent - 52);
+        }
+
+        return rentExemptionBalance;
+    }
+
+    /// @notice Helper function to decode a IEEE754 double precision floating point value into its fraction and exponent
+    /// components
+    /// IEEE754 double precision encoding: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
+    /// IEEE754 quadruple precision encoding: https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format
+    /// Reference implementation: https://github.com/abdk-consulting/abdk-libraries-solidity/blob/d8817cb600381319992d7caa038bf4faceb1097f/ABDKMathQuad.sol#L127
+    /// @param float64Bytes IEEE754 double precision encoded floating point value
+    /// @return DecodedFloat64 struct
+    function decodeFloat64 (bytes8 float64Bytes) internal pure returns (DecodedFloat64 memory) {
+        unchecked {
+            require (uint64(float64Bytes) < 0x8000000000000000, LibSystemErrors.NegativeFloat64()); // Make sure the encoded
+            // number is positive, revert otherwise.
+            uint64 fraction = uint64(float64Bytes) & 0x0FFFFFFFFFFFFF; // Only keep significand bits (remove sign and
+            // exponent bits).
+            uint64 exponent = uint64(float64Bytes) >> 52 & 0x7FF; // Shift float64Value to the right by 52 bits and
+            // remove the sign bit to only keep exponent bits.
+            require (exponent <= 1086, LibSystemErrors.Float64Overflow()); // Exponent is encoded with the zero offset
+            // being 1023, so the actual exponent value is: (exponent - 1023). Here we make sure the actual exponent
+            // value is below 63 to avoid overflow and we revert otherwise. This is because the encoded value is at
+            // least equal to 2^p where p is the actual exponent value.
+
+            return DecodedFloat64(fraction, exponent);
+        }
     }
 }
