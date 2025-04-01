@@ -9,28 +9,63 @@ import {LibRaydiumData} from "./libraries/raydium/LibRaydiumData.sol";
 import {LibSPLTokenData} from "./libraries/spl-token-program/LibSPLTokenData.sol";
 import {SolanaDataConverterLib} from "../utils/SolanaDataConverterLib.sol";
 
+interface IERC20ForSpl {
+    function transferSolana(bytes32 to, uint64 amount) external returns(bool);
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external;
+    function tokenMint() external view returns(bytes32);
+}
+
 
 /// @title CallRaydiumProgram
 /// @author https://twitter.com/mnedelchev_
-/// @notice XYZ
+/// @notice Example contract showing how to use LibRaydium library to interact with the Raydium program on Solana
 contract CallRaydiumProgram {
     using SolanaDataConverterLib for uint64;
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
+    error InvalidTokens();
+
     function createPool(
-        bytes32 tokenA,
-        bytes32 tokenB,
+        address tokenA,
+        address tokenB,
         uint64 mintAAmount,
         uint64 mintBAmount,
         uint64 startTime
     ) public returns(bytes32) {
+        bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
+        bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
+        bytes32 payerAccount = CALL_SOLANA.getPayer();
+        bytes32 tokenA_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
+        bytes32 tokenB_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
+
+        IERC20ForSpl(tokenA).transferFrom(msg.sender, address(this), mintAAmount);
+        IERC20ForSpl(tokenA).transferSolana(
+            tokenA_ATA,
+            mintAAmount
+        );
+
+        IERC20ForSpl(tokenB).transferFrom(msg.sender, address(this), mintBAmount);
+        IERC20ForSpl(tokenB).transferSolana(
+            tokenB_ATA,
+            mintBAmount
+        );
+
+        bytes32[] memory premadeAccounts = new bytes32[](20);
+        premadeAccounts[0] = payerAccount;
+        premadeAccounts[7] = tokenA_ATA;
+        premadeAccounts[8] = tokenB_ATA;
+
         (
             uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.createPool(tokenA, tokenB, mintAAmount, mintBAmount, startTime, true);
+        ) = LibRaydium.createPool(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
 
         CALL_SOLANA.execute(
             lamports,
@@ -48,17 +83,45 @@ contract CallRaydiumProgram {
 
     function addLiquidity(
         bytes32 poolId,
+        address tokenA,
+        address tokenB,
+        uint64 amountTokenA,
+        uint64 amountTokenB,
         uint64 inputAmount,
         bool baseIn,
         uint8 slippage
     ) public {
+        bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
+        bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
+        bytes32 payerAccount = CALL_SOLANA.getPayer();
+        bytes32 tokenA_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
+        bytes32 tokenB_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
+
+        IERC20ForSpl(tokenA).transferFrom(msg.sender, address(this), amountTokenA);
+        IERC20ForSpl(tokenA).transferSolana(
+            tokenA_ATA,
+            amountTokenA
+        );
+
+        IERC20ForSpl(tokenB).transferFrom(msg.sender, address(this), amountTokenB);
+        IERC20ForSpl(tokenB).transferSolana(
+            tokenB_ATA,
+            amountTokenB
+        );
+
+        bytes32[] memory premadeAccounts = new bytes32[](13);
+        premadeAccounts[0] = payerAccount;
+        premadeAccounts[4] = tokenA_ATA;
+        premadeAccounts[5] = tokenB_ATA;
+
         (
             uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.addLiquidity(poolId, inputAmount, baseIn, slippage, true);
+        ) = LibRaydium.addLiquidity(poolId, inputAmount, baseIn, slippage, true, premadeAccounts);
+        require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
             lamports,
@@ -74,16 +137,26 @@ contract CallRaydiumProgram {
 
     function withdrawLiquidity(
         bytes32 poolId,
+        address tokenA,
+        address tokenB,
         uint64 lpAmount,
         uint8 slippage
     ) public {
+        bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
+        bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
+
+        bytes32[] memory premadeAccounts = new bytes32[](14);
+        premadeAccounts[4] = getNeonArbitraryTokenAccount(tokenA, msg.sender);
+        premadeAccounts[5] = getNeonArbitraryTokenAccount(tokenB, msg.sender);
+
         (
             uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.withdrawLiquidity(poolId, lpAmount, slippage, true);
+        ) = LibRaydium.withdrawLiquidity(poolId, lpAmount, slippage, true, premadeAccounts);
+        require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
             lamports,
@@ -135,16 +208,26 @@ contract CallRaydiumProgram {
 
     function collectFees(
         bytes32 poolId,
+        address tokenA,
+        address tokenB,
         uint64 lpFeeAmount,
         bytes32 salt
     ) public {
+        bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
+        bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
+
+        bytes32[] memory premadeAccounts = new bytes32[](18);
+        premadeAccounts[8] = getNeonArbitraryTokenAccount(tokenA, msg.sender);
+        premadeAccounts[9] = getNeonArbitraryTokenAccount(tokenB, msg.sender);
+
         (
             uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.collectFees(poolId, lpFeeAmount, salt, true);
+        ) = LibRaydium.collectFees(poolId, lpFeeAmount, salt, true, premadeAccounts);
+        require(accounts[12] == tokenAMint && accounts[13] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
             lamports,
@@ -160,17 +243,35 @@ contract CallRaydiumProgram {
 
     function swapInput(
         bytes32 poolId,
-        bytes32 inputToken,
+        address inputToken,
+        address outputToken,
         uint64 amountIn,
         uint8 slippage
     ) public {
+        bytes32 inputTokenMint = IERC20ForSpl(inputToken).tokenMint();
+        bytes32 outputTokenMint = IERC20ForSpl(outputToken).tokenMint();
+        bytes32 payerAccount = CALL_SOLANA.getPayer();
+        bytes32 inputToken_ATA = LibSPLTokenData.getAssociatedTokenAccount(inputTokenMint, payerAccount);
+
+        IERC20ForSpl(inputToken).transferFrom(msg.sender, address(this), amountIn);
+        IERC20ForSpl(inputToken).transferSolana(
+            inputToken_ATA,
+            amountIn
+        );
+
+        bytes32[] memory premadeAccounts = new bytes32[](13);
+        premadeAccounts[0] = payerAccount;
+        premadeAccounts[4] = inputToken_ATA;
+        premadeAccounts[5] = getNeonArbitraryTokenAccount(outputToken, msg.sender);
+
         (
             uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.swapInput(poolId, inputToken, amountIn, slippage, true);
+        ) = LibRaydium.swapInput(poolId, inputTokenMint, amountIn, slippage, true, premadeAccounts);
+        require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
             lamports,
@@ -186,17 +287,36 @@ contract CallRaydiumProgram {
 
     function swapOutput(
         bytes32 poolId,
-        bytes32 inputToken,
+        address inputToken,
+        address outputToken,
         uint64 amountOut,
+        uint64 amountInMax,
         uint8 slippage
     ) public {
+        bytes32 inputTokenMint = IERC20ForSpl(inputToken).tokenMint();
+        bytes32 outputTokenMint = IERC20ForSpl(outputToken).tokenMint();
+        bytes32 payerAccount = CALL_SOLANA.getPayer();
+        bytes32 inputToken_ATA = LibSPLTokenData.getAssociatedTokenAccount(inputTokenMint, payerAccount);
+        uint64 payerTokenABalance = LibSPLTokenData.getSPLTokenAccountBalance(inputToken_ATA);
+
+        IERC20ForSpl(inputToken).transferFrom(msg.sender, address(this), amountInMax);
+        IERC20ForSpl(inputToken).transferSolana(
+            inputToken_ATA,
+            amountInMax
+        );
+
+        bytes32[] memory premadeAccounts = new bytes32[](13);
+        premadeAccounts[0] = payerAccount;
+        premadeAccounts[4] = inputToken_ATA;
+        premadeAccounts[5] = getNeonArbitraryTokenAccount(outputToken, msg.sender);
         (
             uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.swapOutput(poolId, inputToken, amountOut, slippage, true);
+        ) = LibRaydium.swapOutput(poolId, inputTokenMint, amountOut, slippage, true, premadeAccounts);
+        require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
             lamports,
@@ -208,17 +328,45 @@ contract CallRaydiumProgram {
                 data
             )
         );
+
+        uint64 payerTokenABalanceAfter = LibSPLTokenData.getSPLTokenAccountBalance(inputToken_ATA);
+        if (payerTokenABalanceAfter > payerTokenABalance) {
+            // add logic to send back outputToken leftovers ( payerTokenABalanceAfter - payerTokenABalance ) to the msg.sender
+        }
     }
 
     function createPoolAndLockLP(
-        bytes32 tokenA,
-        bytes32 tokenB,
+        address tokenA,
+        address tokenB,
         uint64 mintAAmount,
         uint64 mintBAmount,
         uint64 startTime,
         bytes32 salt,
         bool withMetadata
     ) public returns (bytes32, uint64, bytes32) {
+        bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
+        bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
+        bytes32 payerAccount = CALL_SOLANA.getPayer();
+        bytes32 tokenA_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
+        bytes32 tokenB_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
+
+        IERC20ForSpl(tokenA).transferFrom(msg.sender, address(this), mintAAmount);
+        IERC20ForSpl(tokenA).transferSolana(
+            tokenA_ATA,
+            mintAAmount
+        );
+
+        IERC20ForSpl(tokenB).transferFrom(msg.sender, address(this), mintBAmount);
+        IERC20ForSpl(tokenB).transferSolana(
+            tokenB_ATA,
+            mintBAmount
+        );
+
+        bytes32[] memory premadeAccounts = new bytes32[](20);
+        premadeAccounts[0] = payerAccount;
+        premadeAccounts[7] = tokenA_ATA;
+        premadeAccounts[8] = tokenB_ATA;
+
         // build instruction #1 - Creation of a pool
         (
             uint64 lamports,
@@ -226,12 +374,13 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.createPool(tokenA, tokenB, mintAAmount, mintBAmount, startTime, true);
+        ) = LibRaydium.createPool(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
         bytes32 poolId = accounts[3];
         if (salt == bytes32(0)) {
             salt = poolId;
         }
 
+        // Semi-build instruction #2 - Locking of LP
         // Semi-build instruction #2 - Locking of LP
         bytes32[] memory premadeLockLPAccounts = new bytes32[](19);
         premadeLockLPAccounts[8] = accounts[6];
@@ -254,7 +403,7 @@ contract CallRaydiumProgram {
             dataLock
         );
 
-        // First composability request to Solana - no more iterative execution
+        // First composability request to Solana - no more iterative execution of the Solidity logic
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
@@ -265,13 +414,15 @@ contract CallRaydiumProgram {
                 data
             )
         );
-
+        
+        // Building the instruction data for the second composability request
         uint64 lpBalance = LibSPLTokenData.getSPLTokenAccountBalance(accountsLock[9]);
         bytes memory lockInstructionData = LibRaydium.buildLockLiquidityData(
             lpBalance,
             withMetadata
         );
 
+        // Second composability request to Solana
         CALL_SOLANA.executeWithSeed(
             lamportsLock,
             salt,
@@ -284,7 +435,7 @@ contract CallRaydiumProgram {
 
         return (
             poolId,
-            lpBalance,
+            0,
             accounts[4] // NFT Mint account
         );
     }
@@ -322,15 +473,28 @@ contract CallRaydiumProgram {
         return LibRaydiumData.lpToAmount(lp, poolAmountA, poolAmountB, supply);
     }
 
-    function getConfigData() public view returns(LibRaydiumData.ConfigData memory) {
-        return LibRaydiumData.getConfigData(LibRaydiumData.getConfigAccount(0));
+    function getConfigAccount(uint16 index) public view returns(bytes32) {
+        return LibRaydiumData.getConfigAccount(index);
+    }
+
+    function getConfigData(uint16 index) public view returns(LibRaydiumData.ConfigData memory) {
+        return LibRaydiumData.getConfigData(LibRaydiumData.getConfigAccount(index));
+    }
+
+    function getCpmmPdaPoolId(
+        uint16 index,
+        bytes32 tokenA,
+        bytes32 tokenB
+    ) public view returns(bytes32) {
+        return LibRaydiumData.getCpmmPdaPoolId(LibRaydiumData.getConfigAccount(index), tokenA, tokenB);
     }
 
     function getPoolData(
+        uint16 index,
         bytes32 tokenA,
         bytes32 tokenB
     ) public view returns(LibRaydiumData.PoolData memory) {
-        return LibRaydiumData.getPoolData(LibRaydiumData.getCpmmPdaPoolId(LibRaydiumData.getConfigAccount(0), tokenA, tokenB));
+        return LibRaydiumData.getPoolData(LibRaydiumData.getCpmmPdaPoolId(LibRaydiumData.getConfigAccount(index), tokenA, tokenB));
     }
 
     function getSwapOutput(
@@ -351,5 +515,18 @@ contract CallRaydiumProgram {
         uint64 outputAmount
     ) public view returns(uint64) {
         return LibRaydiumData.getSwapInput(poolId, configAccount, inputToken, outputToken, outputAmount);
+    }
+
+    // Temporary method as in Erc20ForSpl V1 solanaAccount method is private, to be removed when Erc20ForSpl V2 is out
+    function getNeonArbitraryTokenAccount(address token, address evm_address) public view returns (bytes32) {
+        return CALL_SOLANA.getSolanaPDA(
+            Constants.NEON_EVM_PROGRAM_ID,
+            abi.encodePacked(
+                hex"03",
+                hex"436f6e747261637444617461", // ContractData
+                token,
+                bytes32(uint256(uint160((evm_address))))
+            )
+        );
     }
 }
