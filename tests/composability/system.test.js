@@ -8,7 +8,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
 
     console.log("Network name: " + network.name)
 
-    const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed")
+    const solanaConnection = new web3.Connection(process.env.SVM_NODE, "processed")
 
     const ZERO_AMOUNT = BigInt(0)
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')

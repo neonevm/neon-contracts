@@ -9,6 +9,7 @@ abstract contract Constants {
     bytes32 public constant METAPLEX_PROGRAM_ID = 0x0b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946;
     bytes32 public constant MEMO_PROGRAM_V2_ID = 0x054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d;
     bytes32 public constant SYSVAR_RENT_PUBKEY = 0x06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000;
+    bytes32 public immutable NEON_EVM_PROGRAM_ID;
     bytes32 public immutable CREATE_CPMM_POOL_PROGRAM_ID;
     bytes32 public immutable CREATE_CPMM_POOL_AUTH;
     bytes32 public immutable CREATE_CPMM_POOL_FEE_ACC_PUBKEY;
@@ -20,12 +21,14 @@ abstract contract Constants {
     constructor() {
         uint chainId = getChainId();
         if (chainId == 245022926) {
+            NEON_EVM_PROGRAM_ID = 0x09a4b472d9f2c537175e526beeedaab6768c80800edbf73b4410f48a91d651c1;
             CREATE_CPMM_POOL_PROGRAM_ID = 0xa92a311a8898864d2063c8fccb536e1e8a304d8d53984c0a4eb3c14407d674e7;
             CREATE_CPMM_POOL_AUTH = 0x65cd985f02a93c6a9d0c1c82c037ba621e302f4a5666f5af6be37f50a37c1406;
             CREATE_CPMM_POOL_FEE_ACC_PUBKEY = 0xdedf953b2e71837bb572ab091421997463fa9f21967cc2f503201e8415b3e4bf;
             LOCK_CPMM_POOL_PROGRAM_ID = 0xb75efce9ea62e768edd9aa8e7e44b86dd3ebf9594bf7fc98f48048180c01db85;
             LOCK_CPMM_POOL_AUTH_PUBKEY = 0x5b84b7b4bd6b01e36118873168e4ffbcb9afd2c18ac15440bb3b790f4ca279d1;
         } else if (chainId == 245022934) {
+            NEON_EVM_PROGRAM_ID = 0x058bf1f0ab8c7508d14efe57c15e86b22cf8246ca415ca5c4f69b3529a0f073b;
             CREATE_CPMM_POOL_PROGRAM_ID = 0xa92a5a8b4f295952842550aa93fd5b95b5ace6a8eb920c93942e43690c20ec73;
             CREATE_CPMM_POOL_AUTH = 0xeb00d9f5b292b4214ac7d037b4d6f06450b964600df373052bb5e84f2f8e9a67;
             CREATE_CPMM_POOL_FEE_ACC_PUBKEY = 0xb7d0225254ac07e3b2bd3f86c1f0f1103fc0708cc15aef14073aa6453f55ea69;

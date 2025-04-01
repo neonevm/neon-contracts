@@ -9,6 +9,7 @@ library Constants {
     bytes32 public constant TOKEN_PROGRAM_ID = 0x06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9;
     bytes32 public constant ASSOCIATED_TOKEN_PROGRAM_ID = 0x8c97258f4e2489f1bb3d1029148e0d830b5a1399daff1084048e7bd8dbe9f859;
     bytes32 public constant TOKEN_PROGRAM_2022_ID = 0x06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc;
+    bytes32 public constant NEON_EVM_PROGRAM_ID = 0x09a4b472d9f2c537175e526beeedaab6768c80800edbf73b4410f48a91d651c1;
     bytes32 public constant METAPLEX_PROGRAM_ID = 0x0b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946;
     bytes32 public constant MEMO_PROGRAM_V2_ID = 0x054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d;
     bytes32 public constant CREATE_CPMM_POOL_PROGRAM_ID = 0xa92a311a8898864d2063c8fccb536e1e8a304d8d53984c0a4eb3c14407d674e7;

@@ -9,6 +9,11 @@ module.exports = {
         neondevnet: "",
         neonmainnet: "",
     },
+    CallRaydiumProgram: {
+        curvestand: "",
+        neondevnet: "",
+        neonmainnet: "",
+    },
     tokenMintSeed: {
         curvestand: "myTokenMintSeed",
         neondevnet: "myTokenMintSeed",
