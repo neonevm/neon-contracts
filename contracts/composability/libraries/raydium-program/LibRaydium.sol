@@ -12,12 +12,12 @@ import {SolanaDataConverterLib} from "../../../utils/SolanaDataConverterLib.sol"
 
 /// @title LibRaydium
 /// @author https://twitter.com/mnedelchev_
-/// @notice This library serve as a helper to abstract away Solana's specifications for Solidity developers
+/// @notice Helper library for interactions with Solana's Raydium program
 library LibRaydium {
     using SolanaDataConverterLib for uint64;
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
-    /// @notice Creation of a CPMM pool in Raydium
+    /// @notice Returns formatted Solana instruction of creation of a CPMM pool in Raydium
     /// @param tokenA The Mint account of tokenA
     /// @param tokenB The Mint account of tokenB
     /// @param mintAAmount The tokenA's amount provided as initial liquidity inside the pool
@@ -26,7 +26,7 @@ library LibRaydium {
     /// @param configIndex The index of the config account to be used for the pool creation
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
-    function createPool(
+    function createPoolInstruction(
         bytes32 tokenA,
         bytes32 tokenB,
         uint64 mintAAmount,
@@ -42,7 +42,6 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        // set chai id
         require(tokenA != tokenB, LibRaydiumErrors.IdenticalTokenAddresses());
         require(tokenA != bytes32(0) && tokenB != bytes32(0), LibRaydiumErrors.EmptyTokenAddress());
         bytes32 configAccount = LibRaydiumData.getConfigAccount(configIndex);
@@ -76,7 +75,8 @@ library LibRaydium {
 
         isSigner = new bool[](20);
         isSigner[0] = true;
-        for (uint i = 1; i < isSigner.length - 1; ++i) {
+        uint isSignerLen = isSigner.length - 1;
+        for (uint i = 1; i < isSignerLen; ++i) {
             isSigner[i] = false;
         }
 
@@ -119,22 +119,20 @@ library LibRaydium {
         require(amountMaxA > 0 && amountMaxB > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"afaf6d1f0d989bed", // initialize: [175, 175, 109, 31, 13, 152, 155, 237]
-            abi.encodePacked(
-                amountMaxA.readLittleEndianUnsigned64(),
-                amountMaxB.readLittleEndianUnsigned64(),
-                startTime.readLittleEndianUnsigned64()
-            )
+            amountMaxA.readLittleEndianUnsigned64(),
+            amountMaxB.readLittleEndianUnsigned64(),
+            startTime.readLittleEndianUnsigned64()
         );
     }
 
-    /// @notice Adding LP to CPMM pool in Raydium
+    /// @notice Returns formatted Solana instruction of adding LP to CPMM pool in Raydium
     /// @param poolId The pool's account
     /// @param inputAmount The amount of LP to be added
-    /// @param baseIn Bool that defines whether tokenA or tokenB should be used for the LP amount calculcation
+    /// @param baseIn Bool that defines whether tokenA or tokenB should be used for the LP amount calculation
     /// @param slippage Percent value from 0 to 100
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
-    function addLiquidity(
+    function addLiquidityInstruction(
         bytes32 poolId,
         uint64 inputAmount,
         bool baseIn,
@@ -171,7 +169,8 @@ library LibRaydium {
 
         isSigner = new bool[](13);
         isSigner[0] = true;
-        for (uint i = 1; i < isSigner.length - 1; ++i) {
+        uint isSignerLen = isSigner.length - 1;
+        for (uint i = 1; i < isSignerLen; ++i) {
             isSigner[i] = false;
         }
 
@@ -216,21 +215,19 @@ library LibRaydium {
         require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"f223c68952e1f2b6", // deposit: [242, 35, 198, 137, 82, 225, 242, 182]
-            abi.encodePacked(
-                lpAmount.readLittleEndianUnsigned64(),
-                amountMaxA.readLittleEndianUnsigned64(),
-                amountMaxB.readLittleEndianUnsigned64()
-            )
+            lpAmount.readLittleEndianUnsigned64(),
+            amountMaxA.readLittleEndianUnsigned64(),
+            amountMaxB.readLittleEndianUnsigned64()
         );
     }
 
-    /// @notice Withdrawing LP from CPMM pool in Raydium
+    /// @notice Returns formatted Solana instruction of withdrawing LP from CPMM pool in Raydium
     /// @param poolId The pool's account
     /// @param lpAmount The amount of LP to be withdrawn
     /// @param slippage Percent value from 0 to 100
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
-    function withdrawLiquidity(
+    function withdrawLiquidityInstruction(
         bytes32 poolId,
         uint64 lpAmount,
         uint8 slippage,
@@ -266,7 +263,8 @@ library LibRaydium {
 
         isSigner = new bool[](14);
         isSigner[0] = true;
-        for (uint i = 1; i < isSigner.length - 1; ++i) {
+        uint isSignerLen = isSigner.length - 1;
+        for (uint i = 1; i < isSignerLen; ++i) {
             isSigner[i] = false;
         }
 
@@ -302,22 +300,20 @@ library LibRaydium {
         require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"b712469c946da122", // withdraw: [183, 18, 70, 156, 148, 109, 161, 34],
-            abi.encodePacked(
-                lpAmount.readLittleEndianUnsigned64(),
-                amountMinA.readLittleEndianUnsigned64(),
-                amountMinB.readLittleEndianUnsigned64()
-            )
+            lpAmount.readLittleEndianUnsigned64(),
+            amountMinA.readLittleEndianUnsigned64(),
+            amountMinB.readLittleEndianUnsigned64()
         );
     }
 
-    /// @notice Locking LP in CPMM pool in Raydium
+    /// @notice Returns formatted Solana instruction of locking LP in CPMM pool in Raydium
     /// @param poolId The pool's account
     /// @param lpAmount The amount of LP to be locked
     /// @param withMetadata Bool value whether metadata should be included or not
     /// @param salt bytes32 value used for the calculation of the external authority ( the nft owner )
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
-    function lockLiquidity(
+    function lockLiquidityInstruction(
         bytes32 poolId,
         uint64 lpAmount,
         bool withMetadata,
@@ -414,20 +410,18 @@ library LibRaydium {
         require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"d89d1d4e26331f1a", // lockCpLiquidity: [216, 157, 29, 78, 38, 51, 31, 26]
-            abi.encodePacked(
-                lpAmount.readLittleEndianUnsigned64(),
-                withMetadata
-            )
+            lpAmount.readLittleEndianUnsigned64(),
+            withMetadata
         );
     }
 
-    /// @notice Collecting fees from locked LP position in CPMM pool in Raydium
+    /// @notice Returns formatted Solana instruction of collecting fees from locked LP position in CPMM pool in Raydium
     /// @param poolId The pool's account
     /// @param lpFeeAmount The amount of fees to be collected
     /// @param salt bytes32 value used for the calculation of the external authority ( the nft owner )
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
-    function collectFees(
+    function collectFeesInstruction(
         bytes32 poolId,
         uint64 lpFeeAmount,
         bytes32 salt,
@@ -516,20 +510,18 @@ library LibRaydium {
         require(lpFeeAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"081e33c7d1b8f785", // collectCpFee: [8, 30, 51, 199, 209, 184, 247, 133]
-            abi.encodePacked(
-                lpFeeAmount.readLittleEndianUnsigned64()
-            )
+            lpFeeAmount.readLittleEndianUnsigned64()
         );
     }
 
-    /// @notice Swap input to CPMM pool in Raydium
+    /// @notice Returns formatted Solana instruction of swap input action to CPMM pool in Raydium
     /// @param poolId The pool's account
     /// @param inputToken The token mint account of the input token
     /// @param amountIn The amount of the input token to be swapped
     /// @param slippage Percent value from 0 to 100
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
-    function swapInput(
+    function swapInputInstruction(
         bytes32 poolId,
         bytes32 inputToken,
         uint64 amountIn,
@@ -564,21 +556,19 @@ library LibRaydium {
         require(amountIn > 0, LibRaydiumErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"8fbe5adac41e33de", // swapBaseInput: [143, 190, 90, 218, 196, 30, 51, 222]
-            abi.encodePacked(
-                amountIn.readLittleEndianUnsigned64(),
-                amounOutMin.readLittleEndianUnsigned64()
-            )
+            amountIn.readLittleEndianUnsigned64(),
+            amounOutMin.readLittleEndianUnsigned64()
         );
     }
 
-    /// @notice Swap output to CPMM pool in Raydium
+    /// @notice Returns formatted Solana instruction of swap output action to CPMM pool in Raydium
     /// @param poolId The pool's account
     /// @param inputToken The token mint account of the input token
     /// @param amountOut The amount of the output token to be received
     /// @param slippage Percent value from 0 to 100
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
-    function swapOutput(
+    function swapOutputInstruction(
         bytes32 poolId,
         bytes32 inputToken,
         uint64 amountOut,
@@ -613,10 +603,8 @@ library LibRaydium {
         require(amountOut > 0, LibRaydiumErrors.InsufficientOutputAmount());
         return abi.encodePacked(
             hex"37d96256a34ab4ad", // swapBaseOutput: [55, 217, 98, 86, 163, 74, 180, 173]
-            abi.encodePacked(
-                amountInMax.readLittleEndianUnsigned64(),
-                amountOut.readLittleEndianUnsigned64()
-            )
+            amountInMax.readLittleEndianUnsigned64(),
+            amountOut.readLittleEndianUnsigned64()
         );
     }
 
@@ -651,7 +639,8 @@ library LibRaydium {
 
         isSigner = new bool[](13);
         isSigner[0] = true;
-        for (uint i = 1; i < isSigner.length - 1; ++i) {
+        uint isSignerLen = isSigner.length - 1;
+        for (uint i = 1; i < isSignerLen; ++i) {
             isSigner[i] = false;
         }
 

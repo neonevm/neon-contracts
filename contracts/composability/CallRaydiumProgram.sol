@@ -67,7 +67,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.createPool(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
+        ) = LibRaydium.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
 
         CALL_SOLANA.execute(
             lamports,
@@ -122,7 +122,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.addLiquidity(poolId, inputAmount, baseIn, slippage, true, premadeAccounts);
+        ) = LibRaydium.addLiquidityInstruction(poolId, inputAmount, baseIn, slippage, true, premadeAccounts);
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -157,7 +157,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.withdrawLiquidity(poolId, lpAmount, slippage, true, premadeAccounts);
+        ) = LibRaydium.withdrawLiquidityInstruction(poolId, lpAmount, slippage, true, premadeAccounts);
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -184,7 +184,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.lockLiquidity(
+        ) = LibRaydium.lockLiquidityInstruction(
             poolId, 
             lpAmount, 
             withMetadata, 
@@ -228,7 +228,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.collectFees(poolId, lpFeeAmount, salt, true, premadeAccounts);
+        ) = LibRaydium.collectFeesInstruction(poolId, lpFeeAmount, salt, true, premadeAccounts);
         require(accounts[12] == tokenAMint && accounts[13] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -272,7 +272,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.swapInput(poolId, inputTokenMint, amountIn, slippage, true, premadeAccounts);
+        ) = LibRaydium.swapInputInstruction(poolId, inputTokenMint, amountIn, slippage, true, premadeAccounts);
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -317,7 +317,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.swapOutput(poolId, inputTokenMint, amountOut, slippage, true, premadeAccounts);
+        ) = LibRaydium.swapOutputInstruction(poolId, inputTokenMint, amountOut, slippage, true, premadeAccounts);
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -397,7 +397,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.createPool(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
+        ) = LibRaydium.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
         bytes32 poolId = accounts[3];
         if (salt == bytes32(0)) {
             salt = poolId;
@@ -416,7 +416,7 @@ contract CallRaydiumProgram {
             bool[] memory isSignerLock,
             bool[] memory isWritableLock,
             bytes memory dataLock
-        ) = LibRaydium.lockLiquidity(poolId, 0, false, salt, false, premadeLockLPAccounts);
+        ) = LibRaydium.lockLiquidityInstruction(poolId, 0, false, salt, false, premadeLockLPAccounts);
 
         bytes memory lockInstruction = CallSolanaHelperLib.prepareSolanaInstruction(
             Constants.getLockCPMMPoolProgramId(),

@@ -11,7 +11,7 @@ import {LibRaydiumErrors} from "./LibRaydiumErrors.sol";
 
 /// @title LibRaydiumData
 /// @author https://twitter.com/mnedelchev_
-/// @notice Helper library for getter data regarding Raydium's CPMM
+/// @notice Helper library for getting data about Raydium's CPMM pools.
 library LibRaydiumData {
     using SolanaDataConverterLib for bytes;
     using SolanaDataConverterLib for uint16;
@@ -49,7 +49,7 @@ library LibRaydiumData {
             Constants.getCreateCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"616d6d5f636f6e666967", // "amm_config"
-                abi.encodePacked(index)
+                index
             )
         );
     }
