@@ -9,7 +9,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
     console.log("Network name: " + network.name)
 
-    const solanaConnection = new web3.Connection(process.env.SOLANA_NODE, "processed")
+    const solanaConnection = new web3.Connection(process.env.SVM_NODE, "processed")
 
     const seed = config.tokenMintSeed[network.name]
     const decimals = config.tokenMintDecimals[network.name]

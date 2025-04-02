@@ -30,7 +30,7 @@ contract CallSPLTokenProgram {
             )), // salt
             LibSPLTokenData.SPL_TOKEN_MINT_SIZE, // space
             MINT_RENT_EXEMPT_BALANCE, // lamports
-            Constants.TOKEN_PROGRAM_ID // Owner must be SPL Token program
+            Constants.getTokenProgramId() // Owner must be SPL Token program
         );
 
         // This contract is mint/freeze authority
@@ -49,7 +49,7 @@ contract CallSPLTokenProgram {
 
         // Prepare initializeMint2 instruction
         bytes memory initializeMint2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -83,14 +83,14 @@ contract CallSPLTokenProgram {
         bytes32 ata = CALL_SOLANA.createResource(
             sha256(abi.encodePacked(
                 owner,
-                Constants.TOKEN_PROGRAM_ID,
+                Constants.getTokenProgramId(),
                 tokenMint,
                 uint8(0), // Here we use nonce == 0 by default, however nonce can be incremented te create different ATAs for the same owner
-                Constants.ASSOCIATED_TOKEN_PROGRAM_ID
+                Constants.getAssociatedTokenProgramId()
             )), // salt
             LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE, // space
             ATA_RENT_EXEMPT_BALANCE, // lamports
-            Constants.TOKEN_PROGRAM_ID // Owner must be SPL Token program
+            Constants.getTokenProgramId() // Owner must be SPL Token program
         );
         // Format initializeAccount2 instruction
         (   bytes32[] memory accounts,
@@ -104,7 +104,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare initializeAccount2 instruction
         bytes memory initializeAccount2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -136,7 +136,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare mintTo instruction
         bytes memory mintToIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -170,7 +170,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare transfer instruction
         bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -222,7 +222,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare transfer instruction
         bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -288,7 +288,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare setAuthority instruction
         bytes memory setAuthorityIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -360,7 +360,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare setAuthority instruction
         bytes memory setAuthorityIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -391,7 +391,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare approve instruction
         bytes memory approveIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -419,7 +419,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare revoke instruction
         bytes memory revokeIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -450,7 +450,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare burn instruction
         bytes memory burnIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -479,7 +479,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare approve instruction
         bytes memory approveIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -504,7 +504,7 @@ contract CallSPLTokenProgram {
         );
         // Prepare syncNative instruction
         bytes memory syncNativeIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             accounts,
             isSigner,
             isWritable,

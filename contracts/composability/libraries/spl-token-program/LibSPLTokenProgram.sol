@@ -69,7 +69,7 @@ library LibSPLTokenProgram {
         accounts = new bytes32[](3);
         accounts[0] = ata;
         accounts[1] = tokenMint;
-        accounts[2] = Constants.SYSVAR_RENT_PUBKEY;
+        accounts[2] = Constants.getSysvarRentPubkey();
 
         isSigner = new bool[](3);
         isSigner[0] = false;
