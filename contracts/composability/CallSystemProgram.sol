@@ -38,7 +38,7 @@ contract CallSystemProgram {
         );
         // Prepare createAccountWithSeed instruction
         bytes memory createAccountWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.SYSTEM_PROGRAM_ID,
+            Constants.getSystemProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -68,7 +68,7 @@ contract CallSystemProgram {
         );
         // Prepare transfer instruction
         bytes memory transferIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.SYSTEM_PROGRAM_ID,
+            Constants.getSystemProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -96,7 +96,7 @@ contract CallSystemProgram {
         );
         // Prepare assignWithSeed instruction
         bytes memory assignWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.SYSTEM_PROGRAM_ID,
+            Constants.getSystemProgramId(),
             accounts,
             isSigner,
             isWritable,
@@ -126,7 +126,7 @@ contract CallSystemProgram {
         );
         // Prepare allocateWithSeed instruction
         bytes memory allocateWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.SYSTEM_PROGRAM_ID,
+            Constants.getSystemProgramId(),
             accounts,
             isSigner,
             isWritable,

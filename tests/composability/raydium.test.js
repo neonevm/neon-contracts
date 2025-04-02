@@ -224,6 +224,7 @@ describe('LibRaydium', function() {
             const swapOutputAmount = 20000;
             const slippage = 1;
 
+            console.log(await CallRaydiumProgram.leftOver(), 'leftOver');
             const poolData = await CallRaydiumProgram.getPoolData(
                 0,
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
@@ -250,6 +251,7 @@ describe('LibRaydium', function() {
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx swapOutput');
+            console.log(await CallRaydiumProgram.leftOver(), 'leftOver');
 
             expect(initialTokenABalance).to.be.greaterThan(await tokenA_Erc20ForSpl.balanceOf(deployer.address));
             expect(await tokenB_Erc20ForSpl.balanceOf(deployer.address)).to.be.greaterThan(initialTokenBBalance);

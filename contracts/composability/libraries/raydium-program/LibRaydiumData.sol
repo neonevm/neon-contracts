@@ -8,6 +8,7 @@ import {ICallSolana} from "../../../precompiles/ICallSolana.sol";
 import {LibSPLTokenData} from "../spl-token-program/LibSPLTokenData.sol";
 import {LibRaydiumErrors} from "./LibRaydiumErrors.sol";
 
+
 /// @title LibRaydiumData
 /// @author https://twitter.com/mnedelchev_
 /// @notice Helper library for getter data regarding Raydium's CPMM
@@ -45,7 +46,7 @@ library LibRaydiumData {
     /// @notice Fetching a CPPM config account by given index
     function getConfigAccount(uint16 index) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+            Constants.getCreateCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"616d6d5f636f6e666967", // "amm_config"
                 abi.encodePacked(index)
@@ -60,7 +61,7 @@ library LibRaydiumData {
         bytes32 tokenB
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+            Constants.getCreateCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"706f6f6c", // "pool"
                 ammConfigId,
@@ -75,7 +76,7 @@ library LibRaydiumData {
         bytes32 poolId
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+            Constants.getCreateCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"6f62736572766174696f6e", // "observation"
                 poolId
@@ -88,7 +89,7 @@ library LibRaydiumData {
         bytes32 poolId
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+            Constants.getCreateCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"706f6f6c5f6c705f6d696e74", // "pool_lp_mint"
                 poolId
@@ -102,7 +103,7 @@ library LibRaydiumData {
         bytes32 tokenMint
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+            Constants.getCreateCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"706f6f6c5f7661756c74", // "pool_vault"
                 poolId,
@@ -114,7 +115,7 @@ library LibRaydiumData {
     /// @notice Calculating the CPPM authority
     function getPdaPoolAuthority() internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+            Constants.getCreateCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"7661756c745f616e645f6c705f6d696e745f617574685f73656564" // "vault_and_lp_mint_auth_seed"
             )
@@ -124,7 +125,7 @@ library LibRaydiumData {
     /// @notice Calculating the CPPM lock PDA for given token mint
     function getCpLockPda(bytes32 tokenMint) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.LOCK_CPMM_POOL_PROGRAM_ID,
+            Constants.getLockCPMMPoolProgramId(),
             abi.encodePacked(
                 hex"6c6f636b65645f6c6971756964697479", // "locked_liquidity"
                 tokenMint
@@ -134,11 +135,12 @@ library LibRaydiumData {
 
     /// @notice Calculating the CPPM metadata key account for given token mint
     function getPdaMetadataKey(bytes32 tokenMint) internal view returns(bytes32) {
+        bytes32 metaplexProgramId = Constants.getMetaplexProgramId();
         return CALL_SOLANA.getSolanaPDA(
-            Constants.METAPLEX_PROGRAM_ID,
+            metaplexProgramId,
             abi.encodePacked(
                 hex"6d65746164617461", // "metadata"
-                Constants.METAPLEX_PROGRAM_ID,
+                metaplexProgramId,
                 tokenMint
             )
         );
