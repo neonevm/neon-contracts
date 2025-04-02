@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 import {Constants} from "./libraries/Constants.sol";
 import {CallSolanaHelperLib} from "../utils/CallSolanaHelperLib.sol";
 import {ICallSolana} from "../precompiles/ICallSolana.sol";
-import {LibRaydium} from "./libraries/raydium-program/LibRaydium.sol";
+import {LibRaydiumProgram} from "./libraries/raydium-program/LibRaydiumProgram.sol";
 import {LibRaydiumData} from "./libraries/raydium-program/LibRaydiumData.sol";
 import {LibSPLTokenData} from "./libraries/spl-token-program/LibSPLTokenData.sol";
 import {LibSPLTokenProgram} from "./libraries/spl-token-program/LibSPLTokenProgram.sol";
@@ -67,7 +67,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
+        ) = LibRaydiumProgram.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
 
         CALL_SOLANA.execute(
             lamports,
@@ -122,7 +122,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.addLiquidityInstruction(poolId, inputAmount, baseIn, slippage, true, premadeAccounts);
+        ) = LibRaydiumProgram.addLiquidityInstruction(poolId, inputAmount, baseIn, slippage, true, premadeAccounts);
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -157,7 +157,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.withdrawLiquidityInstruction(poolId, lpAmount, slippage, true, premadeAccounts);
+        ) = LibRaydiumProgram.withdrawLiquidityInstruction(poolId, lpAmount, slippage, true, premadeAccounts);
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -184,7 +184,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.lockLiquidityInstruction(
+        ) = LibRaydiumProgram.lockLiquidityInstruction(
             poolId, 
             lpAmount, 
             withMetadata, 
@@ -228,7 +228,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.collectFeesInstruction(poolId, lpFeeAmount, salt, true, premadeAccounts);
+        ) = LibRaydiumProgram.collectFeesInstruction(poolId, lpFeeAmount, salt, true, premadeAccounts);
         require(accounts[12] == tokenAMint && accounts[13] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -272,7 +272,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.swapInputInstruction(poolId, inputTokenMint, amountIn, slippage, true, premadeAccounts);
+        ) = LibRaydiumProgram.swapInputInstruction(poolId, inputTokenMint, amountIn, slippage, true, premadeAccounts);
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -317,7 +317,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.swapOutputInstruction(poolId, inputTokenMint, amountOut, slippage, true, premadeAccounts);
+        ) = LibRaydiumProgram.swapOutputInstruction(poolId, inputTokenMint, amountOut, slippage, true, premadeAccounts);
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -358,6 +358,13 @@ contract CallRaydiumProgram {
         }
     }
 
+    /// @notice This method serve as an example of how to deal with having to request chain of multiple instructions.
+    /// @notice In such scenarios for better effiency it's better to prepare as much as possible instruction data before the very first composability request.
+    /// @notice This is due to limitation that after the first composability request we're limited in the amount of Solidity logic that can be performed.
+    /// @notice In this example instruction #2 is depending on the output of instruction #1 - knowing the total amount of LP to be locked can be defined only after the pool creation.
+    /// @notice For this reason we pass false returnData to instruction #2, because we don't want to build the instruction data yet. ( we don't know the total LP amount before the pool creation )
+    /// @notice Before the first composability request we prepare instruction #1 and part of instruction #2. Instruction #2 data will be fully prepared after the execution of instruction #1 has finished.
+    /// @notice When instruction #1 has been processed we can request the pool's total LP amount and attach it to the instruction data of instruction #2. Now we're good to perform the instruction #2 as well.
     function createPoolAndLockLP(
         address tokenA,
         address tokenB,
@@ -397,13 +404,12 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydium.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
+        ) = LibRaydiumProgram.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
         bytes32 poolId = accounts[3];
         if (salt == bytes32(0)) {
             salt = poolId;
         }
 
-        // Semi-build instruction #2 - Locking of LP
         // Semi-build instruction #2 - Locking of LP
         bytes32[] memory premadeLockLPAccounts = new bytes32[](19);
         premadeLockLPAccounts[8] = accounts[6];
@@ -416,7 +422,7 @@ contract CallRaydiumProgram {
             bool[] memory isSignerLock,
             bool[] memory isWritableLock,
             bytes memory dataLock
-        ) = LibRaydium.lockLiquidityInstruction(poolId, 0, false, salt, false, premadeLockLPAccounts);
+        ) = LibRaydiumProgram.lockLiquidityInstruction(poolId, 0, false, salt, false, premadeLockLPAccounts);
 
         bytes memory lockInstruction = CallSolanaHelperLib.prepareSolanaInstruction(
             Constants.getLockCPMMPoolProgramId(),
@@ -440,7 +446,7 @@ contract CallRaydiumProgram {
         
         // Building the instruction data for the second composability request
         uint64 lpBalance = LibSPLTokenData.getSPLTokenAccountBalance(accountsLock[9]);
-        bytes memory lockInstructionData = LibRaydium.buildLockLiquidityData(
+        bytes memory lockInstructionData = LibRaydiumProgram.buildLockLiquidityData(
             lpBalance,
             withMetadata
         );
