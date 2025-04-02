@@ -277,10 +277,10 @@ library LibSPLTokenData {
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
             userPubKey,
-            Constants.TOKEN_PROGRAM_ID,
+            Constants.getTokenProgramId(),
             tokenMint,
             nonce,
-            Constants.ASSOCIATED_TOKEN_PROGRAM_ID
+            Constants.getAssociatedTokenProgramId()
         )));
     }
 
@@ -295,10 +295,10 @@ library LibSPLTokenData {
         bytes32 userPubKey
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.ASSOCIATED_TOKEN_PROGRAM_ID,
+            Constants.getAssociatedTokenProgramId(),
             abi.encodePacked(
                 userPubKey,
-                Constants.TOKEN_PROGRAM_ID,
+                Constants.getTokenProgramId(),
                 tokenMint
             )
         );

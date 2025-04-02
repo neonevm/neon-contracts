@@ -4,10 +4,12 @@ pragma solidity 0.8.28;
 import {Constants} from "./libraries/Constants.sol";
 import {CallSolanaHelperLib} from "../utils/CallSolanaHelperLib.sol";
 import {ICallSolana} from "../precompiles/ICallSolana.sol";
-import {LibRaydium} from "./libraries/raydium/LibRaydium.sol";
-import {LibRaydiumData} from "./libraries/raydium/LibRaydiumData.sol";
+import {LibRaydium} from "./libraries/raydium-program/LibRaydium.sol";
+import {LibRaydiumData} from "./libraries/raydium-program/LibRaydiumData.sol";
 import {LibSPLTokenData} from "./libraries/spl-token-program/LibSPLTokenData.sol";
+import {LibSPLTokenProgram} from "./libraries/spl-token-program/LibSPLTokenProgram.sol";
 import {SolanaDataConverterLib} from "../utils/SolanaDataConverterLib.sol";
+
 
 interface IERC20ForSpl {
     function transferSolana(bytes32 to, uint64 amount) external returns(bool);
@@ -70,7 +72,7 @@ contract CallRaydiumProgram {
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+                Constants.getCreateCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -126,7 +128,7 @@ contract CallRaydiumProgram {
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+                Constants.getCreateCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -161,7 +163,7 @@ contract CallRaydiumProgram {
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+                Constants.getCreateCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -195,7 +197,7 @@ contract CallRaydiumProgram {
             lamports,
             salt,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.LOCK_CPMM_POOL_PROGRAM_ID,
+                Constants.getLockCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -232,7 +234,7 @@ contract CallRaydiumProgram {
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.LOCK_CPMM_POOL_PROGRAM_ID,
+                Constants.getLockCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -276,7 +278,7 @@ contract CallRaydiumProgram {
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+                Constants.getCreateCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -321,7 +323,7 @@ contract CallRaydiumProgram {
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+                Constants.getCreateCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -329,9 +331,30 @@ contract CallRaydiumProgram {
             )
         );
 
+        // send swap output action leftovers back to msg.sender
         uint64 payerTokenABalanceAfter = LibSPLTokenData.getSPLTokenAccountBalance(inputToken_ATA);
         if (payerTokenABalanceAfter > payerTokenABalance) {
-            // add logic to send back outputToken leftovers ( payerTokenABalanceAfter - payerTokenABalance ) to the msg.sender
+            (   bytes32[] memory accountsTransfer,
+                bool[] memory isSignerTransfer,
+                bool[] memory isWritableTransfer,
+                bytes memory dataTransfer
+            ) = LibSPLTokenProgram.formatTransferInstruction(
+                inputToken_ATA,
+                getNeonArbitraryTokenAccount(inputToken, msg.sender),
+                payerAccount,
+                payerTokenABalanceAfter - payerTokenABalance
+            );
+
+            CALL_SOLANA.execute(
+                0,
+                CallSolanaHelperLib.prepareSolanaInstruction(
+                    Constants.getTokenProgramId(),
+                    accountsTransfer,
+                    isSignerTransfer,
+                    isWritableTransfer,
+                    dataTransfer
+                )
+            );
         }
     }
 
@@ -396,7 +419,7 @@ contract CallRaydiumProgram {
         ) = LibRaydium.lockLiquidity(poolId, 0, false, salt, false, premadeLockLPAccounts);
 
         bytes memory lockInstruction = CallSolanaHelperLib.prepareSolanaInstruction(
-            Constants.LOCK_CPMM_POOL_PROGRAM_ID,
+            Constants.getLockCPMMPoolProgramId(),
             accountsLock,
             isSignerLock,
             isWritableLock,
@@ -407,7 +430,7 @@ contract CallRaydiumProgram {
         CALL_SOLANA.execute(
             lamports,
             CallSolanaHelperLib.prepareSolanaInstruction(
-                Constants.CREATE_CPMM_POOL_PROGRAM_ID,
+                Constants.getCreateCPMMPoolProgramId(),
                 accounts,
                 isSigner,
                 isWritable,
@@ -520,7 +543,7 @@ contract CallRaydiumProgram {
     // Temporary method as in Erc20ForSpl V1 solanaAccount method is private, to be removed when Erc20ForSpl V2 is out
     function getNeonArbitraryTokenAccount(address token, address evm_address) public view returns (bytes32) {
         return CALL_SOLANA.getSolanaPDA(
-            Constants.NEON_EVM_PROGRAM_ID,
+            Constants.getNeonEvmProgramId(),
             abi.encodePacked(
                 hex"03",
                 hex"436f6e747261637444617461", // ContractData

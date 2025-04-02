@@ -42,6 +42,7 @@ library LibRaydium {
         bool[] memory isWritable,
         bytes memory data
     ) {
+        // set chai id
         require(tokenA != tokenB, LibRaydiumErrors.IdenticalTokenAddresses());
         require(tokenA != bytes32(0) && tokenB != bytes32(0), LibRaydiumErrors.EmptyTokenAddress());
         bytes32 configAccount = LibRaydiumData.getConfigAccount(configIndex);
@@ -64,14 +65,14 @@ library LibRaydium {
         accounts[9] = (premadeAccounts[9] != bytes32(0)) ? premadeAccounts[9] : LibSPLTokenData.getAssociatedTokenAccount(accounts[6], accounts[0]);
         accounts[10] = LibRaydiumData.getPdaVault(accounts[3], tokenA);
         accounts[11] = LibRaydiumData.getPdaVault(accounts[3], tokenB);
-        accounts[12] = Constants.CREATE_CPMM_POOL_FEE_ACC_PUBKEY;
+        accounts[12] = Constants.getCreateCPMMPoolFeeAccPubkey();
         accounts[13] = LibRaydiumData.getPdaObservationId(accounts[3]);
-        accounts[14] = Constants.TOKEN_PROGRAM_ID;
+        accounts[14] = Constants.getTokenProgramId();
         accounts[15] = LibSystemData.getOwner(tokenA);
         accounts[16] = LibSystemData.getOwner(tokenB);
-        accounts[17] = Constants.ASSOCIATED_TOKEN_PROGRAM_ID;
-        accounts[18] = Constants.SYSTEM_PROGRAM_ID;
-        accounts[19] = Constants.SYSVAR_RENT_PUBKEY;
+        accounts[17] = Constants.getAssociatedTokenProgramId();
+        accounts[18] = Constants.getSystemProgramId();
+        accounts[19] = Constants.getSysvarRentPubkey();
 
         isSigner = new bool[](20);
         isSigner[0] = true;
@@ -162,8 +163,8 @@ library LibRaydium {
         accounts[5] = (premadeAccounts[5] != bytes32(0)) ? premadeAccounts[5] : LibSPLTokenData.getAssociatedTokenAccount(poolData.tokenB, accounts[0]);
         accounts[6] = poolData.tokenAVault;
         accounts[7] = poolData.tokenBVault;
-        accounts[8] = Constants.TOKEN_PROGRAM_ID;
-        accounts[9] = Constants.TOKEN_PROGRAM_2022_ID;
+        accounts[8] = Constants.getTokenProgramId();
+        accounts[9] = Constants.getTokenProgram2022Id();
         accounts[10] = poolData.tokenA;
         accounts[11] = poolData.tokenB;
         accounts[12] = poolData.lpMint;
@@ -256,12 +257,12 @@ library LibRaydium {
         accounts[5] = (premadeAccounts[5] != bytes32(0)) ? premadeAccounts[5] : LibSPLTokenData.getAssociatedTokenAccount(poolData.tokenB, accounts[0]);
         accounts[6] = poolData.tokenAVault;
         accounts[7] = poolData.tokenBVault;
-        accounts[8] = Constants.TOKEN_PROGRAM_ID;
-        accounts[9] = Constants.TOKEN_PROGRAM_2022_ID;
+        accounts[8] = Constants.getTokenProgramId();
+        accounts[9] = Constants.getTokenProgram2022Id();
         accounts[10] = poolData.tokenA;
         accounts[11] = poolData.tokenB;
         accounts[12] = poolData.lpMint;
-        accounts[13] = Constants.MEMO_PROGRAM_V2_ID;
+        accounts[13] = Constants.getMemoProgramId();
 
         isSigner = new bool[](14);
         isSigner[0] = true;
@@ -341,7 +342,7 @@ library LibRaydium {
         }
         lamports = 23328400;
 
-        accounts[0] = Constants.LOCK_CPMM_POOL_AUTH_PUBKEY;
+        accounts[0] = Constants.getLockCPMMPoolAuthPubkey();
         accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : CALL_SOLANA.getPayer();
         accounts[2] = accounts[1];
         accounts[3] = accounts[1];
@@ -351,15 +352,15 @@ library LibRaydium {
         accounts[7] = (premadeAccounts[7] != bytes32(0)) ? premadeAccounts[7] : LibRaydiumData.getCpLockPda(accounts[4]);
         accounts[8] = (premadeAccounts[8] != bytes32(0)) ? premadeAccounts[8] : poolData.lpMint;
         accounts[9] = (premadeAccounts[9] != bytes32(0)) ? premadeAccounts[9] : LibSPLTokenData.getAssociatedTokenAccount(accounts[8], accounts[1]);
-        accounts[10] = (premadeAccounts[10] != bytes32(0)) ? premadeAccounts[10] : LibSPLTokenData.getAssociatedTokenAccount(accounts[8], Constants.LOCK_CPMM_POOL_AUTH_PUBKEY);
+        accounts[10] = (premadeAccounts[10] != bytes32(0)) ? premadeAccounts[10] : LibSPLTokenData.getAssociatedTokenAccount(accounts[8], accounts[0]);
         accounts[11] = (premadeAccounts[11] != bytes32(0)) ? premadeAccounts[11] : poolData.tokenAVault;
         accounts[12] = (premadeAccounts[12] != bytes32(0)) ? premadeAccounts[12] : poolData.tokenBVault;
         accounts[13] = (premadeAccounts[13] != bytes32(0)) ? premadeAccounts[13] : LibRaydiumData.getPdaMetadataKey(accounts[4]);
-        accounts[14] = Constants.SYSVAR_RENT_PUBKEY;
-        accounts[15] = Constants.SYSTEM_PROGRAM_ID;
-        accounts[16] = Constants.TOKEN_PROGRAM_ID;
-        accounts[17] = Constants.ASSOCIATED_TOKEN_PROGRAM_ID;
-        accounts[18] = Constants.METAPLEX_PROGRAM_ID;
+        accounts[14] = Constants.getSysvarRentPubkey();
+        accounts[15] = Constants.getSystemProgramId();
+        accounts[16] = Constants.getTokenProgramId();
+        accounts[17] = Constants.getAssociatedTokenProgramId();
+        accounts[18] = Constants.getMetaplexProgramId();
 
         isSigner = new bool[](19);
         isSigner[0] = false;
@@ -446,12 +447,12 @@ library LibRaydium {
         if (premadeAccounts.length == 0) {
             premadeAccounts = new bytes32[](accounts.length);
         }
-        accounts[0] = Constants.LOCK_CPMM_POOL_AUTH_PUBKEY;
+        accounts[0] = Constants.getLockCPMMPoolAuthPubkey();
         accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : CALL_SOLANA.getPayer();
         accounts[2] = (premadeAccounts[2] != bytes32(0)) ? premadeAccounts[2] : LibSPLTokenData.getAssociatedTokenAccount(nftMintAccount, accounts[1]);
         accounts[3] = (premadeAccounts[3] != bytes32(0)) ? premadeAccounts[3] : LibRaydiumData.getCpLockPda(nftMintAccount);
-        accounts[4] = Constants.CREATE_CPMM_POOL_PROGRAM_ID;
-        accounts[5] = Constants.CREATE_CPMM_POOL_AUTH;
+        accounts[4] = Constants.getCreateCPMMPoolProgramId();
+        accounts[5] = Constants.getCreateCPMMPoolAuth();
         accounts[6] = poolId;
         accounts[7] = poolData.lpMint;
         accounts[8] = (premadeAccounts[8] != bytes32(0)) ? premadeAccounts[8] : LibSPLTokenData.getAssociatedTokenAccount(poolData.tokenA, accounts[1]);
@@ -460,10 +461,10 @@ library LibRaydium {
         accounts[11] = poolData.tokenBVault;
         accounts[12] = poolData.tokenA;
         accounts[13] = poolData.tokenB;
-        accounts[14] = (premadeAccounts[14] != bytes32(0)) ? premadeAccounts[14] : LibSPLTokenData.getAssociatedTokenAccount(accounts[7], Constants.LOCK_CPMM_POOL_AUTH_PUBKEY);
-        accounts[15] = Constants.TOKEN_PROGRAM_ID;
-        accounts[16] = Constants.TOKEN_PROGRAM_2022_ID;
-        accounts[17] = Constants.MEMO_PROGRAM_V2_ID;
+        accounts[14] = (premadeAccounts[14] != bytes32(0)) ? premadeAccounts[14] : LibSPLTokenData.getAssociatedTokenAccount(accounts[7], accounts[0]);
+        accounts[15] = Constants.getTokenProgramId();
+        accounts[16] = Constants.getTokenProgram2022Id();
+        accounts[17] = Constants.getMemoProgramId();
 
         isSigner = new bool[](18);
         isSigner[0] = false;
