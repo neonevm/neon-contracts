@@ -13,7 +13,7 @@ import {SolanaDataConverterLib} from "../../../utils/SolanaDataConverterLib.sol"
 /// @title LibRaydium
 /// @author https://twitter.com/mnedelchev_
 /// @notice Helper library for interactions with Solana's Raydium program
-library LibRaydium {
+library LibRaydiumProgram {
     using SolanaDataConverterLib for uint64;
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 

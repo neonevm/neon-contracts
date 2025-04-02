@@ -5,7 +5,7 @@ const { getAccount, getAssociatedTokenAddress, NATIVE_MINT } = require("@solana/
 const { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } = require("./utils");
 const connection = new web3.Connection(process.env.SVM_NODE, "processed");
 
-describe('LibRaydium', function() {
+describe('LibRaydiumProgram', function() {
     console.log("Network name: " + network.name)
 
     const RECEIPTS_COUNT = 1;
@@ -145,7 +145,7 @@ describe('LibRaydium', function() {
                 lpToAmount[1],
                 inputAmount,
                 baseIn,
-                100
+                100 // slippage 1%
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx addLiquidity');
@@ -171,7 +171,7 @@ describe('LibRaydium', function() {
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 5), // withdraw 1/5th of the LP position
-                100
+                100 // slippage 1%
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx withdrawLiquidity');
@@ -208,7 +208,7 @@ describe('LibRaydium', function() {
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 200000,
-                100
+                100 // slippage 1%
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx swapInput');
@@ -246,7 +246,7 @@ describe('LibRaydium', function() {
                 tokenB_Erc20ForSpl.target,
                 swapOutputAmount,
                 parseInt((parseInt(swapInput) * (100 + slippage)) / 100),
-                slippage
+                slippage  // slippage 1%
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx swapOutput');

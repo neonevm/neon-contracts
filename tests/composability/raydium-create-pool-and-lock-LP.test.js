@@ -5,7 +5,7 @@ const {
 } = require('@solana/spl-token');
 const { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } = require("./utils");
 
-describe('LibRaydium', function() {
+describe('LibRaydiumProgram', function() {
     console.log("Network name: " + network.name)
 
     const RECEIPTS_COUNT = 1;
@@ -117,7 +117,7 @@ describe('LibRaydium', function() {
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 200000,
-                100
+                1 // slippage 0.01%
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx swapInput');
