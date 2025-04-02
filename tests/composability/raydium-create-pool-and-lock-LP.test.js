@@ -117,7 +117,7 @@ describe('LibRaydium', function() {
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 200000,
-                1
+                100
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx swapInput');

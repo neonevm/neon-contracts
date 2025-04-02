@@ -91,7 +91,7 @@ contract CallRaydiumProgram {
         uint64 amountTokenB,
         uint64 inputAmount,
         bool baseIn,
-        uint8 slippage
+        uint16 slippage
     ) public {
         bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
         bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
@@ -142,7 +142,7 @@ contract CallRaydiumProgram {
         address tokenA,
         address tokenB,
         uint64 lpAmount,
-        uint8 slippage
+        uint16 slippage
     ) public {
         bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
         bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
@@ -248,7 +248,7 @@ contract CallRaydiumProgram {
         address inputToken,
         address outputToken,
         uint64 amountIn,
-        uint8 slippage
+        uint16 slippage
     ) public {
         bytes32 inputTokenMint = IERC20ForSpl(inputToken).tokenMint();
         bytes32 outputTokenMint = IERC20ForSpl(outputToken).tokenMint();
@@ -293,7 +293,7 @@ contract CallRaydiumProgram {
         address outputToken,
         uint64 amountOut,
         uint64 amountInMax,
-        uint8 slippage
+        uint16 slippage
     ) public {
         bytes32 inputTokenMint = IERC20ForSpl(inputToken).tokenMint();
         bytes32 outputTokenMint = IERC20ForSpl(outputToken).tokenMint();

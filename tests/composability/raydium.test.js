@@ -145,7 +145,7 @@ describe('LibRaydium', function() {
                 lpToAmount[1],
                 inputAmount,
                 baseIn,
-                1
+                100
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx addLiquidity');
@@ -171,7 +171,7 @@ describe('LibRaydium', function() {
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 5), // withdraw 1/5th of the LP position
-                1
+                100
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx withdrawLiquidity');
@@ -208,7 +208,7 @@ describe('LibRaydium', function() {
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 200000,
-                1
+                100
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx swapInput');
@@ -222,7 +222,7 @@ describe('LibRaydium', function() {
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
 
             const swapOutputAmount = 20000;
-            const slippage = 1;
+            const slippage = 100;
 
             const poolData = await CallRaydiumProgram.getPoolData(
                 0,

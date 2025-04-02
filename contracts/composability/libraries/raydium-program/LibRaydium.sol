@@ -129,14 +129,14 @@ library LibRaydium {
     /// @param poolId The pool's account
     /// @param inputAmount The amount of LP to be added
     /// @param baseIn Bool that defines whether tokenA or tokenB should be used for the LP amount calculation
-    /// @param slippage Percent value from 0 to 100
+    /// @param slippage Percent value from 0 to 10000. Example value of 10 - slippage 0.1%; value of 100 - slippage 1%; value of 1000 - slippage 10%, etc.
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
     function addLiquidityInstruction(
         bytes32 poolId,
         uint64 inputAmount,
         bool baseIn,
-        uint8 slippage,
+        uint16 slippage,
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
@@ -200,12 +200,12 @@ library LibRaydium {
                 tokenBReserve,
                 poolLpAmount
             );
-            slippage = (slippage > 100) ? 100 : slippage;
+            slippage = (slippage > 10000) ? 10000 : slippage;
             
             data = buildAddLiquidityData(
                 lpAmount, 
-                (((baseIn) ? inputAmount : amountA) * (100 + slippage)) / 100,
-                (((baseIn) ? amountB : inputAmount) * (100 + slippage)) / 100
+                (((baseIn) ? inputAmount : amountA) * (10000 + slippage)) / 10000,
+                (((baseIn) ? amountB : inputAmount) * (10000 + slippage)) / 10000
             );
         }
     }
@@ -224,13 +224,13 @@ library LibRaydium {
     /// @notice Returns formatted Solana instruction of withdrawing LP from CPMM pool in Raydium
     /// @param poolId The pool's account
     /// @param lpAmount The amount of LP to be withdrawn
-    /// @param slippage Percent value from 0 to 100
+    /// @param slippage Percent value from 0 to 10000. Example value of 10 - slippage 0.1%; value of 100 - slippage 1%; value of 1000 - slippage 10%, etc.
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
     function withdrawLiquidityInstruction(
         bytes32 poolId,
         uint64 lpAmount,
-        uint8 slippage,
+        uint16 slippage,
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
@@ -286,11 +286,11 @@ library LibRaydium {
 
         if (returnData) {
             uint64 poolLpAmount = LibRaydiumData.getPoolLpAmount(poolId);
-            slippage = (slippage > 100) ? 100 : slippage;
+            slippage = (slippage > 10000) ? 10000 : slippage;
             data = buildWithdrawLiquidityData(
                 lpAmount, 
-                (((lpAmount * LibRaydiumData.getTokenReserve(poolId, poolData.tokenA)) / poolLpAmount) * (100 - slippage)) / 100, 
-                (((lpAmount * LibRaydiumData.getTokenReserve(poolId, poolData.tokenB)) / poolLpAmount) * (100 - slippage)) / 100
+                (((lpAmount * LibRaydiumData.getTokenReserve(poolId, poolData.tokenA)) / poolLpAmount) * (10000 - slippage)) / 10000, 
+                (((lpAmount * LibRaydiumData.getTokenReserve(poolId, poolData.tokenB)) / poolLpAmount) * (10000 - slippage)) / 10000
             );
         }
     }
@@ -518,14 +518,14 @@ library LibRaydium {
     /// @param poolId The pool's account
     /// @param inputToken The token mint account of the input token
     /// @param amountIn The amount of the input token to be swapped
-    /// @param slippage Percent value from 0 to 100
+    /// @param slippage Percent value from 0 to 10000. Example value of 10 - slippage 0.1%; value of 100 - slippage 1%; value of 1000 - slippage 10%, etc.
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
     function swapInputInstruction(
         bytes32 poolId,
         bytes32 inputToken,
         uint64 amountIn,
-        uint8 slippage,
+        uint16 slippage,
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
@@ -545,8 +545,8 @@ library LibRaydium {
 
         if (returnData) {
             uint64 amounOutMin = LibRaydiumData.getSwapOutput(poolId, poolData.ammConfig, inputToken, outputToken, amountIn);
-            slippage = (slippage > 100) ? 100 : slippage;
-            amounOutMin = (slippage != 0) ? (amounOutMin * (100 - slippage)) / 100 : amounOutMin;
+            slippage = (slippage > 10000) ? 10000 : slippage;
+            amounOutMin = (slippage != 0) ? (amounOutMin * (10000 - slippage)) / 10000 : amounOutMin;
             data = buildSwapInputData(amountIn, amounOutMin);
         }
     }
@@ -565,14 +565,14 @@ library LibRaydium {
     /// @param poolId The pool's account
     /// @param inputToken The token mint account of the input token
     /// @param amountOut The amount of the output token to be received
-    /// @param slippage Percent value from 0 to 100
+    /// @param slippage Percent value from 0 to 10000. Example value of 10 - slippage 0.1%; value of 100 - slippage 1%; value of 1000 - slippage 10%, etc.
     /// @param returnData Bool value defining whether the method should also build the instruction data
     /// @param premadeAccounts List of already calculated Solana accounts ( used for optimizations )
     function swapOutputInstruction(
         bytes32 poolId,
         bytes32 inputToken,
         uint64 amountOut,
-        uint8 slippage,
+        uint16 slippage,
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
@@ -592,8 +592,8 @@ library LibRaydium {
 
         if (returnData) {
             uint64 amountInMax = LibRaydiumData.getSwapInput(poolId, poolData.ammConfig, inputToken, outputToken, amountOut);
-            slippage = (slippage > 100) ? 100 : slippage;
-            amountInMax = (slippage != 0) ? (amountInMax * (100 + slippage)) / 100 : amountInMax;
+            slippage = (slippage > 10000) ? 10000 : slippage;
+            amountInMax = (slippage != 0) ? (amountInMax * (10000 + slippage)) / 10000 : amountInMax;
             data = buildSwapOutputData(amountInMax, amountOut);
         }
     }
