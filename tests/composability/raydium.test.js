@@ -180,7 +180,7 @@ describe('LibRaydiumProgram', function() {
             expect(await tokenB_Erc20ForSpl.balanceOf(deployer.address)).to.be.greaterThan(initialTokenBBalance);
         });
 
-        it('lockLiquidity', async function() {
+        it('lockLiquidity - with metadata', async function() {
             const getPdaLpMint = await CallRaydiumProgram.getPdaLpMint(poolId);
             const lpMintATA = await getAssociatedTokenAddress(
                 new web3.PublicKey(ethers.encodeBase58(getPdaLpMint)),
@@ -191,9 +191,28 @@ describe('LibRaydiumProgram', function() {
 
             let tx = await CallRaydiumProgram.connect(deployer).lockLiquidity(
                 poolId,
-                parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 5), // lock 1/5th of the LP position
+                parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 6), // lock 1/6th of the LP position
                 true,
                 ethers.zeroPadValue(ethers.toBeHex(deployer.address), 32) // salt
+            );
+            await tx.wait(RECEIPTS_COUNT);
+            console.log(tx, 'tx createPool');
+        });
+
+        it('lockLiquidity - without metadata', async function() {
+            const getPdaLpMint = await CallRaydiumProgram.getPdaLpMint(poolId);
+            const lpMintATA = await getAssociatedTokenAddress(
+                new web3.PublicKey(ethers.encodeBase58(getPdaLpMint)),
+                new web3.PublicKey(ethers.encodeBase58(payer)),
+                true
+            );
+            console.log(lpMintATA, 'lpMintATA');
+
+            let tx = await CallRaydiumProgram.connect(deployer).lockLiquidity(
+                poolId,
+                parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 6), // lock 1/6th of the LP position
+                false,
+                ethers.zeroPadValue(ethers.toBeHex(CallRaydiumProgram.target), 32) // salt
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx createPool');
