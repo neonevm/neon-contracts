@@ -54,8 +54,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             tx = await callSystemProgram.createAccountWithSeed(
                 TOKEN_PROGRAM_ID.toBuffer(), // SPL token program
                 Buffer.from(seed),
-                ACCOUNT_SIZE, // SPL token account data size
-                rentExemptBalance  // SPL token account minimum balance for rent exemption
+                ACCOUNT_SIZE // SPL token account data size
             )
             await tx.wait(1) // Wait for 1 confirmation
 
@@ -192,6 +191,24 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
 
             expect(rentExemptionBalance).to.eq(await solanaConnection.getMinimumBalanceForRentExemption(parseInt(space)))
             expect(isRentExempt).to.eq(true)
+        })
+
+        it('Estimate gas usage of on-chain rent exemption balance calculation', async function() {
+            const callData = callSystemProgram.interface.encodeFunctionData(
+                "getRentExemptionBalance(uint64)",
+                [461] // Arbitrary value
+            );
+            let gas = await ethers.provider.estimateGas({
+                from: deployer.address,
+                to: callSystemProgram.target,
+                data: callData,
+                value: 0,
+                function(estimatedGas, err) {
+                    if(err) throw err;
+                    return estimatedGas
+                }
+            });
+            console.log("CallSystemProgram.getRentExemptionBalance(uint64) gas usage = " + gas);
         })
     })
 })

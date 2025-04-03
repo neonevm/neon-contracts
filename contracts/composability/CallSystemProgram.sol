@@ -17,11 +17,13 @@ contract CallSystemProgram {
     function createAccountWithSeed(
         bytes32 programId,
         bytes memory seed,
-        uint64 accountSize,
-        uint64 rentExemptBalance
+        uint64 accountSize
     ) external {
         bytes32 payer = CALL_SOLANA.getPayer();
         bytes32 basePubKey = CALL_SOLANA.getNeonAddress(address(this));
+
+        // Calculate rent exemption balance for created account
+        uint64 rentExemptionBalance = LibSystemData.getRentExemptionBalance(accountSize);
 
         // Format createAccountWithSeed instruction
         (   bytes32[] memory accounts,
@@ -34,7 +36,7 @@ contract CallSystemProgram {
             programId,
             seed,
             accountSize,
-            rentExemptBalance
+            rentExemptionBalance
         );
         // Prepare createAccountWithSeed instruction
         bytes memory createAccountWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
@@ -44,8 +46,8 @@ contract CallSystemProgram {
             isWritable,
             data
         );
-        // Execute createAccountWithSeed instruction, sending rentExemptBalance lamports
-        CALL_SOLANA.execute(rentExemptBalance, createAccountWithSeedIx);
+        // Execute createAccountWithSeed instruction, sending rentExemptionBalance lamports
+        CALL_SOLANA.execute(rentExemptionBalance, createAccountWithSeedIx);
     }
 
     function transfer(
