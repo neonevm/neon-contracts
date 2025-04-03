@@ -154,7 +154,7 @@ contract CallSPLTokenProgram {
         // Authentication: sender's Solana account is derived from msg.sender
         bytes32 senderPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the sender's associated token account from the sender account and the token mint account
-        bytes32 senderATA = getAssociatedTokenAccount(tokenMint, senderPubKey);
+        bytes32 senderATA = getArbitraryTokenAccount(tokenMint, senderPubKey, 0);
         // This contract owns the sender's associated token account
         bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format transfer instruction
@@ -306,7 +306,7 @@ contract CallSPLTokenProgram {
         // Authentication: user's Solana account is derived from msg.sender
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
-        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
         // Check current authority
         bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         if (authorityType == LibSPLTokenProgram.AuthorityType.OWNER) {
@@ -374,7 +374,7 @@ contract CallSPLTokenProgram {
         // Authentication: user's Solana account is derived from msg.sender
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
-        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
         // This contract owns the user's associated token account
         bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
 
@@ -405,7 +405,7 @@ contract CallSPLTokenProgram {
         // Authentication: user's Solana account is derived from msg.sender
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
-        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
         // This contract owns the user's associated token account
         bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format revoke instruction
@@ -433,7 +433,7 @@ contract CallSPLTokenProgram {
         // Authentication: user's Solana account is derived from msg.sender
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
-        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
         // This contract owns the user's associated token account
         bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
 
@@ -464,7 +464,7 @@ contract CallSPLTokenProgram {
         // Authentication: user's Solana account is derived from msg.sender
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
-        bytes32 userATA = getAssociatedTokenAccount(tokenMint, userPubKey);
+        bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
         // This contract owns the user's associated token account
         bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format closeAccount instruction
@@ -567,17 +567,32 @@ contract CallSPLTokenProgram {
 
     // SPL Token account data getters
 
-    /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key and a
-    /// user public key
+    /// @notice Function to get the 32 bytes canonical associated token account public key derived from a token mint
+    /// account public key and a user public key
     /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
-    /// @param userPubKey The 32 bytes public key of the user
+    /// @param ownerPubKey The 32 bytes public key of the owner of the associated token account
     /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
     /// key and a nonce value of 0
     function getAssociatedTokenAccount(
         bytes32 tokenMint,
-        bytes32 userPubKey
+        bytes32 ownerPubKey
     ) public view returns(bytes32) {
-        return LibSPLTokenData.getAssociatedTokenAccount(tokenMint, userPubKey);
+        return LibSPLTokenData.getAssociatedTokenAccount(tokenMint, ownerPubKey);
+    }
+
+    /// @notice Function to get an arbitrary 32 bytes token account public key derived from a token mint account public
+    /// key, a user public key and an arbitrary nonce
+    /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
+    /// @param ownerPubKey The 32 bytes public key of the owner of the arbitrary token account
+    /// @param nonce A uint8 nonce (can be incremented to get different token accounts)
+    /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
+    /// key and the nonce
+    function getArbitraryTokenAccount(
+        bytes32 tokenMint,
+        bytes32 ownerPubKey,
+        uint8 nonce
+    ) public view returns(bytes32) {
+        return LibSPLTokenData.getArbitraryTokenAccount(tokenMint, ownerPubKey, nonce);
     }
 
     /// @param tokenAccount The 32 bytes SPL token account public key

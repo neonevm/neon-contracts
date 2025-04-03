@@ -263,20 +263,20 @@ library LibSPLTokenData {
         );
     }
 
-    /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key, a
-    /// user public key and a nonce
+    /// @notice Function to get an arbitrary 32 bytes token account public key derived from a token mint account public
+    /// key, a user public key and an arbitrary nonce
     /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
-    /// @param userPubKey The 32 bytes public key of the user
+    /// @param ownerPubKey The 32 bytes public key of the owner of the arbitrary token account
     /// @param nonce A uint8 nonce (can be incremented to get different token accounts)
     /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
     /// key and the nonce
     function getArbitraryTokenAccount(
         bytes32 tokenMint,
-        bytes32 userPubKey,
+        bytes32 ownerPubKey,
         uint8 nonce
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
-            userPubKey,
+            ownerPubKey,
             Constants.getTokenProgramId(),
             tokenMint,
             nonce,
@@ -284,20 +284,20 @@ library LibSPLTokenData {
         )));
     }
 
-    /// @notice Function to get the 32 bytes token account public key derived from a token mint account public key, a
-    /// user public key and a nonce
+    /// @notice Function to get the 32 bytes canonical associated token account public key derived from a token mint
+    /// account public key and a user public key
     /// @param tokenMint The 32 bytes public key of the token mint associated with the token account we want to get
-    /// @param userPubKey The 32 bytes public key of the user
+    /// @param ownerPubKey The 32 bytes public key of the owner of the associated token account
     /// @return the 32 bytes token account public key derived from the token mint account public key, the user public
     /// key and the nonce
     function getAssociatedTokenAccount(
         bytes32 tokenMint,
-        bytes32 userPubKey
+        bytes32 ownerPubKey
     ) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
             Constants.getAssociatedTokenProgramId(),
             abi.encodePacked(
-                userPubKey,
+                ownerPubKey,
                 Constants.getTokenProgramId(),
                 tokenMint
             )
