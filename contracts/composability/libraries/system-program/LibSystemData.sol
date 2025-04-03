@@ -6,8 +6,6 @@ import { Constants } from "../Constants.sol";
 import { QueryAccount } from "../../../precompiles/QueryAccount.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
-import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
-
 /// @title LibSystemData
 /// @notice Helper library for getting data from Solana's System program
 /// @author maxpolizzo@gmail.com

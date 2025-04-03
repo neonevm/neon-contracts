@@ -4,8 +4,6 @@ pragma solidity 0.8.28;
 import { Constants } from "../Constants.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
-import { ICallSolana } from '../../../precompiles/ICallSolana.sol';
-
 /// @title LibSPLTokenProgram
 /// @notice Helper library for interactions with Solana's SPL Token program
 /// @author maxpolizzo@gmail.com
