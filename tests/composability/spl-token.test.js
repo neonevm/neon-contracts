@@ -17,10 +17,6 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
     const SMALL_AMOUNT = ethers.parseUnits('100', decimals)
     const ZERO_AMOUNT = BigInt(0)
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
-    const ZERO_BYTE =  Buffer.from('00', 'hex')
-    const ONE_BYTE =  Buffer.from('01', 'hex')
-    const ZERO_BYTES8 =  Buffer.from('0000000000000000', 'hex')
-    const ONE_BYTES8 =  Buffer.from('0000000000000001', 'hex')
     const WSOL_MINT_PUBKEY = Buffer.from('069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001', 'hex')
 
     let deployer,
@@ -99,10 +95,12 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             await tx.wait(1) // Wait for 1 confirmation
 
             deployerPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(deployer.address)
-            deployerATAInBytes = await callSPLTokenProgram.getAssociatedTokenAccount(
+            deployerATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
                 deployerPublicKeyInBytes,
+                0 // Arbitrary nonce used to create the arbitrary token account
             )
+
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
 
             expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
@@ -130,9 +128,10 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            neonEVMUserATAInBytes = await callSPLTokenProgram.getAssociatedTokenAccount(
+            neonEVMUserATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
                 neonEVMUserPublicKeyInBytes,
+                0 // Arbitrary nonce used to create the arbitrary token account
             )
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
 
@@ -161,9 +160,10 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            solanaUserATAInBytes = await callSPLTokenProgram.getAssociatedTokenAccount(
+            solanaUserATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
                 solanaUserPublicKey.toBuffer(),
+                0 // Arbitrary nonce used to create the arbitrary token account
             )
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(solanaUserATAInBytes)))
 
@@ -251,9 +251,10 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
             )).value.amount)
 
-            neonEVMUserATAInBytes = await callSPLTokenProgram.getAssociatedTokenAccount(
+            neonEVMUserATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
                 neonEVMUserPublicKeyInBytes,
+                0 // Arbitrary nonce used to create the arbitrary token account
             )
 
             tx = await callSPLTokenProgram.connect(deployer).transfer(
@@ -691,9 +692,10 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 newOwnerInBytes,
             )).to.be.revertedWithCustomError(callSPLTokenProgram, 'InvalidOwnerAuthority')
                 .withArgs(
-                    await callSPLTokenProgram.getAssociatedTokenAccount(
+                    await callSPLTokenProgram.getArbitraryTokenAccount(
                         tokenMintInBytes,
-                        await callSPLTokenProgram.getNeonAddress(neonEVMUser)
+                        await callSPLTokenProgram.getNeonAddress(neonEVMUser),
+                        0 // Arbitrary nonce used to create the arbitrary token account
                     ),
                     currentOwnerInBytes,
                     contractPublicKeyInBytes,
@@ -711,9 +713,10 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 newCloseAuthorityInBytes,
             )).to.be.revertedWithCustomError(callSPLTokenProgram, 'InvalidCloseAuthority')
                 .withArgs(
-                    await callSPLTokenProgram.getAssociatedTokenAccount(
+                    await callSPLTokenProgram.getArbitraryTokenAccount(
                         tokenMintInBytes,
-                        await callSPLTokenProgram.getNeonAddress(neonEVMUser)
+                        await callSPLTokenProgram.getNeonAddress(neonEVMUser),
+                        0 // Arbitrary nonce used to create the arbitrary token account
                     ),
                     currentOwnerInBytes,
                     currentCloseAuthorityInBytes,
@@ -778,9 +781,10 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             await tx.wait(1) // Wait for 1 confirmation
 
             deployerPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(deployer.address)
-            deployerWSOLATAInBytes = await callSPLTokenProgram.getAssociatedTokenAccount(
+            deployerWSOLATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 WSOL_MINT_PUBKEY,
                 deployerPublicKeyInBytes,
+                0 // Arbitrary nonce used to create the arbitrary token account
             )
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
 

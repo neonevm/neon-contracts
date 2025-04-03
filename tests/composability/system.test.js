@@ -24,8 +24,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
         createWithSeedAccountInBytes,
         info,
         initialRecipientSOLBalance,
-        newRecipientSOLBalance,
-        deployerPublicKeyInBytes
+        newRecipientSOLBalance
 
     before(async function() {
         const deployment = await deployContract('CallSystemProgram', null)
@@ -169,7 +168,6 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     })
 
     describe('\n\u{231B} \x1b[33m Testing Solana\'s System program \x1b[36mdata getters\x1b[33m\x1b[0m', async function() {
-
         it('Call account data getters', async function() {
             info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
             const balance = await callSystemProgram.getBalance(createWithSeedAccountInBytes)
