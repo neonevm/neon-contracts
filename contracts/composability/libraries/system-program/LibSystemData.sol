@@ -116,10 +116,12 @@ library LibSystemData {
 
     /// @param accountBytesSize The storage space allocated to considered Solana account in bytes
     /// @return account's minimum balance for rent exemption in lamports
-    function getRentExemptionBalance(uint64 accountBytesSize) internal view returns(uint256) {
+    function getRentExemptionBalance(uint64 accountBytesSize) internal view returns(uint64) {
         // We get the latest rent data from Solana's SysvarRent111111111111111111111111111111111 account
-        uint64 rentDataSize = getSpace(Constants.SYSVAR_RENT_PUBKEY);
-        bytes memory rentDataBytes = getSystemAccountData(Constants.SYSVAR_RENT_PUBKEY, rentDataSize);
+        bytes memory rentDataBytes = getSystemAccountData(
+            Constants.getSysvarRentPubkey(),
+            getSpace(Constants.getSysvarRentPubkey())
+        );
         // Extract the first 8 bytes of data which represent the rent in lamports per byte per year encoded as a uint64
         uint64 lamportsPerByteYear = (rentDataBytes.toUint64(0)).readLittleEndianUnsigned64();
         // Calculate the account's rent per year
@@ -141,15 +143,16 @@ library LibSystemData {
         // The conversion from float64 to uint64 is calculated as: (1 + fraction) * 2 ^ exponent
         // We return rentPerYear * (1 + fraction) * 2 ^ exponent
         uint256 rentExemptionBalance = rentPerYear * (decodedRentExemptionThresholdFloat64.fraction + 0x10000000000000);
+        uint64 shift = (exponent < 52) ? (52 - exponent) : (exponent - 52);
         if (exponent < 52) {
             // If the actual exponent value is less than 52: divide by 2 ^ (52 - exponent)
-            rentExemptionBalance >>= (52 - exponent);
-        } else if (exponent > 52) {
+            rentExemptionBalance >>= shift;
+        } else {
             // Else if the actual exponent value is greater than 52: multiply by 2 ^ (exponent - 52)
-            rentExemptionBalance <<= (exponent - 52);
+            rentExemptionBalance <<= shift;
         }
 
-        return rentExemptionBalance;
+        return uint64(rentExemptionBalance);
     }
 
     /// @notice Helper function to decode a IEEE754 double precision floating point value into its fraction and exponent
