@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import { CallSolanaHelperLib } from '../utils/CallSolanaHelperLib.sol';
 import { Constants } from "./libraries/Constants.sol";
+import {LibSystemData} from "./libraries/system-program/LibSystemData.sol";
 import { LibSPLTokenData } from "./libraries/spl-token-program/LibSPLTokenData.sol";
 import { LibSPLTokenErrors } from "./libraries/spl-token-program/LibSPLTokenErrors.sol";
 import { LibSPLTokenProgram } from "./libraries/spl-token-program/LibSPLTokenProgram.sol";
@@ -15,9 +16,6 @@ import { ICallSolana } from '../precompiles/ICallSolana.sol';
 contract CallSPLTokenProgram {
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
-    uint64 public constant MINT_RENT_EXEMPT_BALANCE = 1461600;
-    uint64 public constant ATA_RENT_EXEMPT_BALANCE = 2039280;
-
     function createInitializeTokenMint(bytes memory seed, uint8 decimals) external {
         // Create SPL token mint account: msg.sender and a seed are used to calculate the salt used to derive the token
         // mint account, allowing for future authentication when interacting with this token mint. Note that it is
@@ -29,7 +27,7 @@ contract CallSPLTokenProgram {
                 seed // using different seeds allows msg.sender to create different token mint accounts
             )), // salt
             LibSPLTokenData.SPL_TOKEN_MINT_SIZE, // space
-            MINT_RENT_EXEMPT_BALANCE, // lamports
+            LibSystemData.getRentExemptionBalance(LibSPLTokenData.SPL_TOKEN_MINT_SIZE), // lamports
             Constants.getTokenProgramId() // Owner must be SPL Token program
         );
 
@@ -89,7 +87,7 @@ contract CallSPLTokenProgram {
                 Constants.getAssociatedTokenProgramId()
             )), // salt
             LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE, // space
-            ATA_RENT_EXEMPT_BALANCE, // lamports
+            LibSystemData.getRentExemptionBalance(LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE), // lamports
             Constants.getTokenProgramId() // Owner must be SPL Token program
         );
         // Format initializeAccount2 instruction
