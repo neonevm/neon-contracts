@@ -6,6 +6,9 @@ formatting instructions in ways that are specific to each program.
 Here we provide a set of **Solidity** libraries which make it possible to easily implement secure interactions with 
 _Solana_'s **System**, **SPL Token** and **Raydium** programs.
 
+> [!CAUTION]
+> The following contracts have not been audited yet and are here for educational purposes.
+
 ## System program
 
 ### LibSystemProgram library

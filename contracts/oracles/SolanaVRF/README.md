@@ -1,5 +1,8 @@
 # Solana VRF on Neon EVM
 
+> [!CAUTION]
+> The following contracts have not been audited yet and are here for educational purposes.
+
 ### On-chain VRF
 The following smart contract is an interface to existing [VRF functionality](https://orao.network/solana-vrf) provided by Orao Network program on Solana. Smart contract methods:
 * `requestRandomness` - this method is requested whenever a VRF value has to be generated
