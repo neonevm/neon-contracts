@@ -9,13 +9,13 @@ program.
 
 - `createAccountWithSeed`: creates a new _Solana_ PDA (program-derived account) which public key is derived from a base 
 public key, a program id and a seed. A payer account pays for the rent exemption balance of the created PDA based on the
-size of the storage allocated to the account.
+size of the storage allocated to the account. See [instruction formatting](LibSystemProgram.sol#L19).
 
-- `transfer`: transfers an amount of SOL to another _Solana_ account.
+- `transfer`: transfers an amount of SOL to another _Solana_ account. See [instruction formatting](LibSystemProgram.sol#L66).
 
-- `assignWithSeed`: assigns a _Solana_ PDA (program-derived account) to a _Solana_ program
+- `assignWithSeed`: assigns a _Solana_ PDA (program-derived account) to a _Solana_ program. See [instruction formatting](LibSystemProgram.sol#L102).
 
-- `allocateWithSeed`: allocates storage space to a _Solana_ PDA (program-derived account)
+- `allocateWithSeed`: allocates storage space to a _Solana_ PDA (program-derived account). See [instruction formatting](LibSystemProgram.sol#L141).
 
 ## LibSystemData library
 
