@@ -15,19 +15,18 @@ library LibSystemProgram {
     /// created account
     /// @param seed The bytes seed used to derive the newly created account
     /// @param accountSize The on-chain storage space for the newly created account
-    /// @param rentExemptBalance The provided rent exemption balance for the newly created account
     function formatCreateAccountWithSeedInstruction(
         bytes32 payer,
         bytes32 basePubKey,
         bytes32 programId,
         bytes memory seed,
-        uint64 accountSize,
-        uint64 rentExemptBalance
-    ) internal pure returns (
+        uint64 accountSize
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
-        bytes memory data
+        bytes memory data,
+        uint64 rentExemptionBalance
     ) {
         accounts = new bytes32[](3);
         accounts[0] = payer;
@@ -44,16 +43,19 @@ library LibSystemProgram {
         isWritable[1] = true;
         isWritable[2] = false;
 
+        // Calculate rent exemption balance for created account
+        rentExemptionBalance = LibSystemData.getRentExemptionBalance(accountSize);
+
         // Get values in right-padded little-endian bytes format
         bytes8 seedLenLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(uint64(seed.length)));
-        bytes8 rentExemptBalanceLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(rentExemptBalance));
+        bytes8 rentExemptionBalanceLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(rentExemptionBalance));
         bytes8 accountSizeLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(accountSize));
         data = abi.encodePacked(
             bytes4(0x03000000), // Instruction variant (see: https://github.com/solana-program/system/blob/17d70bc0e56354cc7811e22a28776e7f379bcd04/interface/src/instruction.rs#L121)
             basePubKey, // Base public key used for account  creation
             seedLenLE, // Seed bytes length (right-padded little-endian)
             seed, // Seed bytes
-            rentExemptBalanceLE, // Rent exemption balance for created account (right-padded little endian)
+            rentExemptionBalanceLE, // Rent exemption balance for created account (right-padded little endian)
             accountSizeLE, // Storage space for created account (right-padded little endian)
             programId // program id
         );

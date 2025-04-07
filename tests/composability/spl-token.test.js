@@ -18,11 +18,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
     const ZERO_AMOUNT = BigInt(0)
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
     const WSOL_MINT_PUBKEY = Buffer.from('069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001', 'hex')
+    const SPL_TOKEN_ACCOUNT_SIZE = 165
+    const SPL_TOKEN_MINT_SIZE = 82
 
     let deployer,
         neonEVMUser,
         otherNeonEVMUser,
         callSPLTokenProgram,
+        callSystemProgram,
         tx,
         contractPublicKeyInBytes,
         deployerPublicKeyInBytes,
@@ -59,6 +62,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         neonEVMUser = deployment.user
         otherNeonEVMUser = deployment.otherUser
         callSPLTokenProgram = deployment.contract
+        callSystemProgram = (await deployContract('CallSystemProgram', null)).contract
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36minitializeMint2\x1b[33m instruction\x1b[0m', function() {
@@ -798,7 +802,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
             expect(info.isNative).to.eq(true) // WSOL ATAs are "native" topken accounts
-            expect(info.rentExemptReserve).to.eq(await callSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE()) // WSOL ATAs have rentExemptReserve
+            expect(info.rentExemptReserve).to.eq(await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) // WSOL ATAs have rentExemptReserve
             expect(info.tlvData.length).to.eq(0)
         })
 
@@ -808,7 +812,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             // Airdrop SOL to deployer's WSOL ATA
             await airdropSOL(ethers.encodeBase58(deployerWSOLATAInBytes), parseInt(SMALL_AMOUNT.toString()))
             initialDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
-            expect(initialDeployerATASOLBalance).to.eq((await callSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE()) + SMALL_AMOUNT)
+            expect(initialDeployerATASOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 
             info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
             initialDeployerATAwSOLBalance = info.amount
@@ -831,7 +835,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             // Airdrop SOL to deployer's non-native token account
             await airdropSOL(ethers.encodeBase58(deployerATAInBytes), parseInt(SMALL_AMOUNT.toString()))
             initialDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
-            expect(initialDeployerATASOLBalance).to.eq((await callSPLTokenProgram.ATA_RENT_EXEMPT_BALANCE()) + SMALL_AMOUNT)
+            expect(initialDeployerATASOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 
             // Sync native
             await expect(callSPLTokenProgram.syncWrappedSOLAccount(deployerATAInBytes)).to.be.revertedWith(
