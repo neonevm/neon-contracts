@@ -22,21 +22,18 @@ contract CallSystemProgram {
         bytes32 payer = CALL_SOLANA.getPayer();
         bytes32 basePubKey = CALL_SOLANA.getNeonAddress(address(this));
 
-        // Calculate rent exemption balance for created account
-        uint64 rentExemptionBalance = LibSystemData.getRentExemptionBalance(accountSize);
-
         // Format createAccountWithSeed instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
-            bytes memory data
+            bytes memory data,
+            uint64 rentExemptionBalance
         ) = LibSystemProgram.formatCreateAccountWithSeedInstruction(
             payer,
             basePubKey,
             programId,
             seed,
-            accountSize,
-            rentExemptionBalance
+            accountSize
         );
         // Prepare createAccountWithSeed instruction
         bytes memory createAccountWithSeedIx = CallSolanaHelperLib.prepareSolanaInstruction(
