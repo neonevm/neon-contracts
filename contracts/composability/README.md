@@ -10,38 +10,33 @@ _Solana_'s **System**, **SPL Token** and **Raydium** programs.
 > The following contracts have not been audited yet and are here for educational purposes.
 
 ## System program
-
-### LibSystemProgram library
-
-This library provides helper functions for formatting instructions intended to be executed by _Solana_'s **System** 
-program.
-
-### LibSystemData library
-
-This library provides a set of getter functions for querying System accounts data from Solana.
+<dl>
+  <dd>
 
 ### CallSystemProgram contract
-
-This contract demonstrates how the **LibSystemProgram** library can be used in practice to interact with Solana's System
-program.
+This contract demonstrates how the **LibSystemProgram** & **LibSystemData** libraries can be used in practice to interact with Solana's System program. [Link to SystemProgram Solidity libraries](./libraries/system-program/)
+  </dd>
+</dl>
 
 ## SPL Token program
-
-### LibSPLTokenProgram library
-
-This library provides helper functions for formatting instructions intended to be executed by _Solana_'s **SPL Token** 
-program.
-
-### LibSPLTokenData library
-
-This library provides a set of getter functions for querying SPL Token accounts data from Solana.
+<dl>
+  <dd>
 
 ### CallSPLTokenProgram contract
+This contract demonstrates how the **LibSPLTokenProgram** & **LibSPLTokenData** libraries can be used in practice to interact with Solana's SPL Token program. [Link to SPL Token Solidity libraries](./libraries/spl-token-program/)
+  </dd>
+</dl>
 
-This contract demonstrates how the **LibSPLTokenProgram** library can be used in practice to interact with Solana's SPL 
-Token program.
+## Raydium program
+<dl>
+  <dd>
 
-### Token accounts
+### CallRaydiumProgram contract
+This contract demonstrates how the **LibRaydiumProgram** & **LibRaydiumData** libraries can be used in practice to interact with Solana's Raydium program. [Link to Raydium Solidity libraries](./libraries/raydium-program/)
+  </dd>
+</dl>
+
+### General information about how Solana Token accounts are handled
 
 The **CallSPLTokenProgram** contract provides its users with methods to create and initialize SPL _token mints_ and 
 _arbitrary token accounts_ as well as to mint and transfer tokens using those accounts. It features a built-in 
