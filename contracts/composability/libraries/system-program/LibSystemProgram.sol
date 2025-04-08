@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
+import { Constants } from "../Constants.sol";
 import { LibSystemData } from "./LibSystemData.sol";
+import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
 /// @title LibSystemProgram
 /// @notice Helper library for interactions with Solana's System program
@@ -44,7 +45,13 @@ library LibSystemProgram {
         isWritable[2] = false;
 
         // Calculate rent exemption balance for created account
-        rentExemptionBalance = LibSystemData.getRentExemptionBalance(accountSize);
+        rentExemptionBalance = LibSystemData.getRentExemptionBalance(
+            accountSize,
+            LibSystemData.getSystemAccountData(
+                Constants.getSysvarRentPubkey(),
+                LibSystemData.getSpace(Constants.getSysvarRentPubkey())
+            )
+        );
 
         // Get values in right-padded little-endian bytes format
         bytes8 seedLenLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(uint64(seed.length)));

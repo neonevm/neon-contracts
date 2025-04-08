@@ -19,7 +19,6 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
     const WSOL_MINT_PUBKEY = Buffer.from('069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001', 'hex')
     const SPL_TOKEN_ACCOUNT_SIZE = 165
-    const SPL_TOKEN_MINT_SIZE = 82
 
     let deployer,
         neonEVMUser,

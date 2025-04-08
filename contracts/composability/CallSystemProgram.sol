@@ -191,8 +191,14 @@ contract CallSystemProgram {
 
     /// @param accountBytesSize The storage space allocated to considered Solana account in bytes
     /// @return account's minimum balance for rent exemption
-    function getRentExemptionBalance(uint64 accountBytesSize) external view returns(uint256) {
-        return LibSystemData.getRentExemptionBalance(accountBytesSize);
+    function getRentExemptionBalance(uint64 accountBytesSize) external view returns(uint64) {
+        // Get the latest rent data from Solana's SysvarRent111111111111111111111111111111111 account
+        bytes memory rentDataBytes = LibSystemData.getSystemAccountData(
+            Constants.getSysvarRentPubkey(),
+            LibSystemData.getSpace(Constants.getSysvarRentPubkey())
+        );
+
+        return LibSystemData.getRentExemptionBalance(accountBytesSize, rentDataBytes);
     }
 
     /// @param accountPubKey The 32 bytes Solana account public key

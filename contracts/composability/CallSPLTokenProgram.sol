@@ -27,7 +27,13 @@ contract CallSPLTokenProgram {
                 seed // using different seeds allows msg.sender to create different token mint accounts
             )), // salt
             LibSPLTokenData.SPL_TOKEN_MINT_SIZE, // space
-            LibSystemData.getRentExemptionBalance(LibSPLTokenData.SPL_TOKEN_MINT_SIZE), // lamports
+            LibSystemData.getRentExemptionBalance(
+                LibSPLTokenData.SPL_TOKEN_MINT_SIZE,
+                LibSystemData.getSystemAccountData(
+                    Constants.getSysvarRentPubkey(),
+                    LibSystemData.getSpace(Constants.getSysvarRentPubkey())
+                )
+            ), // lamports
             Constants.getTokenProgramId() // Owner must be SPL Token program
         );
 
@@ -87,7 +93,13 @@ contract CallSPLTokenProgram {
                 Constants.getAssociatedTokenProgramId()
             )), // salt
             LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE, // space
-            LibSystemData.getRentExemptionBalance(LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE), // lamports
+            LibSystemData.getRentExemptionBalance(
+                LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE,
+                LibSystemData.getSystemAccountData(
+                    Constants.getSysvarRentPubkey(),
+                    LibSystemData.getSpace(Constants.getSysvarRentPubkey())
+                )
+            ), // lamports
             Constants.getTokenProgramId() // Owner must be SPL Token program
         );
         // Format initializeAccount2 instruction
