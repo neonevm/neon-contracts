@@ -422,7 +422,7 @@ contract CallRaydiumProgram {
             bool[] memory isSignerLock,
             bool[] memory isWritableLock,
             bytes memory dataLock
-        ) = LibRaydiumProgram.lockLiquidityInstruction(poolId, 0, false, salt, false, premadeLockLPAccounts);
+        ) = LibRaydiumProgram.lockLiquidityInstruction(poolId, 0, true, salt, false, premadeLockLPAccounts);
 
         bytes memory lockInstruction = CallSolanaHelperLib.prepareSolanaInstruction(
             Constants.getLockCPMMPoolProgramId(),
