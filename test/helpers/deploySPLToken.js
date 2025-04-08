@@ -12,7 +12,7 @@ const { Metaplex } = require("@metaplex-foundation/js");
 const bs58 = require("bs58");
 const { createCreateMetadataAccountV3Instruction } = require("@metaplex-foundation/mpl-token-metadata");
 const { config } = require('../config');
-require("dotenv").config();
+require("dotenv").config({path: __dirname + '/../../.env'});
 
 const connection = new web3.Connection(process.env.SVM_NODE, "processed");
 
@@ -20,10 +20,6 @@ const keypair = web3.Keypair.fromSecretKey(
     bs58.decode(process.env.PRIVATE_KEY_SOLANA)
 );
 console.log(keypair.publicKey.toBase58(), 'publicKey');
-
-const solanaUser2 = web3.Keypair.fromSecretKey( // Solana user with ATA & PDA balance
-    bs58.decode(process.env.PRIVATE_KEY_SOLANA_2)
-);
 
 const solanaUser4 = web3.Keypair.fromSecretKey( // Solana user with tokens balance for airdropping tokens
     bs58.decode(process.env.PRIVATE_KEY_SOLANA_4)
@@ -36,30 +32,19 @@ async function init() {
 
     const seed = 'seed' + Date.now().toString(); // random seed on each script call
     const createWithSeed = await web3.PublicKey.createWithSeed(keypair.publicKey, seed, new web3.PublicKey(TOKEN_PROGRAM_ID));
-    console.log(createWithSeed, 'createWithSeed');
+    console.log(createWithSeed, 'SPLToken mint address');
 
     let keypairAta = await getAssociatedTokenAddress(
         createWithSeed,
         keypair.publicKey,
         false
     );
-    console.log(keypairAta, 'keypairAta');
-
-    let keypairAta2 = await getAssociatedTokenAddress(
-        createWithSeed,
-        solanaUser2.publicKey,
-        false
-    );
-    console.log(keypairAta2, 'keypairAta2');
 
     let keypairAta4 = await getAssociatedTokenAddress(
         createWithSeed,
         solanaUser4.publicKey,
         false
     );
-    console.log(keypairAta4, 'keypairAta4');
-
-    const minBalance = await connection.getMinimumBalanceForRentExemption(MINT_SIZE);
 
     let tx = new web3.Transaction();
     tx.add(
@@ -68,7 +53,7 @@ async function init() {
             basePubkey: keypair.publicKey,
             newAccountPubkey: createWithSeed,
             seed: seed,
-            lamports: minBalance, // enough lamports to make the account rent exempt
+            lamports: await connection.getMinimumBalanceForRentExemption(MINT_SIZE), // enough lamports to make the account rent exempt
             space: MINT_SIZE,
             programId: new web3.PublicKey(TOKEN_PROGRAM_ID) // programId
         })
@@ -100,7 +85,7 @@ async function init() {
                     data: {
                         name: "Dev Neon EVM",
                         symbol: "devNEON",
-                        uri: 'https://ipfs.io/ipfs/QmW2JdmwWsTVLw1Gx4ympCn1VHJiuojfNLS5ZNLEPcBd5x/doge.json',
+                        uri: 'https://ipfs.io/ipfs/QmTZGs6GyUi3hTGtQiFNu4cYNMdMv4RS1XCyYVTQtjaXYF',
                         sellerFeeBasisPoints: 0,
                         collection: null,
                         creators: null,
@@ -124,17 +109,6 @@ async function init() {
         )
     );
 
-    /* tx.add(
-        createAssociatedTokenAccountInstruction(
-            keypair.publicKey,
-            keypairAta2,
-            solanaUser2.publicKey,
-            createWithSeed,
-            TOKEN_PROGRAM_ID, 
-            ASSOCIATED_TOKEN_PROGRAM_ID
-        )
-    ); */
-
     tx.add(
         createAssociatedTokenAccountInstruction(
             keypair.publicKey,
@@ -154,15 +128,6 @@ async function init() {
             1500 * 10 ** 9 // mint 1500 tokens
         )
     );
-
-    /* tx.add(
-        createMintToInstruction(
-            createWithSeed,
-            keypairAta2,
-            keypair.publicKey,
-            1500 * 10 ** 9 // mint 1500 tokens
-        )
-    ); */
     
     tx.add(
         createMintToInstruction(
@@ -174,7 +139,7 @@ async function init() {
     );
 
     await web3.sendAndConfirmTransaction(connection, tx, [keypair]);
-    
+    console.log('Transaction on Solana completed.');
     return;
 }
 init();

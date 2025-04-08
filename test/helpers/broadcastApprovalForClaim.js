@@ -6,7 +6,7 @@ const {
 } = require('@solana/spl-token');
 const bs58 = require("bs58");
 const { config } = require('../config');
-require("dotenv").config();
+require("dotenv").config({path: __dirname + '/../../.env'});
 
 const connection = new web3.Connection(process.env.SVM_NODE, "processed");
 

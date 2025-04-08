@@ -116,3 +116,13 @@ the `getUserExtAuthority` function, passing the attributed _NeonEVM_ account `ad
 
 Once those two steps have been completed, the _Solana_ user's ATA token balance will be included in the balance returned
 by the `balanceOf` function and this ATA token balance will be spendable via the `transfer` and `transferFrom` functions.
+
+## Running tests
+* **ERC20ForSpl** - this action is done in 2 steps. First we have to deploy a SPLToken on Solana and then to pass it into the ERC20ForSpl's constructor.
+    * run ```node test/helpers/deploySPLToken.js``` to deploy new SPLToken.
+    * paste the new SPLToken mint address to `config.DATA.ADDRESSES.ERC20ForSplTokenMint` inside `test/config.js`.
+    * run `npx hardhat test test/ERC20ForSpl.js --network neondevnet`
+* **ERC20ForSplMintable** - run `npx hardhat test test/ERC20ForSplMintable.js --network neondevnet`
+
+## Audit
+The external audit was performed and completed by [Halborn](https://www.halborn.com/). The final report is located [here](./v2-audit/ERC20ForSPL_SSC_FINAL.pdf). 
