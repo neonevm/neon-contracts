@@ -43,7 +43,9 @@ contract CallSystemProgram {
             isWritable,
             data
         );
-        // Execute createAccountWithSeed instruction, sending rentExemptionBalance lamports
+        // Execute createAccountWithSeed instruction
+        // Neon proxy operator is asked to send the SOL amount equal to rentExemptionBalance with the transaction in
+        // order to fund the created account
         CALL_SOLANA.execute(rentExemptionBalance, createAccountWithSeedIx);
     }
 
