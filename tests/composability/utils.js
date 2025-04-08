@@ -41,7 +41,7 @@ async function airdropSOL(pubKey, amount) {
         body: JSON.stringify({"jsonrpc":"2.0", "id":1, "method": "requestAirdrop", "params": params}),
         headers: { 'Content-Type': 'application/json' }
     })
-    // console.log("\nAirdropping " + ethers.formatUnits(amount.toString(), 9) + " SOL to " + pubKey)
+    console.log("\nAirdropping " + ethers.formatUnits(amount.toString(), 9) + " SOL to " + pubKey)
     await asyncTimeout(3000)
 }
 

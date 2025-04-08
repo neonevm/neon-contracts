@@ -1,7 +1,7 @@
 const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
-const { getMint, getAccount } = require("@solana/spl-token");
+const { getMint, getAccount, createTransferInstruction } = require("@solana/spl-token");
 const config = require("./config");
 const { deployContract, airdropSOL } = require("./utils");
 
@@ -25,17 +25,20 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         otherNeonEVMUser,
         callSPLTokenProgram,
         callSystemProgram,
+        callAssociatedTokenProgram,
         tx,
         contractPublicKeyInBytes,
         deployerPublicKeyInBytes,
         neonEVMUserPublicKeyInBytes,
         otherNeonEVMUserPublicKeyInBytes,
-        solanaUserPublicKey,
+        solanaUser,
         tokenMintInBytes,
-        deployerATAInBytes,
-        deployerWSOLATAInBytes,
-        neonEVMUserATAInBytes,
-        solanaUserATAInBytes,
+        deployerTokenAccountInBytes,
+        deployerWSOLTokenAccountInBytes,
+        neonEVMUserTokenAccountInBytes,
+        solanaUserTokenAccountInBytes,
+        solanaUserAssociatedTokenAccountInBytes,
+        contractAssociatedTokenAccountInBytes,
         newMintAuthorityInBytes,
         newFreezeAuthorityInBytes,
         currentOwnerInBytes,
@@ -44,15 +47,16 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         newCloseAuthorityInBytes,
         initialDeployerBalance,
         newDeployerBalance,
-        initialDeployerATABalance,
-        newDeployerATABalance,
-        initialDeployerATASOLBalance,
-        newDeployerATASOLBalance,
-        initialDeployerATAwSOLBalance,
-        newDeployerATAwSOLBalance,
-        initialNeonEVMUserATABalance,
-        newNeonEVMUserATABalance,
-        initialSolanaUserATABalance,
+        initialDeployerTokenAccountBalance,
+        newDeployerTokenAccountBalance,
+        initialDeployerTokenAccountSOLBalance,
+        newDeployerTokenAccountSOLBalance,
+        initialDeployerTokenAccountWSOLBalance,
+        newDeployerTokenAccountWSOLBalance,
+        initialNeonEVMUserTokenAccountBalance,
+        newNeonEVMUserTokenAccountBalance,
+        initialSolanaUserTokenAccountBalance,
+        initialContractTokenAccountBalance,
         info
 
     before(async function() {
@@ -62,6 +66,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         otherNeonEVMUser = deployment.otherUser
         callSPLTokenProgram = deployment.contract
         callSystemProgram = (await deployContract('CallSystemProgram', null)).contract
+        callAssociatedTokenProgram = (await deployContract('CallAssociatedTokenProgram', null)).contract
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36minitializeMint2\x1b[33m instruction\x1b[0m', function() {
@@ -87,26 +92,88 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         })
     })
 
+    describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s Associated Token program\'s \x1b[36mcreate\x1b[33m instruction\x1b[0m', function() {
+        it('Create and initialize new associated token account for third party Solana user', async function() {
+            solanaUser = await web3.Keypair.generate()
+
+            tx = await callAssociatedTokenProgram.connect(deployer).createInitializeAssociatedTokenAccount(
+                tokenMintInBytes,
+                solanaUser.publicKey.toBuffer(), // Pass Solana user public key so that Solana user owns the token account
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            solanaUserAssociatedTokenAccountInBytes = await callAssociatedTokenProgram.getAssociatedTokenAccount(
+                tokenMintInBytes,
+                solanaUser.publicKey.toBuffer(),
+            )
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes)))
+
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes))
+            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
+            expect(info.owner.toBase58()).to.eq(solanaUser.publicKey.toBase58())
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
+            expect(info.amount).to.eq(ZERO_AMOUNT)
+            expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
+            expect(info.isInitialized).to.eq(true)
+            expect(info.isFrozen).to.eq(false)
+            expect(info.isNative).to.eq(false)
+            expect(info.rentExemptReserve).to.be.null
+            expect(info.tlvData.length).to.eq(0)
+        })
+
+        it('Create and initialize new associated token account for CallAssociatedTokenProgram contract', async function() {
+            tx = await callAssociatedTokenProgram.connect(deployer).createInitializeAssociatedTokenAccount(
+                tokenMintInBytes,
+                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that CallAssociatedTokenProgram contract owns the token account
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            contractPublicKeyInBytes =  await callAssociatedTokenProgram.getNeonAddress(callAssociatedTokenProgram.target)
+
+            contractAssociatedTokenAccountInBytes = await callAssociatedTokenProgram.getAssociatedTokenAccount(
+                tokenMintInBytes,
+                contractPublicKeyInBytes
+            )
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(contractAssociatedTokenAccountInBytes)))
+
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(contractAssociatedTokenAccountInBytes))
+            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
+            expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
+            expect(info.amount).to.eq(ZERO_AMOUNT)
+            expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
+            expect(info.isInitialized).to.eq(true)
+            expect(info.isFrozen).to.eq(false)
+            expect(info.isNative).to.eq(false)
+            expect(info.rentExemptReserve).to.be.null
+            expect(info.tlvData.length).to.eq(0)
+        })
+    })
+
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36minitializeAccount2\x1b[33m instruction\x1b[0m', function() {
 
-        it('Create and initialize new ATA for deployer', async function() {
-            tx = await callSPLTokenProgram.connect(deployer).createInitializeATA(
+        it('Create and initialize new arbitrary token account for deployer', async function() {
+            tx = await callSPLTokenProgram.connect(deployer).createInitializeArbitraryTokenAccount(
                 tokenMintInBytes,
-                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that msg.sender controls the ATA through CallSPLTokenProgram contract
-                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that CallSPLTokenProgram contract owns the ATA
+                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that msg.sender controls the token account through CallSPLTokenProgram contract
+                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that CallSPLTokenProgram contract owns the token account
             )
             await tx.wait(1) // Wait for 1 confirmation
 
             deployerPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(deployer.address)
-            deployerATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
+            deployerTokenAccountInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
                 deployerPublicKeyInBytes,
                 0 // Arbitrary nonce used to create the arbitrary token account
             )
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
+            contractPublicKeyInBytes =  await callSPLTokenProgram.getNeonAddress(callSPLTokenProgram.target)
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
+
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate).to.be.null
@@ -120,25 +187,25 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it('Create and initialize new ATA for third party NeonEVM user', async function() {
+        it('Create and initialize new arbitrary token account for third party NeonEVM user', async function() {
 
             neonEVMUserPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(neonEVMUser.address)
 
-            tx = await callSPLTokenProgram.connect(deployer).createInitializeATA(
+            tx = await callSPLTokenProgram.connect(deployer).createInitializeArbitraryTokenAccount(
                 tokenMintInBytes,
-                neonEVMUserPublicKeyInBytes, // Pass NeonEVM user public key so that neonEVMUser controls the ATA through CallSPLTokenProgram contract
-                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that CallSPLTokenProgram contract owns the ATA
+                neonEVMUserPublicKeyInBytes, // Pass NeonEVM user public key so that neonEVMUser controls the token account through CallSPLTokenProgram contract
+                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that CallSPLTokenProgram contract owns the token account
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            neonEVMUserATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
+            neonEVMUserTokenAccountInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
                 neonEVMUserPublicKeyInBytes,
                 0 // Arbitrary nonce used to create the arbitrary token account
             )
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate).to.be.null
@@ -152,27 +219,25 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it('Create and initialize new ATA for third party Solana user', async function() {
+        it('Create and initialize new arbitrary token account for third party Solana user', async function() {
 
-            solanaUserPublicKey = (await web3.Keypair.generate()).publicKey
-
-            tx = await callSPLTokenProgram.connect(deployer).createInitializeATA(
+            tx = await callSPLTokenProgram.connect(deployer).createInitializeArbitraryTokenAccount(
                 tokenMintInBytes,
-                solanaUserPublicKey.toBuffer(), // Pass Solana user public key so that Solana user controls the ATA through CallSPLTokenProgram contract
-                solanaUserPublicKey.toBuffer(), // Pass Solana user public key as tokenOwner so that  Solana user owns the ATA
+                solanaUser.publicKey.toBuffer(), // Pass Solana user public key so that Solana user controls the token account through CallSPLTokenProgram contract
+                solanaUser.publicKey.toBuffer(), // Pass Solana user public key as tokenOwner so that  Solana user owns the token account
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            solanaUserATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
+            solanaUserTokenAccountInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
-                solanaUserPublicKey.toBuffer(),
+                solanaUser.publicKey.toBuffer(),
                 0 // Arbitrary nonce used to create the arbitrary token account
             )
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(solanaUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(solanaUserTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(solanaUserATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(solanaUserTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
-            expect(info.owner.toBase58()).to.eq(solanaUserPublicKey.toBase58())
+            expect(info.owner.toBase58()).to.eq(solanaUser.publicKey.toBase58())
             expect(info.delegate).to.be.null
             expect(info.closeAuthority).to.be.null
             expect(info.amount).to.eq(ZERO_AMOUNT)
@@ -187,15 +252,15 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36mmintTo\x1b[33m instruction\x1b[0m', function() {
 
-        it('Mint SPL token amount to deployer ATA', async function() {
+        it('Mint SPL token amount to deployer token account', async function() {
 
-            initialDeployerATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+            initialDeployerTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )).value.amount)
 
             tx = await callSPLTokenProgram.connect(deployer).mint(
                 Buffer.from(seed), // Seed that was used to generate SPL token mint
-                deployerATAInBytes, // Recipient ATA
+                deployerTokenAccountInBytes, // Recipient token account
                 AMOUNT // Amount to mint
             )
             await tx.wait(1) // Wait for 1 confirmation
@@ -211,50 +276,50 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
 
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )
 
-            expect(info.value.amount).to.eq((initialDeployerATABalance + AMOUNT).toString())
+            expect(info.value.amount).to.eq((initialDeployerTokenAccountBalance + AMOUNT).toString())
             expect(info.value.decimals).to.eq(decimals)
-            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialDeployerATABalance + AMOUNT), decimals)))
-            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialDeployerATABalance + AMOUNT), decimals).split('.')[0])
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialDeployerTokenAccountBalance + AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialDeployerTokenAccountBalance + AMOUNT), decimals).split('.')[0])
         })
 
         it('Third party user cannot mint (transaction reverts)', async function() {
 
-            initialNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            initialNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )).value.amount)
 
             // Mint tokens (transaction reverts)
             await expect(callSPLTokenProgram.connect(neonEVMUser).mint(
                 Buffer.from(seed), // Seed that was used to generate SPL token mint
-                neonEVMUserATAInBytes, // Recipient ATA
+                neonEVMUserTokenAccountInBytes, // Recipient token account
                 AMOUNT // Amount to mint
             )).to.be.revertedWith(
                 "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x3"
             )
 
-            newNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            newNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )).value.amount)
 
-            expect(newNeonEVMUserATABalance).to.eq(initialNeonEVMUserATABalance)
+            expect(newNeonEVMUserTokenAccountBalance).to.eq(initialNeonEVMUserTokenAccountBalance)
         })
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36mtransfer\x1b[33m instruction\x1b[0m', function() {
 
-        it('Transfer SPL token amount from deployer ATA to NeonEVM user ATA', async function() {
+        it('Transfer SPL token amount from deployer token account to NeonEVM user token account', async function() {
 
-            initialDeployerATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+            initialDeployerTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )).value.amount)
-            initialNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            initialNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )).value.amount)
 
-            neonEVMUserATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
+            neonEVMUserTokenAccountInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 tokenMintInBytes,
                 neonEVMUserPublicKeyInBytes,
                 0 // Arbitrary nonce used to create the arbitrary token account
@@ -262,86 +327,159 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
             tx = await callSPLTokenProgram.connect(deployer).transfer(
                 tokenMintInBytes,
-                neonEVMUserATAInBytes, // Recipient is NeonEVM user ATA
+                neonEVMUserTokenAccountInBytes, // Recipient is NeonEVM user token account
                 SMALL_AMOUNT // Amount to transfer
             )
             await tx.wait(1) // Wait for 1 confirmation
 
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )
 
-            expect(info.value.amount).to.eq((initialDeployerATABalance - SMALL_AMOUNT).toString())
+            expect(info.value.amount).to.eq((initialDeployerTokenAccountBalance - SMALL_AMOUNT).toString())
             expect(info.value.decimals).to.eq(decimals)
-            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialDeployerATABalance - SMALL_AMOUNT), decimals)))
-            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialDeployerATABalance - SMALL_AMOUNT), decimals).split('.')[0])
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialDeployerTokenAccountBalance - SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialDeployerTokenAccountBalance - SMALL_AMOUNT), decimals).split('.')[0])
 
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )
 
-            expect(info.value.amount).to.eq((initialNeonEVMUserATABalance + SMALL_AMOUNT).toString())
+            expect(info.value.amount).to.eq((initialNeonEVMUserTokenAccountBalance + SMALL_AMOUNT).toString())
             expect(info.value.decimals).to.eq(decimals)
-            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialNeonEVMUserATABalance + SMALL_AMOUNT), decimals)))
-            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialNeonEVMUserATABalance + SMALL_AMOUNT), decimals).split('.')[0])
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialNeonEVMUserTokenAccountBalance + SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialNeonEVMUserTokenAccountBalance + SMALL_AMOUNT), decimals).split('.')[0])
         })
 
-        it('Transfer SPL token amount from NeonEVM user ATA to Solana user ATA', async function() {
+        it('Transfer SPL token amount from NeonEVM user token account to Solana user associated token account', async function() {
 
-            initialNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            initialNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )).value.amount)
-            initialSolanaUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(solanaUserATAInBytes))
+            initialSolanaUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes))
             )).value.amount)
 
             tx = await callSPLTokenProgram.connect(neonEVMUser).transfer(
                 tokenMintInBytes,
-                solanaUserATAInBytes, // Recipient is NeonEVM user ATA
+                solanaUserAssociatedTokenAccountInBytes, // Recipient is Solana user associated token account
                 SMALL_AMOUNT // Amount to transfer
             )
             await tx.wait(1) // Wait for 1 confirmation
 
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )
 
-            expect(info.value.amount).to.eq((initialNeonEVMUserATABalance - SMALL_AMOUNT).toString())
+            expect(info.value.amount).to.eq((initialNeonEVMUserTokenAccountBalance - SMALL_AMOUNT).toString())
             expect(info.value.decimals).to.eq(decimals)
-            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialNeonEVMUserATABalance - SMALL_AMOUNT), decimals)))
-            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialNeonEVMUserATABalance - SMALL_AMOUNT), decimals).split('.')[0])
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialNeonEVMUserTokenAccountBalance - SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialNeonEVMUserTokenAccountBalance - SMALL_AMOUNT), decimals).split('.')[0])
 
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(solanaUserATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes))
             )
 
-            expect(info.value.amount).to.eq((initialSolanaUserATABalance + SMALL_AMOUNT).toString())
+            expect(info.value.amount).to.eq((initialSolanaUserTokenAccountBalance + SMALL_AMOUNT).toString())
             expect(info.value.decimals).to.eq(decimals)
-            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialSolanaUserATABalance + SMALL_AMOUNT), decimals)))
-            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialSolanaUserATABalance + SMALL_AMOUNT), decimals).split('.')[0])
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialSolanaUserTokenAccountBalance + SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialSolanaUserTokenAccountBalance + SMALL_AMOUNT), decimals).split('.')[0])
+        })
+
+        it('Transfer SPL token amount from Solana user associated token account to contract associated token account', async function() {
+
+            initialSolanaUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes))
+            )).value.amount)
+            initialContractTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(contractAssociatedTokenAccountInBytes))
+            )).value.amount)
+
+            tx = new web3.Transaction()
+            tx.add(createTransferInstruction(
+                new web3.PublicKey(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes)),
+                new web3.PublicKey(ethers.encodeBase58(contractAssociatedTokenAccountInBytes)),
+                solanaUser.publicKey,
+                SMALL_AMOUNT
+            ))
+            await airdropSOL(solanaUser.publicKey, parseInt(SMALL_AMOUNT.toString()))
+            await web3.sendAndConfirmTransaction(solanaConnection, tx, [solanaUser])
+
+            info = await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes))
+            )
+
+            expect(info.value.amount).to.eq((initialSolanaUserTokenAccountBalance - SMALL_AMOUNT).toString())
+            expect(info.value.decimals).to.eq(decimals)
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialSolanaUserTokenAccountBalance - SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialSolanaUserTokenAccountBalance - SMALL_AMOUNT), decimals).split('.')[0])
+
+            info = await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(contractAssociatedTokenAccountInBytes))
+            )
+
+            expect(info.value.amount).to.eq((initialContractTokenAccountBalance + SMALL_AMOUNT).toString())
+            expect(info.value.decimals).to.eq(decimals)
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialContractTokenAccountBalance + SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialContractTokenAccountBalance + SMALL_AMOUNT), decimals).split('.')[0])
+        })
+
+        it('Transfer SPL token amount from contract associated token account to deployer token account', async function() {
+
+            initialContractTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(contractAssociatedTokenAccountInBytes))
+            )).value.amount)
+            initialDeployerTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
+            )).value.amount)
+
+            tx = await callAssociatedTokenProgram.connect(deployer).transfer(
+                tokenMintInBytes,
+                deployerTokenAccountInBytes, // Recipient is NeonEVM user token account
+                SMALL_AMOUNT // Amount to transfer
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            info = await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(contractAssociatedTokenAccountInBytes))
+            )
+
+            expect(info.value.amount).to.eq((initialContractTokenAccountBalance - SMALL_AMOUNT).toString())
+            expect(info.value.decimals).to.eq(decimals)
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialContractTokenAccountBalance - SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialContractTokenAccountBalance - SMALL_AMOUNT), decimals).split('.')[0])
+
+            info = await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
+            )
+
+            expect(info.value.amount).to.eq((initialDeployerTokenAccountBalance + SMALL_AMOUNT).toString())
+            expect(info.value.decimals).to.eq(decimals)
+            expect(info.value.uiAmount).to.eq(parseInt(ethers.formatUnits((initialDeployerTokenAccountBalance + SMALL_AMOUNT), decimals)))
+            expect(info.value.uiAmountString).to.eq(ethers.formatUnits((initialDeployerTokenAccountBalance + SMALL_AMOUNT), decimals).split('.')[0])
         })
 
         it('User with zero balance cannot transfer (transaction reverts)', async function() {
 
-            initialNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            initialNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )).value.amount)
 
-            expect(initialNeonEVMUserATABalance).to.eq(ZERO_AMOUNT)
+            expect(initialNeonEVMUserTokenAccountBalance).to.eq(ZERO_AMOUNT)
 
             await expect(callSPLTokenProgram.connect(neonEVMUser).transfer(
                 tokenMintInBytes,
-                neonEVMUserATAInBytes,
+                neonEVMUserTokenAccountInBytes,
                 AMOUNT
             )).to.be.revertedWith(
                 "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x1"
             )
 
-            newNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            newNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )).value.amount)
 
-            expect(newNeonEVMUserATABalance).to.eq(initialNeonEVMUserATABalance)
+            expect(newNeonEVMUserTokenAccountBalance).to.eq(initialNeonEVMUserTokenAccountBalance)
         })
     })
 
@@ -350,16 +488,16 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         it('User without approval cannot claim (transaction reverts)', async function() {
 
             await expect(callSPLTokenProgram.connect(neonEVMUser).claim(
-                deployerATAInBytes, // Spend from deployer ATA
-                neonEVMUserATAInBytes, // Recipient ATA
+                deployerTokenAccountInBytes, // Spend from deployer token account
+                neonEVMUserTokenAccountInBytes, // Recipient token account
                 SMALL_AMOUNT // Claimed amount
             )).to.be.revertedWithCustomError(callSPLTokenProgram, 'InvalidSpender')
         })
 
-        it('Delegate deployer ATA to NeonEVM user', async function() {
+        it('Delegate deployer token account to NeonEVM user', async function() {
 
-            initialDeployerATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+            initialDeployerTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )).value.amount)
 
             tx = await callSPLTokenProgram.connect(deployer).approve(
@@ -369,14 +507,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserPublicKeyInBytes))
             expect(info.closeAuthority).to.be.null
-            expect(info.amount).to.eq(initialDeployerATABalance)
+            expect(info.amount).to.eq(initialDeployerTokenAccountBalance)
             expect(info.delegatedAmount).to.eq(SMALL_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
@@ -385,30 +523,30 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it('Claim tokens from delegated ATA', async function() {
+        it('Claim tokens from delegated token account', async function() {
 
-            initialDeployerATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+            initialDeployerTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )).value.amount)
-            initialNeonEVMUserATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes))
+            initialNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             )).value.amount)
 
             tx = await callSPLTokenProgram.connect(neonEVMUser).claim(
-                deployerATAInBytes, // Spend from deployer ATA
-                neonEVMUserATAInBytes, // Recipient ATA
+                deployerTokenAccountInBytes, // Spend from deployer token account
+                neonEVMUserTokenAccountInBytes, // Recipient token account
                 SMALL_AMOUNT // Claimed amount
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserPublicKeyInBytes))
             expect(info.closeAuthority).to.be.null
-            expect(info.amount).to.eq(initialDeployerATABalance - SMALL_AMOUNT)
+            expect(info.amount).to.eq(initialDeployerTokenAccountBalance - SMALL_AMOUNT)
             expect(info.delegatedAmount).to.eq(SMALL_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
@@ -416,14 +554,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate).to.be.null
             expect(info.closeAuthority).to.be.null
-            expect(info.amount).to.eq(initialNeonEVMUserATABalance + SMALL_AMOUNT)
+            expect(info.amount).to.eq(initialNeonEVMUserTokenAccountBalance + SMALL_AMOUNT)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
@@ -432,7 +570,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it('User without initialized ATA cannot delegate (transaction reverts)', async function() {
+        it('User without initialized token account cannot delegate (transaction reverts)', async function() {
             await expect(callSPLTokenProgram.connect(otherNeonEVMUser).approve(
                 tokenMintInBytes,
                 neonEVMUserPublicKeyInBytes,
@@ -445,10 +583,10 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36mrevoke\x1b[33m instruction\x1b[0m', function() {
 
-        it('Revoke deployer ATA delegation to NeonEVM user', async function() {
+        it('Revoke deployer token account delegation to NeonEVM user', async function() {
 
-            initialDeployerATABalance = BigInt((await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+            initialDeployerTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )).value.amount)
 
             tx = await callSPLTokenProgram.connect(deployer).revokeApproval(
@@ -456,14 +594,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate).to.be.null
             expect(info.closeAuthority).to.be.null
-            expect(info.amount).to.eq(initialDeployerATABalance)
+            expect(info.amount).to.eq(initialDeployerTokenAccountBalance)
             expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
             expect(info.isInitialized).to.eq(true)
             expect(info.isFrozen).to.eq(false)
@@ -472,7 +610,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it('User without initialized ATA cannot revoke approval (transaction reverts)', async function() {
+        it('User without initialized token account cannot revoke approval (transaction reverts)', async function() {
             await expect(callSPLTokenProgram.connect(otherNeonEVMUser).revokeApproval(
                 tokenMintInBytes
             )).to.be.revertedWith(
@@ -589,7 +727,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it("SPL token account's OWNER can update undefined SPL token account's CLOSE authority", async function() {
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
             expect(info.closeAuthority).to.be.null
 
             tx = await callSPLTokenProgram.connect(neonEVMUser).updateTokenAccountAuthority(
@@ -599,9 +737,9 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate).to.be.null
@@ -615,7 +753,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it("SPL token account's CLOSE authority can update SPL token account's CLOSE authority", async function() {
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
             expect(info.closeAuthority.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
 
             newCloseAuthorityInBytes = (await web3.Keypair.generate()).publicKey.toBuffer()
@@ -627,9 +765,9 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate).to.be.null
@@ -652,7 +790,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
         })
 
-        it("User without initialized ATA cannot update SPL token account's CLOSE authority (transaction reverts)", async function() {
+        it("User without initialized token account cannot update SPL token account's CLOSE authority (transaction reverts)", async function() {
             await expect(callSPLTokenProgram.connect(otherNeonEVMUser).updateTokenAccountAuthority(
                 tokenMintInBytes, // Token mint associated with the token account of which we want to update authority
                 3, // CLOSE authority
@@ -671,9 +809,9 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(newOwnerInBytes))
             expect(info.delegate).to.be.null
@@ -734,11 +872,11 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it("Burn tokens", async function() {
 
-            // Check initial token balance of deployer ATA
+            // Check initial token balance of deployer token account
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )
-            initialDeployerATABalance = BigInt(info.value.amount)
+            initialDeployerTokenAccountBalance = BigInt(info.value.amount)
 
             // Burn tokens
             tx = await callSPLTokenProgram.connect(deployer).burn(
@@ -747,51 +885,51 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            // Check new token balance of deployer ATA
+            // Check new token balance of deployer token account
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )
-            newDeployerATABalance = BigInt(info.value.amount)
+            newDeployerTokenAccountBalance = BigInt(info.value.amount)
 
-            expect(initialDeployerATABalance - newDeployerATABalance).to.eq(SMALL_AMOUNT)
+            expect(initialDeployerTokenAccountBalance - newDeployerTokenAccountBalance).to.eq(SMALL_AMOUNT)
         })
 
         it("User cannot burn more than token balance (transaction reverts)", async function() {
 
-            // Check initial token balance of deployer ATA
+            // Check initial token balance of deployer token account
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )
-            initialDeployerATABalance = BigInt(info.value.amount)
+            initialDeployerTokenAccountBalance = BigInt(info.value.amount)
 
             // Burn tokens
             await expect(callSPLTokenProgram.connect(deployer).burn(
                 tokenMintInBytes,
-                initialDeployerATABalance + SMALL_AMOUNT,
+                initialDeployerTokenAccountBalance + SMALL_AMOUNT,
             )).to.be.revertedWith("External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x1")
         })
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36msyncNative\x1b[33m instruction\x1b[0m', function() {
 
-        before('Create and initialize new WSOL ATA for deployer', async function() {
+        before('Create and initialize new WSOL token account for deployer', async function() {
 
-            tx = await callSPLTokenProgram.connect(deployer).createInitializeATA(
+            tx = await callSPLTokenProgram.connect(deployer).createInitializeArbitraryTokenAccount(
                 WSOL_MINT_PUBKEY,
-                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that msg.sender controls the ATA through CallSPLTokenProgram contract
-                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that CallSPLTokenProgram contract owns the ATA
+                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that msg.sender controls the token account through CallSPLTokenProgram contract
+                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave tokenOwner field empty so that CallSPLTokenProgram contract owns the token account
             )
             await tx.wait(1) // Wait for 1 confirmation
 
             deployerPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(deployer.address)
-            deployerWSOLATAInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
+            deployerWSOLTokenAccountInBytes = await callSPLTokenProgram.getArbitraryTokenAccount(
                 WSOL_MINT_PUBKEY,
                 deployerPublicKeyInBytes,
                 0 // Arbitrary nonce used to create the arbitrary token account
             )
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)))
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerWSOLATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(deployerWSOLTokenAccountInBytes))
             expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(WSOL_MINT_PUBKEY))
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(contractPublicKeyInBytes))
             expect(info.delegate).to.be.null
@@ -808,36 +946,36 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it("Sync deployer's WSOL token balance", async function() {
 
-            // Airdrop SOL to deployer's WSOL ATA
-            await airdropSOL(ethers.encodeBase58(deployerWSOLATAInBytes), parseInt(SMALL_AMOUNT.toString()))
-            initialDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
-            expect(initialDeployerATASOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
+            // Airdrop SOL to deployer's WSOL token account
+            await airdropSOL(ethers.encodeBase58(deployerWSOLTokenAccountInBytes), parseInt(SMALL_AMOUNT.toString()))
+            initialDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)))
+            expect(initialDeployerTokenAccountSOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
-            initialDeployerATAwSOLBalance = info.amount
-            expect(initialDeployerATAwSOLBalance).to.eq(ZERO_AMOUNT)
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)))
+            initialDeployerTokenAccountWSOLBalance = info.amount
+            expect(initialDeployerTokenAccountWSOLBalance).to.eq(ZERO_AMOUNT)
 
             // Sync native
-            tx = await callSPLTokenProgram.syncWrappedSOLAccount(deployerWSOLATAInBytes)
+            tx = await callSPLTokenProgram.syncWrappedSOLAccount(deployerWSOLTokenAccountInBytes)
             await tx.wait(1) // Wait for 1 confirmation
 
-            // Check ATA WSOL and SOL balances
-            newDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
-            expect(newDeployerATASOLBalance).to.eq(initialDeployerATASOLBalance) // SOL balance has not changed
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLATAInBytes)))
-            newDeployerATAwSOLBalance = info.amount
-            expect(newDeployerATAwSOLBalance - initialDeployerATAwSOLBalance).to.eq(SMALL_AMOUNT) // wSOL balance has been synced
+            // Check token account WSOL and SOL balances
+            newDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)))
+            expect(newDeployerTokenAccountSOLBalance).to.eq(initialDeployerTokenAccountSOLBalance) // SOL balance has not changed
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)))
+            newDeployerTokenAccountWSOLBalance = info.amount
+            expect(newDeployerTokenAccountWSOLBalance - initialDeployerTokenAccountWSOLBalance).to.eq(SMALL_AMOUNT) // wSOL balance has been synced
         })
 
         it("User cannot sync a non-native token account (transaction reverts)", async function() {
 
             // Airdrop SOL to deployer's non-native token account
-            await airdropSOL(ethers.encodeBase58(deployerATAInBytes), parseInt(SMALL_AMOUNT.toString()))
-            initialDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
-            expect(initialDeployerATASOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
+            await airdropSOL(ethers.encodeBase58(deployerTokenAccountInBytes), parseInt(SMALL_AMOUNT.toString()))
+            initialDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
+            expect(initialDeployerTokenAccountSOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 
             // Sync native
-            await expect(callSPLTokenProgram.syncWrappedSOLAccount(deployerATAInBytes)).to.be.revertedWith(
+            await expect(callSPLTokenProgram.syncWrappedSOLAccount(deployerTokenAccountInBytes)).to.be.revertedWith(
                 "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x13"
             )
         })
@@ -847,15 +985,15 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it("User cannot close SPL token account which has non-zero token balance (transaction reverts)", async function() {
 
-            // Check initial token balance of deployer ATA
+            // Check initial token balance of deployer token account
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )
-            initialDeployerATABalance = BigInt(info.value.amount)
+            initialDeployerTokenAccountBalance = BigInt(info.value.amount)
 
-            expect(BigInt(initialDeployerATABalance)).to.be.greaterThan(ZERO_AMOUNT)
+            expect(BigInt(initialDeployerTokenAccountBalance)).to.be.greaterThan(ZERO_AMOUNT)
 
-            // Close deployer ATA
+            // Close deployer token account
             await expect(callSPLTokenProgram.connect(deployer).closeTokenAccount(
                 tokenMintInBytes,
                 deployerPublicKeyInBytes
@@ -866,52 +1004,52 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it("Close SPL token account", async function() {
 
-            // Check initial token balance of deployer ATA
+            // Check initial token balance of deployer token account
             info = await solanaConnection.getTokenAccountBalance(
-                new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
             )
-            initialDeployerATABalance = BigInt(info.value.amount)
+            initialDeployerTokenAccountBalance = BigInt(info.value.amount)
 
             // SPL token account must have zero token balance before being closed
-            if(initialDeployerATABalance > 0) {
+            if(initialDeployerTokenAccountBalance > 0) {
                 tx = await callSPLTokenProgram.connect(deployer).transfer(
                     tokenMintInBytes,
-                    neonEVMUserATAInBytes, // Recipient is NeonEVM user ATA
-                    initialDeployerATABalance // Amount to transfer
+                    neonEVMUserTokenAccountInBytes, // Recipient is NeonEVM user token account
+                    initialDeployerTokenAccountBalance // Amount to transfer
                 )
                 await tx.wait(1) // Wait for 1 confirmation
 
                 info = await solanaConnection.getTokenAccountBalance(
-                    new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes))
+                    new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes))
                 )
                 expect(info.value.amount).to.eq(ZERO_AMOUNT.toString())
             }
 
-            // Deployer ATA's SOL balance will be transferred to deployer account
+            // deployer token account's SOL balance will be transferred to deployer account
             initialDeployerBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerPublicKeyInBytes)))
-            initialDeployerATASOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerATAInBytes)))
+            initialDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
 
-            // Close deployer ATA
+            // Close deployer token account
             tx = await callSPLTokenProgram.connect(deployer).closeTokenAccount(
                 tokenMintInBytes, // Token mint associated with the token account which we want to close
-                deployerPublicKeyInBytes // account which will receive the closed ATA's SOL balance
+                deployerPublicKeyInBytes // account which will receive the closed token account's SOL balance
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            // Check that ATA does not exist anymore
-            await expect(callSPLTokenProgram.getSPLTokenAccountData(deployerATAInBytes))
+            // Check that token account does not exist anymore
+            await expect(callSPLTokenProgram.getSPLTokenAccountData(deployerTokenAccountInBytes))
                 .to.be.revertedWithCustomError(callSPLTokenProgram, 'TokenAccountDataQuery')
 
-            // Check that ATA balance was transferred to deployer account
+            // Check that token account balance was transferred to deployer account
             newDeployerBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerPublicKeyInBytes)))
-            expect(newDeployerBalance - initialDeployerBalance).to.eq(initialDeployerATASOLBalance)
+            expect(newDeployerBalance - initialDeployerBalance).to.eq(initialDeployerTokenAccountSOLBalance)
         })
 
         it("User cannot close SPL token account which has not been initialized (transaction reverts)", async function() {
 
             otherNeonEVMUserPublicKeyInBytes = await callSPLTokenProgram.getNeonAddress(otherNeonEVMUser.address)
 
-            // Close user ATA
+            // Close user token account
             await expect(callSPLTokenProgram.connect(otherNeonEVMUser).closeTokenAccount(
                 tokenMintInBytes,
                 otherNeonEVMUserPublicKeyInBytes
@@ -960,19 +1098,19 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
         it('Call SPL token account data getters', async function() {
 
-            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserATAInBytes)))
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes)))
 
-            const ataIsInitialized = await callSPLTokenProgram.getSPLTokenAccountIsInitialized(neonEVMUserATAInBytes)
-            const ataIsNative = await callSPLTokenProgram.getSPLTokenAccountIsNative(neonEVMUserATAInBytes)
-            const ataBalance = await callSPLTokenProgram.getSPLTokenAccountBalance(neonEVMUserATAInBytes)
-            const ataOwner = await callSPLTokenProgram.getSPLTokenAccountOwner(neonEVMUserATAInBytes)
-            const ataMint = await callSPLTokenProgram.getSPLTokenAccountMint(neonEVMUserATAInBytes)
-            const ataDelegate = await callSPLTokenProgram.getSPLTokenAccountDelegate(neonEVMUserATAInBytes)
-            const ataDelegatedAmount = await callSPLTokenProgram.getSPLTokenAccountDelegatedAmount(neonEVMUserATAInBytes)
-            const ataCloseAuthority = await callSPLTokenProgram.getSPLTokenAccountCloseAuthority(neonEVMUserATAInBytes)
-            const ataData = await callSPLTokenProgram.getSPLTokenAccountData(neonEVMUserATAInBytes)
+            const ataIsInitialized = await callSPLTokenProgram.getSPLTokenAccountIsInitialized(neonEVMUserTokenAccountInBytes)
+            const ataIsNative = await callSPLTokenProgram.getSPLTokenAccountIsNative(neonEVMUserTokenAccountInBytes)
+            const TokenAccountBalance = await callSPLTokenProgram.getSPLTokenAccountBalance(neonEVMUserTokenAccountInBytes)
+            const ataOwner = await callSPLTokenProgram.getSPLTokenAccountOwner(neonEVMUserTokenAccountInBytes)
+            const ataMint = await callSPLTokenProgram.getSPLTokenAccountMint(neonEVMUserTokenAccountInBytes)
+            const ataDelegate = await callSPLTokenProgram.getSPLTokenAccountDelegate(neonEVMUserTokenAccountInBytes)
+            const ataDelegatedAmount = await callSPLTokenProgram.getSPLTokenAccountDelegatedAmount(neonEVMUserTokenAccountInBytes)
+            const ataCloseAuthority = await callSPLTokenProgram.getSPLTokenAccountCloseAuthority(neonEVMUserTokenAccountInBytes)
+            const ataData = await callSPLTokenProgram.getSPLTokenAccountData(neonEVMUserTokenAccountInBytes)
 
-            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserATAInBytes))
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
 
             if(info.isInitialized) {
                 expect(ataIsInitialized).to.eq(true)
@@ -990,7 +1128,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 expect(ataData[7]).to.eq(false)
             }
 
-            expect(info.amount).to.eq(ataBalance)
+            expect(info.amount).to.eq(TokenAccountBalance)
             expect(info.amount).to.eq(ataData[2])
 
             expect(info.owner.toBase58()).to.eq(ethers.encodeBase58(ataOwner))

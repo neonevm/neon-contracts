@@ -27,6 +27,15 @@ This contract demonstrates how the **LibSPLTokenProgram** & **LibSPLTokenData** 
   </dd>
 </dl>
 
+## Associated Token program
+<dl>
+  <dd>
+
+### CallAssociatedTokenProgram contract
+This contract demonstrates how the **LibAssociatedTokenProgram** & **LibAssociatedTokenData** libraries can be used in practice to interact with Solana's Associated Token program. [Link to Associated Token Solidity libraries](./libraries/associated-token-program/)
+  </dd>
+</dl>
+
 ## Raydium program
 <dl>
   <dd>
@@ -38,19 +47,23 @@ This contract demonstrates how the **LibRaydiumProgram** & **LibRaydiumData** li
 
 ### General information about how Solana Token accounts are handled
 
-The **CallSPLTokenProgram** contract provides its users with methods to create and initialize SPL _token mints_ and 
-_arbitrary token accounts_ as well as to mint and transfer tokens using those accounts. It features a built-in 
-authentication logic ensuring that users remain in control of created accounts.
-
 #### Associated token accounts vs Arbitrary token accounts
 
 _Arbitrary token accounts_ are derived using a `seed` which includes the token account `owner`'s public key and an 
 arbitrary `nonce` (among other parameters). By using different `nonce` values it is possible to derive different 
 _arbitrary token accounts_ for the same `owner` which can be useful for some use cases.
 
-However, there exists a canonical way of deriving a token account for a specific `owner` and this token account is 
-called an _associated token account_. Associated token accounts are used widely by application s running on _Solana_ and 
-it generally expected that token transfers are made to and from _associated token accounts_.
+The **CallSPLTokenProgram** contract provides its users with methods to create and initialize SPL _token mints_ and
+_arbitrary token accounts_ as well as to mint and transfer tokens using those accounts. It features a built-in
+authentication logic ensuring that users remain in control of created accounts.
+
+However, there exists a canonical way of deriving a SPL token account for a specific `owner` and this token account is 
+called an _Associated Token account_. _Associated Token accounts_ are used widely by application s running on _Solana_ 
+and it is generally expected that token transfers are made to and from _Associated Token accounts_.
+
+The **CallAssociatedTokenProgram** contract provides a method to create and initialize canonical _Associated Token
+accounts_ for third party _Solana_ users. This method can also be used to create and initialize canonical _Associated
+Token accounts_ owned by this contract.
 
 #### Ownership and authentication
 
@@ -61,24 +74,30 @@ The `createInitializeTokenMint` function takes a `seed` parameter as input which
 authority on the created token mint account, the `mintTokens` function grants `msg.sender` permission to mint tokens
 by providing the `seed` that was used to create the token mint account.
 
-##### Arbitrary token account ownership and authentication
+##### Arbitrary token accounts ownership and authentication
 
-The `createInitializeATA` function can be used for three different purposes:
+Using _arbitrary SPL Token accounts_ created via the `CallSPLTokenProgram` contract deployed on _NeonEVM_ allows for 
+cheap and easy authentication of _NeonEVM_ users to let them interact with and effectively control those token accounts 
+securely via this contract while this contract is the actual owner of those token accounts on _Solana_. It is also 
+possible to create and initialize an _arbitrary SPL Token accounts_ for third party _Solana_ users, granting them full 
+ownership of created accounts on _Solana_.
+
+The `createInitializeArbitraryTokenAccount` function can be used for three different purposes:
 
 * To create and initialize an _arbitrary token account_ to be used by `msg.sender` to send tokens through the 
 **CallSPLTokenProgram** contract. In this case, both the `owner` and `tokenOwner` parameters passed to the function 
 should be left empty. The _arbitrary token account_ to be created is derived from `msg.sender` and a `nonce` (that can 
-be incremented to create different _arbitrary token accounts_). The owner of the _arbitrary token account_ is the 
-**CallSPLTokenProgram** contract. The `transferTokens` function grants `msg.sender` permission to transfer tokens from 
-this _arbitrary token account_ by providing the `nonce` that was used to create the _arbitrary token account_.
+be incremented to create different _arbitrary token accounts_). Only `msg.sender` is allowed to perform state changes to
+the created token account via this contract. The `transferTokens` function grants `msg.sender` permission to transfer 
+tokens from this _arbitrary token account_ by providing the `nonce` that was used to create the _arbitrary token account_.
 
 * To create and initialize an _arbitrary token account_ to be used by a third party `user` NeonEVM account through 
 the **CallSPLTokenProgram** contract. In this case, the `owner` parameter passed to the function should be  
 `CallSPLTokenProgram.getNeonAddress(user)` and the `tokenOwner` parameter should be left empty. The _arbitrary token 
-account_ to be created is derived from the `user` account and a `nonce` (that can be incremented to create different
-  _arbitrary token accounts_). The owner of the _arbitrary token account_ is the **CallSPLTokenProgram** contract. The 
-`transferTokens` function grants `user` permission to transfer tokens from this _arbitrary token account_ by providing 
-the `nonce` that was used to create the _arbitrary token account_.
+account_ to be created is derived from the `user` account and a `nonce` (that can be incremented to create different 
+_arbitrary token accounts_). Only that `user` is allowed to perform state changes to the created token account via this 
+contract. The `transferTokens` function grants `user` permission to transfer tokens from this _arbitrary token account_ 
+by providing the `nonce` that was used to create the _arbitrary token account_.
 
 * To create and initialize an _arbitrary token account_ to be used by a third party `solanaUser` _Solana_ account
 to send tokens directly on _Solana_ without interacting with the **CallSPLTokenProgram** contract. In this case, both the 
