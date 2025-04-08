@@ -103,9 +103,9 @@ library LibRaydiumProgram {
         isWritable[19] = false;
 
         LibRaydiumData.ConfigData memory configData = LibRaydiumData.getConfigData(accounts[1]);
-        
+
         /// @dev configData.createPoolFee - CPMM's pool creation fee
-        /// @dev LibSystemData.getRentExemptionBalance(6057) - lamports needed for all the accounts creations, in total 6057 bytes:
+        /// @dev LibSystemData.getRentExemptionBalance(6057, rentDataBytes) - lamports needed for all the accounts creations, in total 6057 bytes:
             /// 82 bytes for LP Token Mint
             /// 165 bytes for pool's LP Token account
             /// 4075 bytes for pool's observationKey account
@@ -113,7 +113,13 @@ library LibRaydiumProgram {
             /// 165 bytes for pool's tokenB Token account
             /// 637 bytes for pool's account
             /// 5x 128 bytes = 640 bytes for each account ACCOUNT_STORAGE_OVERHEAD ( skipping the first account, because getRentExemptionBalance already is adding 1x ACCOUNT_STORAGE_OVERHEAD)
-        lamports = configData.createPoolFee + LibSystemData.getRentExemptionBalance(5929);
+        lamports = configData.createPoolFee + LibSystemData.getRentExemptionBalance(
+            5929,
+            LibSystemData.getSystemAccountData(
+                Constants.getSysvarRentPubkey(),
+                LibSystemData.getSpace(Constants.getSysvarRentPubkey())
+            )
+        );
 
         if (returnData) {
             data = buildCreatePoolData(
@@ -358,7 +364,13 @@ library LibRaydiumProgram {
             /// 165 bytes for CPMMPoolAuthPubkey's LP Token account + 1x ACCOUNT_STORAGE_OVERHEAD
             accountsBytesSize += 1028;
         }
-        lamports = LibSystemData.getRentExemptionBalance(accountsBytesSize);
+        lamports = LibSystemData.getRentExemptionBalance(
+            accountsBytesSize,
+            LibSystemData.getSystemAccountData(
+                Constants.getSysvarRentPubkey(),
+                LibSystemData.getSpace(Constants.getSysvarRentPubkey())
+            )
+        );
         if (withMetadata) {
             lamports += 10000000; // account getPdaMetadataKey has to be filled with 0.01 SOLs
         }

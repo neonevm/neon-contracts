@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-import { LibSystemErrors } from "./LibSystemErrors.sol";
 import { Constants } from "../Constants.sol";
+import { LibSystemErrors } from "./LibSystemErrors.sol";
 import { QueryAccount } from "../../../precompiles/QueryAccount.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
 
@@ -115,13 +115,12 @@ library LibSystemData {
     }
 
     /// @param accountBytesSize The storage space allocated to considered Solana account in bytes
+    /// @param rentDataBytes The rent data stored on Solana's SysvarRent111111111111111111111111111111111 account
     /// @return account's minimum balance for rent exemption in lamports
-    function getRentExemptionBalance(uint64 accountBytesSize) internal view returns(uint64) {
-        // We get the latest rent data from Solana's SysvarRent111111111111111111111111111111111 account
-        bytes memory rentDataBytes = getSystemAccountData(
-            Constants.getSysvarRentPubkey(),
-            getSpace(Constants.getSysvarRentPubkey())
-        );
+    function getRentExemptionBalance(
+        uint64 accountBytesSize,
+        bytes memory rentDataBytes
+    ) internal pure returns(uint64) {
         // Extract the first 8 bytes of data which represent the rent in lamports per byte per year encoded as a uint64
         uint64 lamportsPerByteYear = (rentDataBytes.toUint64(0)).readLittleEndianUnsigned64();
         // Calculate the account's rent per year
@@ -131,20 +130,22 @@ library LibSystemData {
         bytes8 rentExemptionThresholdFloat64Bytes = bytes8(rentDataBytes.toUint64(8).readLittleEndianUnsigned64());
         // Decode the IEEE754 double precision floating point value (float64) into its fraction and exponent components
         DecodedFloat64 memory decodedRentExemptionThresholdFloat64 = decodeFloat64(rentExemptionThresholdFloat64Bytes);
-        if(decodedRentExemptionThresholdFloat64.exponent < 1023) { // Exponent is encoded with the zero offset
-            // being 1023, so the actual exponent value is: (exponent - 1023). Any exponent below 1023 is actually a
-            // negative exponent value in which case we return a uint value rounded down to 0.
-            return 0;
-        }
-        uint64 exponent = decodedRentExemptionThresholdFloat64.exponent - 1023;
         // IEEE754 double precision encoding: https://en.wikipedia.org/wiki/Double-precision_floating-point_format
         // IEEE754 quadruple precision encoding: https://en.wikipedia.org/wiki/Quadruple-precision_floating-point_format
         // Reference implementation: https://github.com/abdk-consulting/abdk-libraries-solidity/blob/d8817cb600381319992d7caa038bf4faceb1097f/ABDKMathQuad.sol#L127
         // The conversion from float64 to uint64 is calculated as: (1 + fraction) * 2 ^ exponent
         // We return rentPerYear * (1 + fraction) * 2 ^ exponent
         uint256 rentExemptionBalance = rentPerYear * (decodedRentExemptionThresholdFloat64.fraction + 0x10000000000000);
-        uint64 shift = (exponent < 52) ? (52 - exponent) : (exponent - 52);
-        if (exponent < 52) {
+        // Exponent is encoded with the zero offset being 1023, so the actual exponent value is (exponent - 1023).
+        // We check if the actual exponent value is lower than or greater than 52, i.e. if the exponent component of the
+        // IEEE754 double precision encoding is lower than or greater than 1023 + 52 = 1075.
+        uint64 shift = (decodedRentExemptionThresholdFloat64.exponent < 1075)
+            ? (1075 - decodedRentExemptionThresholdFloat64.exponent)
+            : (decodedRentExemptionThresholdFloat64.exponent - 1075);
+        // The bytes length of the fraction component of the IEEE754 double precision encoding is 52 bytes. This means
+        // that in order to multiply it by (2 ^ exponent) and obtain the resulting value as a uint64 we actually need to
+        // shift the bytes encoding of this fraction component to the left by (exponent - 52) or to the right by (52 - exponent)
+        if (decodedRentExemptionThresholdFloat64.exponent < 1075) {
             // If the actual exponent value is less than 52: divide by 2 ^ (52 - exponent)
             rentExemptionBalance >>= shift;
         } else {

@@ -17,6 +17,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     let deployer,
         neonEVMUser,
         callSystemProgram,
+        mockCallSystemProgram,
         tx,
         seed,
         basePubKey,
@@ -31,6 +32,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
         deployer = deployment.deployer
         neonEVMUser = deployment.user
         callSystemProgram = deployment.contract
+        mockCallSystemProgram = (await deployContract('MockCallSystemProgram', null)).contract
 
         basePubKey = await callSystemProgram.getNeonAddress(callSystemProgram.target)
         rentExemptBalance = await solanaConnection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE)
@@ -39,7 +41,6 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s System program \x1b[36mcreateAccountWithSeed\x1b[33m instruction\x1b[0m', function() {
 
         it('Create account with seed', async function() {
-
             // Generate the public key of the account we want to create from a seed and the id of the program it will
             // be assigned to
             seed = 'seed' + Date.now().toString()
@@ -80,8 +81,8 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s System program \x1b[36mtransfer\x1b[33m instruction\x1b[0m', function() {
-        it('Transfer SOL', async function() {
 
+        it('Transfer SOL', async function() {
             // Generate a random key pair
             const recipient = web3.Keypair.generate()
             initialRecipientSOLBalance = await solanaConnection.getBalance(recipient.publicKey)
@@ -99,6 +100,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s System program \x1b[36massignWithSeed\x1b[33m instruction\x1b[0m', function() {
+
         it('Assign an account to the Token program', async function() {
             // Generate a new account public key from a seed and the id of the program we want to assign that account to
             seed = 'assign' + Date.now().toString()
@@ -133,6 +135,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s System program \x1b[36mallocateWithSeed\x1b[33m instruction\x1b[0m', function() {
+
         it('Allocate storage space to an account', async function() {
             // Generate a new account public key from a seed and program id
             seed = 'allocate' + Date.now().toString()
@@ -168,6 +171,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
     })
 
     describe('\n\u{231B} \x1b[33m Testing Solana\'s System program \x1b[36mdata getters\x1b[33m\x1b[0m', async function() {
+
         it('Call account data getters', async function() {
             info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
             const balance = await callSystemProgram.getBalance(createWithSeedAccountInBytes)
@@ -189,6 +193,71 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
 
             expect(rentExemptionBalance).to.eq(await solanaConnection.getMinimumBalanceForRentExemption(parseInt(space)))
             expect(isRentExempt).to.eq(true)
+        })
+
+        it('Test f64 decoding for rent exemption balance calculation', async function() {
+            const SPL_TOKEN_ACCOUNT_SIZE = 165
+            const TWO_YEARS_RENT = BigInt(2039280)
+            const THREE_POINT_FIVE_YEARS_RENT = BigInt(3568740)
+            const ONE_POINT_TWO_YEARS_RENT = BigInt(1223567)
+            const ZERO_POINT_FIVE_YEARS_RENT = BigInt(509820)
+            const ZERO_POINT_TWENTY_FIVE_YEARS_RENT = BigInt(254910)
+
+            // Example 17 bytes rent data in the same format as it is stored on Solana's
+            // SysvarRent111111111111111111111111111111111 account:
+            // 980d000000000000 -> u64 lamports_per_byte_year in little-endian right-padded format (= 3480)
+            // 0000000000000040 -> f64 exemption_threshold (= 4000000000000000 in little-endian right-padded format, decodes to 2.0)
+            // 32 -> u8 burn_percent (= 50)
+
+            expect(await mockCallSystemProgram.getRentExemptionBalance(
+                SPL_TOKEN_ACCOUNT_SIZE,
+                Buffer.from(
+                    '980d000000000000' + // 3480
+                    '0000000000000040' + // 2
+                    '32',
+                    'hex'
+                )
+            )).to.eq(TWO_YEARS_RENT);
+
+            expect(await mockCallSystemProgram.getRentExemptionBalance(
+                SPL_TOKEN_ACCOUNT_SIZE,
+                Buffer.from(
+                    '980d000000000000' + // 3480
+                    '0000000000000c40' + // 3.5
+                    '32',
+                    'hex'
+                )
+            )).to.eq(THREE_POINT_FIVE_YEARS_RENT);
+
+            expect(await mockCallSystemProgram.getRentExemptionBalance(
+                SPL_TOKEN_ACCOUNT_SIZE,
+                Buffer.from(
+                    '980d000000000000' + // 3480
+                    '333333333333f33f' + // 1.2
+                    '32',
+                    'hex'
+                )
+            )).to.eq(ONE_POINT_TWO_YEARS_RENT);
+
+            expect(await mockCallSystemProgram.getRentExemptionBalance(
+                SPL_TOKEN_ACCOUNT_SIZE,
+                Buffer.from(
+                    '980d000000000000' + // 3480
+                    '000000000000e03f' + // 0.5
+                    '32',
+                    'hex'
+                )
+            )).to.eq(ZERO_POINT_FIVE_YEARS_RENT);
+
+            expect(await mockCallSystemProgram.getRentExemptionBalance(
+                SPL_TOKEN_ACCOUNT_SIZE,
+                Buffer.from(
+                    '980d000000000000' + // 3480
+                    '000000000000d03f' + // 0.25
+                    '32',
+                    'hex'
+                )
+            )).to.eq(ZERO_POINT_TWENTY_FIVE_YEARS_RENT);
         })
 
         it('Estimate gas usage of on-chain rent exemption balance calculation', async function() {

@@ -4,6 +4,11 @@ module.exports = {
         neondevnet: "",
         neonmainnet: "",
     },
+    MockCallSystemProgram: {
+        curvestand: "",
+        neondevnet: "",
+        neonmainnet: "",
+    },
     CallSPLTokenProgram: {
         curvestand: "",
         neondevnet: "",
