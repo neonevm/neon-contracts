@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import { CallSolanaHelperLib } from '../utils/CallSolanaHelperLib.sol';
 import { Constants } from "./libraries/Constants.sol";
+import { LibAssociatedTokenData } from "./libraries/associated-token-program/LibAssociatedTokenData.sol";
 import { LibSystemData } from "./libraries/system-program/LibSystemData.sol";
 import { LibSPLTokenData } from "./libraries/spl-token-program/LibSPLTokenData.sol";
 import { LibSPLTokenErrors } from "./libraries/spl-token-program/LibSPLTokenErrors.sol";
@@ -64,15 +65,28 @@ contract CallSPLTokenProgram {
         CALL_SOLANA.execute(0, initializeMint2Ix);
     }
 
-    function createInitializeATA(bytes32 tokenMint, bytes32 owner, bytes32 tokenOwner) external {
-        /// @dev If the ATA is to be used by `msg.sender` to send tokens through this contract the `owner` field should
-        /// be left empty.
-        /// @dev If the ATA is to be used by a third party `user` NeonEVM account to send tokens through this contract
-        /// the `owner` field should be `CALL_SOLANA.getNeonAddress(user)` and the `tokenOwner` field should be left
-        /// empty.
-        /// @dev If the ATA is to be used by a third party `solanaUser` Solana account to send tokens directly on Solana
-        /// without interacting with this contract, both the `owner` field and the `tokenOwner` field should be the
-        /// `solanaUser` account.
+    /// @notice This function creates and initializes an arbitrary SPL Token account. Arbitrary SPL Token accounts
+    /// differ from canonical Associated Token accounts in that they are derived in an arbitrary way (using an arbitrary
+    /// nonce) and it is possible to derive many different Arbitrary SPL Token accounts for the same user and token mint
+    /// by using different arbitrary nonce values.
+    /// Using Arbitrary SPL Token accounts in the context of this contract deployed on NeonEVM allows for cheap and easy
+    /// authentication of NeonEVM users to let them interact with and effectively control those token accounts securely
+    /// via this contract while this contract is the actual owner of those token accounts on Solana.
+    /// Using this function it is possible to create and initialize an arbitrary SPL Token account to be controlled by a
+    /// NeonEVM user (who could be msg.sender or a third party NeonEVM user). In this case, only that NeonEVM user is
+    /// allowed to perform state changes to the created token account via this contract.
+    /// It is also possible to create and initialize an arbitrary SPL Token account for a third party Solana user who
+    /// will have full ownership of the created token account on Solana (and won't be able to control the token accounts
+    /// via this contract)
+    function createInitializeArbitraryTokenAccount(bytes32 tokenMint, bytes32 owner, bytes32 tokenOwner) external {
+        /// @dev If the token account is to be used by `msg.sender` to send tokens through this contract the `owner`
+        /// field should be left empty.
+        /// @dev If the token account is to be used by a third party `user` NeonEVM account to send tokens through this
+        /// contract the `owner` field should be `CALL_SOLANA.getNeonAddress(user)` and the `tokenOwner` field should be
+        /// left empty.
+        /// @dev If the token account is to be used by a third party `solanaUser` Solana account to send tokens directly
+        /// on Solana without interacting with this contract, both the `owner` field and the `tokenOwner` field should
+        /// be the `solanaUser` account.
         if (owner == bytes32(0)) {
             // If owner is empty, account owner is derived from msg.sender
             owner =  CALL_SOLANA.getNeonAddress(msg.sender);
@@ -82,14 +96,15 @@ contract CallSPLTokenProgram {
             // If tokenOwner is empty, token owner is this contract
             tokenOwner = CALL_SOLANA.getNeonAddress(address(this));
         }
-        // Create SPL associated token account: the owner account is used to derive the ATA, allowing for future
-        // authentication when interacting with this ATA
-        bytes32 ata = CALL_SOLANA.createResource(
+        // Create SPL arbitrary token account: the owner account is used to derive the token account, allowing for
+        // future authentication when interacting with this token account
+        bytes32 tokenAccount = CALL_SOLANA.createResource(
             sha256(abi.encodePacked(
                 owner,
                 Constants.getTokenProgramId(),
                 tokenMint,
-                uint8(0), // Here we use nonce == 0 by default, however nonce can be incremented te create different ATAs for the same owner
+                uint8(0), // Here we use nonce == 0 by default, however nonce can be incremented te create different
+                // token accounts for the same owner
                 Constants.getAssociatedTokenProgramId()
             )), // salt
             LibSPLTokenData.SPL_TOKEN_ACCOUNT_SIZE, // space
@@ -108,9 +123,9 @@ contract CallSPLTokenProgram {
             bool[] memory isWritable,
             bytes memory data
         ) = LibSPLTokenProgram.formatInitializeAccount2Instruction(
-            ata,
+            tokenAccount,
             tokenMint,
-            tokenOwner  // account which owns the ATA and can spend from it
+            tokenOwner  // account which owns the token account and can spend from it
         );
         // Prepare initializeAccount2 instruction
         bytes memory initializeAccount2Ix = CallSolanaHelperLib.prepareSolanaInstruction(
@@ -175,7 +190,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatTransferInstruction(
             senderATA,
             recipientATA,
-            thisContractPubKey, // ATA owner
+            thisContractPubKey, // token account owner
             amount
         );
         // Prepare transfer instruction
@@ -197,8 +212,8 @@ contract CallSPLTokenProgram {
     ) external {
         // Authentication: spender's Solana account is derived from msg.sender
         bytes32 spenderPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
-        // Authentication: we verify that the sender ATA has been delegated to the spender account and that delegated
-        // amount is larger than or equal to claimed amount
+        // Authentication: we verify that the sender token account has been delegated to the spender account and that
+        // delegated amount is larger than or equal to claimed amount
         bytes32 senderATADelegate = getSPLTokenAccountDelegate(senderATA);
         require(
             senderATADelegate == spenderPubKey,
@@ -227,7 +242,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatTransferInstruction(
             senderATA,
             recipientATA,
-            thisContractPubKey, // ATA owner
+            thisContractPubKey, // token account owner
             amount
         );
         // Prepare transfer instruction
@@ -396,7 +411,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatApproveInstruction(
             userATA,
             delegate,
-            thisContractPubKey, // ATA owner
+            thisContractPubKey, // token account owner
             amount
         );
         // Prepare approve instruction
@@ -425,7 +440,7 @@ contract CallSPLTokenProgram {
             bytes memory data
         ) = LibSPLTokenProgram.formatRevokeInstruction(
             userATA,
-            thisContractPubKey // ATA owner
+            thisContractPubKey // token account owner
         );
         // Prepare revoke instruction
         bytes memory revokeIx = CallSolanaHelperLib.prepareSolanaInstruction(
@@ -455,7 +470,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatBurnInstruction(
             userATA,
             tokenMint,
-            thisContractPubKey, // ATA owner
+            thisContractPubKey, // token account owner
             amount
         );
         // Prepare burn instruction
@@ -485,7 +500,7 @@ contract CallSPLTokenProgram {
         ) = LibSPLTokenProgram.formatCloseAccountInstruction(
             userATA,
             destination, // The account which will receive the closed token account's SOL balance
-            thisContractPubKey // ATA owner
+            thisContractPubKey // token accounttoken account owner
         );
         // Prepare approve instruction
         bytes memory approveIx = CallSolanaHelperLib.prepareSolanaInstruction(
@@ -587,7 +602,7 @@ contract CallSPLTokenProgram {
         bytes32 tokenMint,
         bytes32 ownerPubKey
     ) public view returns(bytes32) {
-        return LibSPLTokenData.getAssociatedTokenAccount(tokenMint, ownerPubKey);
+        return LibAssociatedTokenData.getAssociatedTokenAccount(tokenMint, ownerPubKey);
     }
 
     /// @notice Function to get an arbitrary 32 bytes token account public key derived from a token mint account public

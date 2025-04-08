@@ -14,6 +14,11 @@ module.exports = {
         neondevnet: "",
         neonmainnet: "",
     },
+    CallAssociatedTokenProgram: {
+        curvestand: "",
+        neondevnet: "",
+        neonmainnet: "",
+    },
     CallRaydiumProgram: {
         curvestand: "",
         neondevnet: "",

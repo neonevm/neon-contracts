@@ -4,6 +4,7 @@ pragma solidity 0.8.28;
 import {Constants} from "./libraries/Constants.sol";
 import {CallSolanaHelperLib} from "../utils/CallSolanaHelperLib.sol";
 import {ICallSolana} from "../precompiles/ICallSolana.sol";
+import {LibAssociatedTokenData} from "./libraries/associated-token-program/LibAssociatedTokenData.sol";
 import {LibRaydiumProgram} from "./libraries/raydium-program/LibRaydiumProgram.sol";
 import {LibRaydiumData} from "./libraries/raydium-program/LibRaydiumData.sol";
 import {LibSPLTokenData} from "./libraries/spl-token-program/LibSPLTokenData.sol";
@@ -41,8 +42,8 @@ contract CallRaydiumProgram {
         bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
         bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
         bytes32 payerAccount = CALL_SOLANA.getPayer();
-        bytes32 tokenA_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
-        bytes32 tokenB_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
+        bytes32 tokenA_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
+        bytes32 tokenB_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
 
         IERC20ForSpl(tokenA).transferFrom(msg.sender, address(this), mintAAmount);
         IERC20ForSpl(tokenA).transferSolana(
@@ -96,8 +97,8 @@ contract CallRaydiumProgram {
         bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
         bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
         bytes32 payerAccount = CALL_SOLANA.getPayer();
-        bytes32 tokenA_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
-        bytes32 tokenB_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
+        bytes32 tokenA_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
+        bytes32 tokenB_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
 
         IERC20ForSpl(tokenA).transferFrom(msg.sender, address(this), amountTokenA);
         IERC20ForSpl(tokenA).transferSolana(
@@ -253,7 +254,7 @@ contract CallRaydiumProgram {
         bytes32 inputTokenMint = IERC20ForSpl(inputToken).tokenMint();
         bytes32 outputTokenMint = IERC20ForSpl(outputToken).tokenMint();
         bytes32 payerAccount = CALL_SOLANA.getPayer();
-        bytes32 inputToken_ATA = LibSPLTokenData.getAssociatedTokenAccount(inputTokenMint, payerAccount);
+        bytes32 inputToken_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(inputTokenMint, payerAccount);
 
         IERC20ForSpl(inputToken).transferFrom(msg.sender, address(this), amountIn);
         IERC20ForSpl(inputToken).transferSolana(
@@ -298,7 +299,7 @@ contract CallRaydiumProgram {
         bytes32 inputTokenMint = IERC20ForSpl(inputToken).tokenMint();
         bytes32 outputTokenMint = IERC20ForSpl(outputToken).tokenMint();
         bytes32 payerAccount = CALL_SOLANA.getPayer();
-        bytes32 inputToken_ATA = LibSPLTokenData.getAssociatedTokenAccount(inputTokenMint, payerAccount);
+        bytes32 inputToken_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(inputTokenMint, payerAccount);
         uint64 payerTokenABalance = LibSPLTokenData.getSPLTokenAccountBalance(inputToken_ATA);
 
         IERC20ForSpl(inputToken).transferFrom(msg.sender, address(this), amountInMax);
@@ -377,8 +378,8 @@ contract CallRaydiumProgram {
         bytes32 tokenAMint = IERC20ForSpl(tokenA).tokenMint();
         bytes32 tokenBMint = IERC20ForSpl(tokenB).tokenMint();
         bytes32 payerAccount = CALL_SOLANA.getPayer();
-        bytes32 tokenA_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
-        bytes32 tokenB_ATA = LibSPLTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
+        bytes32 tokenA_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(tokenAMint, payerAccount);
+        bytes32 tokenB_ATA = LibAssociatedTokenData.getAssociatedTokenAccount(tokenBMint, payerAccount);
 
         IERC20ForSpl(tokenA).transferFrom(msg.sender, address(this), mintAAmount);
         IERC20ForSpl(tokenA).transferSolana(
