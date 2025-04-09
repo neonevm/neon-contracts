@@ -40,7 +40,7 @@ describe('LibRaydiumProgram', function() {
         tokenA_Erc20ForSpl = erc20ForSplFactory.attach(WSOL);
 
         // deploy ERC20ForSpl interface for fresh minted spltoken tokenB
-        tokenB_Erc20ForSpl = await ethers.deployContract("ERC20ForSpl", [ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32)]);
+        tokenB_Erc20ForSpl = await ethers.deployContract("contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSpl", [ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32)]);
         await tokenB_Erc20ForSpl.waitForDeployment();
 
         console.log(

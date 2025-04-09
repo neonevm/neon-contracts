@@ -25,7 +25,7 @@ async function asyncTimeout(timeout) {
 }
 
 async function airdropNEON(address, amount) {
-    await fetch(process.env.NEON_FAUCET, {
+    await fetch(process.env.FAUCET, {
         method: 'POST',
         body: JSON.stringify({"amount": amount, "wallet": address}),
         headers: { 'Content-Type': 'application/json' }
@@ -93,7 +93,7 @@ async function deployContract(contractName, contractAddress = null) {
 }
 
 async function getSolanaTransactions(neonTxHash) {
-    return await fetch(process.env.NEON_EVM_NODE, {
+    return await fetch(process.env.EVM_NODE, {
         method: 'POST',
         body: JSON.stringify({
             "jsonrpc":"2.0",
