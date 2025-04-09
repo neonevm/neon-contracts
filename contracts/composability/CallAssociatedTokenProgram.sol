@@ -38,8 +38,6 @@ contract CallAssociatedTokenProgram is Ownable2Step {
             // If owner is empty, associated token account owner is this contract
             owner =  CALL_SOLANA.getNeonAddress(address(this));
         }
-        // Derive canonical associated token account
-        bytes32 ata = LibAssociatedTokenData.getAssociatedTokenAccount(tokenMint, owner);
         // Get the payer account which will pay to fund the ata creation
         bytes32 payer = CALL_SOLANA.getPayer();
         // Format create instruction
@@ -50,7 +48,6 @@ contract CallAssociatedTokenProgram is Ownable2Step {
             uint64 rentExemptionBalance
         ) = LibAssociatedTokenProgram.formatCreateInstruction(
             payer,
-            ata,
             owner, // account which owns the ATA and can spend from it
             tokenMint
         );
