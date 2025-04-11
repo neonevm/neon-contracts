@@ -263,6 +263,18 @@ async function setupSPLTokens() {
         )
     );
 
+    tx.add(
+        web3.ComputeBudgetProgram.setComputeUnitLimit({ 
+            units: 1400000 
+        })
+    );
+
+    tx.add(
+        web3.ComputeBudgetProgram.setComputeUnitPrice({ 
+            microLamports: 100000
+        })
+    );
+
     await web3.sendAndConfirmTransaction(connection, tx, [keypair]);
     await asyncTimeout(3000);
     return createWithSeed.toBase58();
@@ -386,6 +398,18 @@ async function approveSplTokens(tokenAMint, tokenBMint, ERC20ForSPL_A, ERC20ForS
             keypair.publicKey,
             '18446744073709551615' // max uint64
         )
+    );
+
+    tx.add(
+        web3.ComputeBudgetProgram.setComputeUnitLimit({ 
+            units: 1400000 
+        })
+    );
+
+    tx.add(
+        web3.ComputeBudgetProgram.setComputeUnitPrice({ 
+            microLamports: 100000
+        })
     );
 
     const signature = await web3.sendAndConfirmTransaction(

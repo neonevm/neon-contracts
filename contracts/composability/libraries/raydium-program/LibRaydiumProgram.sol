@@ -157,7 +157,6 @@ library LibRaydiumProgram {
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
-        uint64 lamports,
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -251,7 +250,6 @@ library LibRaydiumProgram {
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
-        uint64 lamports,
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -466,7 +464,6 @@ library LibRaydiumProgram {
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
-        uint64 lamports,
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -567,7 +564,6 @@ library LibRaydiumProgram {
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
-        uint64 lamports,
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -614,7 +610,6 @@ library LibRaydiumProgram {
         bool returnData,
         bytes32[] memory premadeAccounts
     ) internal view returns (
-        uint64 lamports,
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
