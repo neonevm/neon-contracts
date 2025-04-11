@@ -118,7 +118,6 @@ contract CallRaydiumProgram {
         premadeAccounts[5] = tokenB_ATA;
 
         (
-            uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
@@ -127,7 +126,7 @@ contract CallRaydiumProgram {
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
-            lamports,
+            0,
             CallSolanaHelperLib.prepareSolanaInstruction(
                 Constants.getCreateCPMMPoolProgramId(),
                 accounts,
@@ -153,7 +152,6 @@ contract CallRaydiumProgram {
         premadeAccounts[5] = getNeonArbitraryTokenAccount(tokenB, msg.sender);
 
         (
-            uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
@@ -162,7 +160,7 @@ contract CallRaydiumProgram {
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
-            lamports,
+            0,
             CallSolanaHelperLib.prepareSolanaInstruction(
                 Constants.getCreateCPMMPoolProgramId(),
                 accounts,
@@ -224,7 +222,6 @@ contract CallRaydiumProgram {
         premadeAccounts[9] = getNeonArbitraryTokenAccount(tokenB, msg.sender);
 
         (
-            uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
@@ -233,7 +230,7 @@ contract CallRaydiumProgram {
         require(accounts[12] == tokenAMint && accounts[13] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
-            lamports,
+            0,
             CallSolanaHelperLib.prepareSolanaInstruction(
                 Constants.getLockCPMMPoolProgramId(),
                 accounts,
@@ -268,7 +265,6 @@ contract CallRaydiumProgram {
         premadeAccounts[5] = getNeonArbitraryTokenAccount(outputToken, msg.sender);
 
         (
-            uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
@@ -277,7 +273,7 @@ contract CallRaydiumProgram {
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
-            lamports,
+            0,
             CallSolanaHelperLib.prepareSolanaInstruction(
                 Constants.getCreateCPMMPoolProgramId(),
                 accounts,
@@ -313,7 +309,6 @@ contract CallRaydiumProgram {
         premadeAccounts[4] = inputToken_ATA;
         premadeAccounts[5] = getNeonArbitraryTokenAccount(outputToken, msg.sender);
         (
-            uint64 lamports,
             bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
@@ -322,7 +317,7 @@ contract CallRaydiumProgram {
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
-            lamports,
+            0,
             CallSolanaHelperLib.prepareSolanaInstruction(
                 Constants.getCreateCPMMPoolProgramId(),
                 accounts,
@@ -413,6 +408,7 @@ contract CallRaydiumProgram {
 
         // Semi-build instruction #2 - Locking of LP
         bytes32[] memory premadeLockLPAccounts = new bytes32[](19);
+        premadeLockLPAccounts[1] = accounts[0];
         premadeLockLPAccounts[8] = accounts[6];
         premadeLockLPAccounts[9] = accounts[9];
         premadeLockLPAccounts[11] = accounts[10];
@@ -423,7 +419,7 @@ contract CallRaydiumProgram {
             bool[] memory isSignerLock,
             bool[] memory isWritableLock,
             bytes memory dataLock
-        ) = LibRaydiumProgram.lockLiquidityInstruction(poolId, 0, true, salt, false, premadeLockLPAccounts);
+        ) = LibRaydiumProgram.lockLiquidityInstruction(poolId, 0, withMetadata, salt, false, premadeLockLPAccounts);
 
         bytes memory lockInstruction = CallSolanaHelperLib.prepareSolanaInstruction(
             Constants.getLockCPMMPoolProgramId(),
@@ -464,9 +460,9 @@ contract CallRaydiumProgram {
         );
 
         return (
-            poolId,
-            0,
-            accounts[4] // NFT Mint account
+            poolId, // Raydium CPMM Pool account
+            lpBalance, // locked LP amount
+            accountsLock[4] // NFT Mint account
         );
     }
 

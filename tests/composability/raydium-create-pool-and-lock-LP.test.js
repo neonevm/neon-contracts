@@ -92,7 +92,7 @@ describe('LibRaydiumProgram', function() {
                 10000000,
                 0,
                 ethers.zeroPadValue(ethers.toBeHex(deployer.address), 32), // salt
-                false
+                true
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx createPool');

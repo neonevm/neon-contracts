@@ -30,7 +30,10 @@ library CallSolanaHelperLib {
             let instructionDataLen := mload(instructionData)
 
             // define the total output bytes length
-            let dataLength := add(instructionDataLen, add(32, add(8, add(8, mul(accountsLen, 34)))))
+            let dataLength := add(32, add(8, mul(accountsLen, 34)))
+            if gt(instructionDataLen, 0) {
+                dataLength := add(dataLength, add(8, instructionDataLen))
+            }
 
             // set the new free memory pointer to accommodate the new bytes variable
             mstore(0x40, add(programIdAndAccounts, add(dataLength, 0x20)))
