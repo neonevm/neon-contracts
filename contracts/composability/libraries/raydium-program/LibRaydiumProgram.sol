@@ -76,18 +76,10 @@ library LibRaydiumProgram {
 
         isSigner = new bool[](20);
         isSigner[0] = true;
-        uint isSignerLen = isSigner.length - 1;
-        for (uint i = 1; i < isSignerLen; ++i) {
-            isSigner[i] = false;
-        }
 
         isWritable = new bool[](20);
         isWritable[0] = true;
-        isWritable[1] = false;
-        isWritable[2] = false;
         isWritable[3] = true;
-        isWritable[4] = false;
-        isWritable[5] = false;
         isWritable[6] = true;
         isWritable[7] = true;
         isWritable[8] = true;
@@ -96,12 +88,6 @@ library LibRaydiumProgram {
         isWritable[11] = true;
         isWritable[12] = true;
         isWritable[13] = true;
-        isWritable[14] = false;
-        isWritable[15] = false;
-        isWritable[16] = false;
-        isWritable[17] = false;
-        isWritable[18] = false;
-        isWritable[19] = false;
 
         LibRaydiumData.ConfigData memory configData = LibRaydiumData.getConfigData(accounts[1]);
 
@@ -185,24 +171,15 @@ library LibRaydiumProgram {
 
         isSigner = new bool[](13);
         isSigner[0] = true;
-        uint isSignerLen = isSigner.length - 1;
-        for (uint i = 1; i < isSignerLen; ++i) {
-            isSigner[i] = false;
-        }
 
         isWritable = new bool[](13);
         isWritable[0] = true;
-        isWritable[1] = false;
         isWritable[2] = true;
         isWritable[3] = true;
         isWritable[4] = true;
         isWritable[5] = true;
         isWritable[6] = true;
         isWritable[7] = true;
-        isWritable[8] = false;
-        isWritable[9] = false;
-        isWritable[10] = false;
-        isWritable[11] = false;
         isWritable[12] = true;
 
         if (returnData) {
@@ -278,24 +255,15 @@ library LibRaydiumProgram {
 
         isSigner = new bool[](14);
         isSigner[0] = true;
-        uint isSignerLen = isSigner.length - 1;
-        for (uint i = 1; i < isSignerLen; ++i) {
-            isSigner[i] = false;
-        }
 
         isWritable = new bool[](14);
         isWritable[0] = true;
-        isWritable[1] = false;
         isWritable[2] = true;
         isWritable[3] = true;
         isWritable[4] = true;
         isWritable[5] = true;
         isWritable[6] = true;
         isWritable[7] = true;
-        isWritable[8] = false;
-        isWritable[9] = false;
-        isWritable[10] = false;
-        isWritable[11] = false;
         isWritable[12] = true;
         isWritable[13] = true;
 
@@ -395,46 +363,23 @@ library LibRaydiumProgram {
         accounts[18] = Constants.getMetaplexProgramId();
 
         isSigner = new bool[](19);
-        isSigner[0] = false;
         isSigner[1] = true;
         isSigner[2] = true;
         isSigner[3] = true;
         isSigner[4] = true;
-        isSigner[5] = false;
-        isSigner[6] = false;
-        isSigner[7] = false;
-        isSigner[8] = false;
-        isSigner[9] = false;
-        isSigner[10] = false;
-        isSigner[11] = false;
-        isSigner[12] = false;
-        isSigner[13] = false;
-        isSigner[14] = false;
-        isSigner[15] = false;
-        isSigner[16] = false;
-        isSigner[17] = false;
-        isSigner[18] = false;
 
         isWritable = new bool[](19);
-        isWritable[0] = false;
         isWritable[1] = true;
         isWritable[2] = true;
         isWritable[3] = true;
         isWritable[4] = true;
         isWritable[5] = true;
-        isWritable[6] = false;
         isWritable[7] = true;
-        isWritable[8] = false;
         isWritable[9] = true;
         isWritable[10] = true;
         isWritable[11] = true;
         isWritable[12] = true;
         isWritable[13] = true;
-        isWritable[14] = false;
-        isWritable[15] = false;
-        isWritable[16] = false;
-        isWritable[17] = false;
-        isWritable[18] = false;
 
         if (returnData) {
             data = buildLockLiquidityData(lpAmount, withMetadata);
@@ -496,44 +441,18 @@ library LibRaydiumProgram {
         accounts[17] = Constants.getMemoProgramId();
 
         isSigner = new bool[](18);
-        isSigner[0] = false;
         isSigner[1] = true;
-        isSigner[2] = false;
-        isSigner[3] = false;
-        isSigner[4] = false;
-        isSigner[5] = false;
-        isSigner[6] = false;
-        isSigner[7] = false;
-        isSigner[8] = false;
-        isSigner[9] = false;
-        isSigner[10] = false;
-        isSigner[11] = false;
-        isSigner[12] = false;
-        isSigner[13] = false;
-        isSigner[14] = false;
-        isSigner[15] = false;
-        isSigner[16] = false;
-        isSigner[17] = false;
 
         isWritable = new bool[](18);
-        isWritable[0] = false;
-        isWritable[1] = false;
         isWritable[2] = true;
         isWritable[3] = true;
-        isWritable[4] = false;
-        isWritable[5] = false;
         isWritable[6] = true;
         isWritable[7] = true;
         isWritable[8] = true;
         isWritable[9] = true;
         isWritable[10] = true;
         isWritable[11] = true;
-        isWritable[12] = false;
-        isWritable[13] = false;
         isWritable[14] = true;
-        isWritable[15] = false;
-        isWritable[16] = false;
-        isWritable[17] = false;
 
         if (returnData) {
             data = buildCollectFeesData(lpFeeAmount);
@@ -672,24 +591,13 @@ library LibRaydiumProgram {
 
         isSigner = new bool[](13);
         isSigner[0] = true;
-        uint isSignerLen = isSigner.length - 1;
-        for (uint i = 1; i < isSignerLen; ++i) {
-            isSigner[i] = false;
-        }
 
         isWritable = new bool[](13);
-        isWritable[0] = false;
-        isWritable[1] = false;
-        isWritable[2] = false;
         isWritable[3] = true;
         isWritable[4] = true;
         isWritable[5] = true;
         isWritable[6] = true;
         isWritable[7] = true;
-        isWritable[8] = false;
-        isWritable[9] = false;
-        isWritable[10] = false;
-        isWritable[11] = false;
         isWritable[12] = true;
     }
 }

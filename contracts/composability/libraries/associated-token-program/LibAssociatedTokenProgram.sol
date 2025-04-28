@@ -77,19 +77,10 @@ library LibAssociatedTokenProgram {
 
         isSigner = new bool[](6);
         isSigner[0] = true;
-        isSigner[1] = false;
-        isSigner[2] = false;
-        isSigner[3] = false;
-        isSigner[4] = false;
-        isSigner[5] = false;
 
         isWritable = new bool[](6);
         isWritable[0] = true;
         isWritable[1] = true;
-        isWritable[2] = false;
-        isWritable[3] = false;
-        isWritable[4] = false;
-        isWritable[5] = false;
 
         // Calculate rent exemption balance for created ata
         rentExemptionBalance = LibSystemData.getRentExemptionBalance(

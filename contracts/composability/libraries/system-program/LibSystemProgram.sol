@@ -36,13 +36,11 @@ library LibSystemProgram {
 
         isSigner = new bool[](3);
         isSigner[0] = true;
-        isSigner[1] = false;
         isSigner[2] = true;
 
         isWritable = new bool[](3);
         isWritable[0] = true;
         isWritable[1] = true;
-        isWritable[2] = false;
 
         // Calculate rent exemption balance for created account
         rentExemptionBalance = LibSystemData.getRentExemptionBalance(
@@ -88,7 +86,6 @@ library LibSystemProgram {
 
         isSigner = new bool[](2);
         isSigner[0] = true;
-        isSigner[1] = false;
 
         isWritable = new bool[](2);
         isWritable[0] = true;
@@ -123,12 +120,10 @@ library LibSystemProgram {
         accounts[1] = basePubKey;
 
         isSigner = new bool[](2);
-        isSigner[0] = false;
         isSigner[1] = true;
 
         isWritable = new bool[](2);
         isWritable[0] = true;
-        isWritable[1] = false;
 
         // Get seed length value in right-padded little-endian bytes format
         bytes8 seedLenLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(uint64(seed.length)));
@@ -163,12 +158,10 @@ library LibSystemProgram {
         accounts[1] = basePubKey;
 
         isSigner = new bool[](2);
-        isSigner[0] = false;
         isSigner[1] = true;
 
         isWritable = new bool[](2);
         isWritable[0] = true;
-        isWritable[1] = false;
 
         // Get values in right-padded little-endian bytes format
         bytes8 seedLenLE = bytes8(SolanaDataConverterLib.readLittleEndianUnsigned64(uint64(seed.length)));
