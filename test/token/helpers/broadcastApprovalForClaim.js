@@ -1,5 +1,5 @@
 const web3 = require("@solana/web3.js");
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const {
     getAssociatedTokenAddress,
     createApproveInstruction,
@@ -8,7 +8,7 @@ const bs58 = require("bs58");
 const { config } = require('../config');
 require("dotenv").config({path: __dirname + '/../../.env'});
 
-const connection = new web3.Connection(process.env.SVM_NODE, "processed");
+const connection = new web3.Connection(config.svm_node[network.name], "processed");
 
 const solanaUser4 = web3.Keypair.fromSecretKey( // Solana user with tokens balance for airdropping tokens
     bs58.decode(process.env.PRIVATE_KEY_SOLANA_4)
@@ -19,7 +19,7 @@ async function init() {
     const tokenMint = new web3.PublicKey(config.DATA.ADDRESSES.ERC20ForSplTokenMint);
     const ERC20ForSPL = config.DATA.ADDRESSES.ERC20ForSpl;
 
-    const neon_getEvmParamsRequest = await fetch(process.env.EVM_NODE, {
+    const neon_getEvmParamsRequest = await fetch(network.config.url, {
         method: 'POST',
         body: JSON.stringify({"method":"neon_getEvmParams","params":[],"id":1,"jsonrpc":"2.0"}),
         headers: { 'Content-Type': 'application/json' }

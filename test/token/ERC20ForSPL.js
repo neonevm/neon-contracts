@@ -1,4 +1,4 @@
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
 const bs58 = require("bs58");
@@ -12,7 +12,7 @@ const {
 } = require('@solana/spl-token');
 const { config } = require('./config');
 require("dotenv").config();
-const connection = new web3.Connection(process.env.SVM_NODE, "processed");
+const connection = new web3.Connection(config.svm_node[network.name], "processed");
 
 let owner, user1, user2, user3;
 const solanaUser1 = web3.Keypair.fromSecretKey( // Solana user with ATA balance
@@ -444,7 +444,7 @@ describe('Test init', async function () {
                     transaction.sign(...[solanaUser1]);
 
                     const signature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false });
-                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
 
                     // wait scheduled tx to be processed
                     await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
@@ -826,7 +826,7 @@ describe('Test init', async function () {
                     ERC20ForSPL.target, 
                     ERC20ForSPL.interface.encodeFunctionData("approve", [randomAddress.address, ethers.parseUnits('1', TOKEN_MINT_DECIMALS)])
                 );
-                console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                 // wait scheduled tx to be processed
                 await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                 console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser1.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -841,7 +841,7 @@ describe('Test init', async function () {
                     ERC20ForSPL.target, 
                     ERC20ForSPL.interface.encodeFunctionData("approve", [randomAddress.address, ethers.parseUnits('1', TOKEN_MINT_DECIMALS)])
                 );
-                console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                 // wait scheduled tx to be processed
                 await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                 console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser2.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -878,7 +878,7 @@ describe('Test init', async function () {
                         transaction.sign(...[solanaUser1]);
 
                         const signature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false });
-                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
 
                         // wait scheduled tx to be processed
                         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
@@ -952,7 +952,7 @@ describe('Test init', async function () {
                             ERC20ForSPL.target,
                             ERC20ForSPL.interface.encodeFunctionData("transfer", [user2.address, ethers.parseUnits('1', TOKEN_MINT_DECIMALS)])
                         );
-                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                         // wait scheduled tx to be processed
                         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                         console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser1.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1004,7 +1004,7 @@ describe('Test init', async function () {
                             ERC20ForSPL.target,
                             ERC20ForSPL.interface.encodeFunctionData("transferFrom", [user2.address, payer, transferAmount])
                         );
-                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                         // wait scheduled tx to be processed
                         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                         console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser1.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1050,7 +1050,7 @@ describe('Test init', async function () {
                             ERC20ForSPL.target,
                             ERC20ForSPL.interface.encodeFunctionData("approve", [MockVault.target, transferAmount])
                         );
-                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                         // wait scheduled tx to be processed
                         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                         console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser1.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1069,7 +1069,7 @@ describe('Test init', async function () {
                             MockVault.target,
                             MockVault.interface.encodeFunctionData("deposit", [transferAmount])
                         );
-                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                         // wait scheduled tx to be processed
                         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                         console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser1.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1118,7 +1118,7 @@ describe('Test init', async function () {
                         transaction.sign(...[solanaUser2]);
 
                         const signature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false });
-                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
 
                         // wait scheduled tx to be processed
                         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
@@ -1199,7 +1199,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.target,
                         ERC20ForSPL.interface.encodeFunctionData("transfer", [owner.address, transferAmount])
                     );
-                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                     // wait scheduled tx to be processed
                     await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser2.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1250,7 +1250,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.target,
                         ERC20ForSPL.interface.encodeFunctionData("approve", [MockVault.target, transferAmount])
                     );
-                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                     // wait scheduled tx to be processed
                     await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser2.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1265,7 +1265,7 @@ describe('Test init', async function () {
                         MockVault.target,
                         MockVault.interface.encodeFunctionData("deposit", [transferAmount])
                     );
-                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                     // wait scheduled tx to be processed
                     await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser2.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1346,7 +1346,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.target,
                         ERC20ForSPL.interface.encodeFunctionData("transfer", [owner.address, transferAmount])
                     );
-                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                     // wait scheduled tx to be processed
                     await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser3.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1387,7 +1387,7 @@ describe('Test init', async function () {
                         ERC20ForSPL.target,
                         ERC20ForSPL.interface.encodeFunctionData("approve", [MockVault.target, transferAmount])
                     );
-                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                     // wait scheduled tx to be processed
                     await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser3.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1402,7 +1402,7 @@ describe('Test init', async function () {
                         MockVault.target,
                         MockVault.interface.encodeFunctionData("deposit", [transferAmount])
                     );
-                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+                    console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
                     // wait scheduled tx to be processed
                     await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
                     console.log('Paid -', (balanceBeforeTx - await connection.getBalance(solanaUser3.publicKey)) / 10 ** TOKEN_MINT_DECIMALS, 'SOLs', '\n');
@@ -1468,7 +1468,7 @@ async function setupTesters() {
         transaction.sign(...[solanaUser4]);
 
         const signature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false });
-        console.log(`https://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+        console.log(`https://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
         
         // wait scheduled tx to be processed
         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);
@@ -1530,7 +1530,7 @@ async function setupTesters() {
         transaction.sign(...[solanaUser1]);
 
         const signature = await connection.sendRawTransaction(transaction.serialize(), { skipPreflight: false });
-        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${process.env.SVM_NODE}`);
+        console.log(`\nhttps://explorer.solana.com/tx/${signature}?cluster=custom&customUrl=${config.svm_node[network.name]}`);
 
         // wait scheduled tx to be processed
         await config.utils.asyncTimeout(SOLANA_TX_TIMEOUT);

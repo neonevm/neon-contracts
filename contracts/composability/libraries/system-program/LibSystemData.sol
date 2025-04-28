@@ -49,7 +49,7 @@ library LibSystemData {
     }
 
     /// @param accountPubKey The 32 bytes Solana account public key
-    /// @return true if the token mint is a program account, false otherwise
+    /// @return true if the account is a program account, false otherwise
     function getIsExecutable(bytes32 accountPubKey) internal view returns(bool) {
         (bool success,  bool result) = QueryAccount.executable(uint256(accountPubKey));
         require(success, LibSystemErrors.SystemAccountDataQuery());

@@ -1,12 +1,38 @@
 const web3 = require("@solana/web3.js");
+const { network } = require("hardhat");
+
 const {createApproveInstruction, getAssociatedTokenAddress} = require("@solana/spl-token");
 
 const config = {
+    neon_faucet: {
+        curvestand: {
+            url: "https://curve-stand.neontest.xyz/request_neon",
+            min_balance: "10000",
+        },
+        neondevnet: {
+            url: "https://api.neonfaucet.org/request_neon",
+            min_balance: "100",
+        },
+        neonmainnet: {
+            url: "",
+            min_balance: "0",
+        },
+    },
+    evm_sol_node: {
+        curvestand: "https://curve-stand.neontest.xyz/SOL",
+        neondevnet: "https://devnet.neonevm.org/SOL",
+        neonmainnet: "https://neonevm.org/SOL",
+    },
+    svm_node: {
+        curvestand: "https://curve-stand.neontest.xyz/solana",
+        neondevnet: "https://api.devnet.solana.com",
+        neonmainnet: "https://api.mainnet-beta.solana.com",
+    },
     DATA: {
         ADDRESSES: {
             ERC20ForSplFactory: '',
             ERC20ForSpl: '',
-            ERC20ForSplTokenMint: '',
+            ERC20ForSplTokenMint: 'ENfkgCEYSGxhZj5CcNtcbDyy5t7AasmARuF35AXWWBTL',
             MockVault: ''
         }
     },
@@ -257,7 +283,7 @@ const config = {
                 console.log(payer, 'payer');
 
                 const signerAddress = svmKeypair.publicKey;
-                const eth_getTransactionCountRequest = await fetch(process.env.EVM_SOL_NODE, {
+                const eth_getTransactionCountRequest = await fetch(config.evm_sol_node[network.name], {
                     method: 'POST',
                     body: JSON.stringify({"method":"eth_getTransactionCount","params":[payer, "latest"],"id":1,"jsonrpc":"2.0"}),
                     headers: { 'Content-Type': 'application/json' }
@@ -265,7 +291,7 @@ const config = {
                 const nonce = (await eth_getTransactionCountRequest.json()).result;
                 console.log(nonce, 'nonce');
 
-                const eth_chainIdRequest = await fetch(process.env.EVM_SOL_NODE, {
+                const eth_chainIdRequest = await fetch(config.evm_sol_node[network.name], {
                     method: 'POST',
                     body: JSON.stringify({"method":"eth_chainId","params":[],"id":1,"jsonrpc":"2.0"}),
                     headers: { 'Content-Type': 'application/json' }
@@ -294,7 +320,7 @@ const config = {
                 };
 
                 let instruction = await this.createScheduledTransactionInstruction(
-                    process.env.SVM_NODE,
+                    config.svm_node[network.name],
                     {
                         neonEvmProgram,
                         signerAddress,
@@ -315,9 +341,9 @@ const config = {
             }
         },
         airdropNEON: async function(address) {
-            const postRequestNeons = await fetch(process.env.FAUCET, {
+            const postRequestNeons = await fetch(config.neon_faucet[network.name].url, {
                 method: 'POST',
-                body: JSON.stringify({"amount": 1000, "wallet": address}),
+                body: JSON.stringify({"amount": parseInt(config.neon_faucet[network.name].min_balance), "wallet": address}),
                 headers: { 'Content-Type': 'application/json' }
             });
             console.log('Airdrop NEONs to', address);
@@ -325,7 +351,7 @@ const config = {
             await config.utils.asyncTimeout(1000);
         },
         airdropSOL: async function(account) {
-            let postRequest = await fetch(process.env.SVM_NODE, {
+            let postRequest = await fetch(config.svm_node[network.name], {
                 method: 'POST',
                 body: JSON.stringify({"jsonrpc":"2.0", "id":1, "method":"requestAirdrop", "params": [account.publicKey.toBase58(), 100000000000]}),
                 headers: { 'Content-Type': 'application/json' }

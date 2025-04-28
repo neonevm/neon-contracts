@@ -9,7 +9,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
     console.log("Network name: " + network.name)
 
-    const solanaConnection = new web3.Connection(process.env.SVM_NODE, "processed")
+    const solanaConnection = new web3.Connection(config.svm_node[network.name], "processed")
 
     const seed = config.tokenMintSeed[network.name]
     const decimals = config.tokenMintDecimals[network.name]
@@ -402,7 +402,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 solanaUser.publicKey,
                 SMALL_AMOUNT
             ))
-            await airdropSOL(solanaUser.publicKey, parseInt(SMALL_AMOUNT.toString()))
+            await airdropSOL(solanaConnection, solanaUser.publicKey, parseInt(SMALL_AMOUNT.toString()))
             await web3.sendAndConfirmTransaction(solanaConnection, tx, [solanaUser])
 
             info = await solanaConnection.getTokenAccountBalance(
@@ -947,7 +947,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         it("Sync deployer's WSOL token balance", async function() {
 
             // Airdrop SOL to deployer's WSOL token account
-            await airdropSOL(ethers.encodeBase58(deployerWSOLTokenAccountInBytes), parseInt(SMALL_AMOUNT.toString()))
+            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)), parseInt(SMALL_AMOUNT.toString()))
             initialDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)))
             expect(initialDeployerTokenAccountSOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 
@@ -970,7 +970,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         it("User cannot sync a non-native token account (transaction reverts)", async function() {
 
             // Airdrop SOL to deployer's non-native token account
-            await airdropSOL(ethers.encodeBase58(deployerTokenAccountInBytes), parseInt(SMALL_AMOUNT.toString()))
+            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)), parseInt(SMALL_AMOUNT.toString()))
             initialDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
             expect(initialDeployerTokenAccountSOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 

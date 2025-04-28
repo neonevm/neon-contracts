@@ -1,4 +1,4 @@
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 const { expect, assert } = require("chai");
 const web3 = require("@solana/web3.js");
 const {
@@ -12,7 +12,7 @@ require("dotenv").config();
 
 describe('Test init',  function () {
     const connection = new web3.Connection(
-        process.env.SVM_NODE,
+        config.svm_node[network.name],
         "processed", //  See: https://solana-labs.github.io/solana-web3.js/v1.x/types/Commitment.html
         { confirmTransactionInitialTimeout: 0 } // See: https://solana-labs.github.io/solana-web3.js/v1.x/types/ConnectionConfig.html
     );
@@ -232,7 +232,7 @@ describe('Test init',  function () {
             await config.utils.asyncTimeout(TIMEOUT);
         }
 
-        const neon_getEvmParamsRequest = await fetch(process.env.EVM_NODE, {
+        const neon_getEvmParamsRequest = await fetch(network.config.url, {
             method: 'POST',
             body: JSON.stringify({"method":"neon_getEvmParams","params":[],"id":1,"jsonrpc":"2.0"}),
             headers: { 'Content-Type': 'application/json' }
@@ -391,7 +391,7 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await config.utils.delegateSolana({
-                        curvestand: process.env.EVM_NODE,
+                        curvestand: network.config.url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -447,7 +447,7 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await config.utils.delegateSolana({
-                        curvestand: process.env.EVM_NODE,
+                        curvestand: network.config.url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -504,7 +504,7 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await config.utils.delegateSolana({
-                        curvestand: process.env.EVM_NODE,
+                        curvestand: network.config.url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -637,7 +637,7 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await config.utils.delegateSolana({
-                        curvestand: process.env.EVM_NODE,
+                        curvestand: network.config.url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -691,7 +691,7 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await config.utils.delegateSolana({
-                        curvestand: process.env.EVM_NODE,
+                        curvestand: network.config.url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -1313,7 +1313,7 @@ describe('Test init',  function () {
                             || !delegateAuthorityPublicKey
                             ) {
                             delegateAuthorityPublicKey = await config.utils.delegateSolana({
-                                curvestand: process.env.EVM_NODE,
+                                curvestand: network.config.url,
                                 web3,
                                 connection,
                                 ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -1524,7 +1524,7 @@ describe('Test init',  function () {
                             || !delegateAuthorityPublicKey
                             ) {
                             delegateAuthorityPublicKey = await config.utils.delegateSolana({
-                                curvestand: process.env.EVM_NODE,
+                                curvestand: network.config.url,
                                 web3,
                                 connection,
                                 ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,

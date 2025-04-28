@@ -16,7 +16,7 @@ const { Metaplex } = require("@metaplex-foundation/js");
 const { createCreateMetadataAccountV3Instruction } = require("@metaplex-foundation/mpl-token-metadata");
 const bs58 = require("bs58");
 const config = require("./config")
-const connection = new web3.Connection(process.env.SVM_NODE, "processed");
+const connection = new web3.Connection(config.svm_node[network.name], "processed");
 
 async function asyncTimeout(timeout) {
     return new Promise((resolve) => {
@@ -24,53 +24,114 @@ async function asyncTimeout(timeout) {
     })
 }
 
-async function airdropNEON(address, amount) {
-    await fetch(process.env.FAUCET, {
-        method: 'POST',
-        body: JSON.stringify({"amount": amount, "wallet": address}),
-        headers: { 'Content-Type': 'application/json' }
+function asyncForLoop(iterable, asyncCallback, index, result) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(index < iterable.length) {
+                result = await asyncCallback(iterable, index, result)
+                resolve(asyncForLoop(iterable, asyncCallback, index + 1, result))
+            } else {
+                resolve(result)
+            }
+        } catch(err) {
+            reject(err)
+        }
     })
-    console.log("\nAirdropping " + ethers.formatUnits(amount.toString(), 0) + " NEON to " + address)
-    await asyncTimeout(3000)
 }
 
-async function airdropSOL(pubKey, amount) {
-    const params = [pubKey, amount]
-    const res = await fetch(process.env.SVM_NODE, {
-        method: 'POST',
-        body: JSON.stringify({"jsonrpc":"2.0", "id":1, "method": "requestAirdrop", "params": params}),
-        headers: { 'Content-Type': 'application/json' }
+function asyncWhileLoop(isConditionFulfilled, asyncCallback, result) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if(!isConditionFulfilled) {
+                const { isConditionFulfilled: fulfilled, result: updatedResult } = await asyncCallback(result)
+                resolve(asyncWhileLoop(fulfilled, asyncCallback, updatedResult))
+            } else {
+                resolve(result)
+            }
+        } catch(err) {
+            reject(err)
+        }
     })
-    console.log("\nAirdropping " + ethers.formatUnits(amount.toString(), 9) + " SOL to " + pubKey)
-    await asyncTimeout(3000)
+}
+
+async function airdropNEON(address, amount) {
+    const neonAmount = parseInt(ethers.formatUnits(amount.toString(), 18))
+    if(neonAmount > 0) {
+        const res = await fetch(config.neon_faucet[network.name].url, {
+            method: 'POST',
+            body: JSON.stringify({"amount": neonAmount, "wallet": address}),
+            headers: {'Content-Type': 'application/json'}
+        })
+        console.log("\nAirdropping " + neonAmount.toString() + " NEON to " + address)
+        if(res.status !== 200) {
+            console.warn("\nAirdrop request failed: " + JSON.stringify(res))
+        }
+        let accountBalance = BigInt(0)
+        await asyncWhileLoop(
+            accountBalance >= amount, // condition to fulfill
+            async () => {
+                await asyncForLoop(1000)
+                accountBalance = await ethers.provider.getBalance(address)
+                return({
+                    isConditionFulfilled: accountBalance >= amount,
+                    result: null
+                })
+            },
+            null
+        )
+        // console.log("\nNew account balance: ", accountBalance)
+    }
+}
+
+async function airdropSOL(solanaConnection, recipientPubKey, solAmount) {
+    if(solAmount > 0) {
+        const params = [recipientPubKey, solAmount]
+        const res = await fetch(config.svm_node[network.name], {
+            method: 'POST',
+            body: JSON.stringify({"jsonrpc": "2.0", "id": 1, "method": "requestAirdrop", "params": params}),
+            headers: {'Content-Type': 'application/json'}
+        })
+        console.log("\nAirdropping " + ethers.formatUnits(solAmount.toString(), 9) + " SOL to " + recipientPubKey)
+        if (res.status !== 200) {
+            console.warn("\nAirdrop request failed: " + JSON.stringify(res))
+        }
+        let accountBalance = BigInt(0)
+        await asyncWhileLoop(
+            accountBalance >= solAmount, // condition to fulfill
+            async () => {
+                await asyncForLoop(1000)
+                accountBalance = await solanaConnection.getBalance(recipientPubKey)
+                return ({
+                    isConditionFulfilled: accountBalance >= solAmount,
+                    result: null
+                })
+            },
+            null
+        )
+        // console.log("\nNew account balance: ", accountBalance)
+    }
 }
 
 async function deployContract(contractName, contractAddress = null) {
     if (!process.env.PRIVATE_KEY_OWNER) {
         throw new Error("\nMissing private key: PRIVATE_KEY_OWNER")
     }
-    if (!process.env.USER1_KEY) {
-        throw new Error("\nMissing private key: USER1_KEY")
+    if (!process.env.PRIVATE_KEY_USER_1) {
+        throw new Error("\nMissing private key: PRIVATE_KEY_USER_1")
     }
-    const minBalance = ethers.parseUnits("10000", 18) // 10000 NEON
+    const minBalance = BigInt(ethers.parseUnits(config.neon_faucet[network.name].min_balance, 18))
     const deployer = (await ethers.getSigners())[0]
     let deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
-    if(
-        deployerBalance < minBalance &&
-        parseInt(ethers.formatUnits((minBalance - deployerBalance).toString(), 18)) > 0
-    ) {
-        await airdropNEON(deployer.address, parseInt(ethers.formatUnits((minBalance - deployerBalance).toString(), 18)))
+    if(deployerBalance < minBalance) {
+        await airdropNEON(deployer.address, minBalance - deployerBalance)
     }
     const user = (await ethers.getSigners())[1]
     let userBalance = BigInt(await ethers.provider.getBalance(user.address))
-    if(
-        userBalance < minBalance &&
-        parseInt(ethers.formatUnits((minBalance - userBalance).toString(), 18)) > 0
-    ) {
-        await airdropNEON(user.address, parseInt(ethers.formatUnits((minBalance - userBalance).toString(), 18)))
+    if(userBalance < minBalance) {
+        await airdropNEON(user.address, minBalance - userBalance)
     }
     const otherUser = ethers.Wallet.createRandom(ethers.provider)
-    await airdropNEON(otherUser.address, parseInt(ethers.formatUnits(minBalance.toString(), 18)))
+    await airdropNEON(otherUser.address, minBalance)
 
     const contractFactory = await ethers.getContractFactory(contractName)
     let contract
@@ -93,7 +154,7 @@ async function deployContract(contractName, contractAddress = null) {
 }
 
 async function getSolanaTransactions(neonTxHash) {
-    return await fetch(process.env.EVM_NODE, {
+    return await fetch(network.config.url, neonTxHash, {
         method: 'POST',
         body: JSON.stringify({
             "jsonrpc":"2.0",
@@ -422,12 +483,8 @@ async function approveSplTokens(tokenAMint, tokenBMint, ERC20ForSPL_A, ERC20ForS
 }
 
 module.exports = {
-    airdropNEON,
     airdropSOL,
-    asyncTimeout,
     deployContract,
-    getSolanaTransactions,
-    executeSolanaInstruction,
     setupSPLTokens,
     setupATAAccounts,
     approveSplTokens
