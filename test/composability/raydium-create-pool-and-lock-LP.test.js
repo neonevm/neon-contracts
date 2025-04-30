@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const {
     NATIVE_MINT
 } = require('@solana/spl-token');
-const { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } = require("./utils");
+const { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } = require("./utils.js");
 
 describe('LibRaydiumProgram', function() {
     console.log("Network name: " + network.name)

@@ -55,6 +55,18 @@ library Constants {
         return SYSVAR_RENT_PUBKEY;
     }
 
+    function getNativeMintPubkey() internal pure returns(bytes32) {
+        return NATIVE_MINT_PUBKEY;
+    }
+
+    function getNativeMint2022Pubkey() internal pure returns(bytes32) {
+        return NATIVE_MINT_2022_PUBKEY;
+    }
+
+    function getComputeBudgetPubkey() internal pure returns(bytes32) {
+        return COMPUTE_BUDGET_PUBKEY;
+    }
+
     function getNeonEvmProgramId() internal view returns(bytes32) {
         uint chainId = getChainId();
         if (chainId == NEON_CHAIN_DEVNET) {

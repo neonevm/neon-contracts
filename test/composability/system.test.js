@@ -2,8 +2,8 @@ const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
 const { getAccount, TOKEN_PROGRAM_ID, ACCOUNT_SIZE } = require("@solana/spl-token");
-const { deployContract, airdropSOL } = require("./utils");
-const config = require("./config");
+const { deployContract, airdropSOL } = require("./utils.js");
+const config = require("../config.js");
 
 describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async function() {
 

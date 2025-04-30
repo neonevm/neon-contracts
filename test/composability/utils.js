@@ -15,7 +15,7 @@ const {
 const { Metaplex } = require("@metaplex-foundation/js");
 const { createCreateMetadataAccountV3Instruction } = require("@metaplex-foundation/mpl-token-metadata");
 const bs58 = require("bs58");
-const config = require("./config")
+const config = require("../config")
 const connection = new web3.Connection(config.svm_node[network.name], "processed");
 
 async function asyncTimeout(timeout) {
@@ -135,7 +135,7 @@ async function deployContract(contractName, contractAddress = null) {
 
     const contractFactory = await ethers.getContractFactory(contractName)
     let contract
-    if (!config[contractName][network.name] && !contractAddress) {
+    if (!config.composability[contractName][network.name] && !contractAddress) {
         console.log("\nDeployer address: " + deployer.address)
         deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
         console.log("\nDeployer balance: " + ethers.formatUnits(deployerBalance.toString(), 18) + " NEON")
@@ -145,7 +145,7 @@ async function deployContract(contractName, contractAddress = null) {
         await contract.waitForDeployment()
         console.log("\n" + contractName + " contract deployed to: " + contract.target)
     } else {
-        const deployedContractAddress = contractAddress ? contractAddress : config[contractName][network.name]
+        const deployedContractAddress = contractAddress ? contractAddress : config.composability[contractName][network.name]
         console.log("\n" + contractName + " contract already deployed to: " + deployedContractAddress)
         contract = contractFactory.attach(deployedContractAddress)
     }

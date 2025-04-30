@@ -110,7 +110,7 @@ contract, instead it must interact directly with the **SPL Token** program on _S
 
 ## Tests
 
-Contracts are deployed at the beginning of each test unless the `config.js` file already contains the contract address.
+Contracts are deployed at the beginning of each test unless the `utils.js` file already contains the contract address.
 
 The `system.test.js` and `spl-token.test.js` test cases can be run on either _Curvestand_ test network or _Neon devnet_ 
 using the following commands:

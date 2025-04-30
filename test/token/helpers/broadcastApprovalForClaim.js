@@ -5,7 +5,9 @@ const {
     createApproveInstruction,
 } = require('@solana/spl-token');
 const bs58 = require("bs58");
-const { config } = require('../config');
+const config = require('../../config.js');
+const utils = require('../utils.js');
+
 require("dotenv").config({path: __dirname + '/../../.env'});
 
 const connection = new web3.Connection(config.svm_node[network.name], "processed");
@@ -16,8 +18,8 @@ const solanaUser4 = web3.Keypair.fromSecretKey( // Solana user with tokens balan
 console.log(solanaUser4.publicKey.toBase58(), 'publicKey');
 
 async function init() {
-    const tokenMint = new web3.PublicKey(config.DATA.ADDRESSES.ERC20ForSplTokenMint);
-    const ERC20ForSPL = config.DATA.ADDRESSES.ERC20ForSpl;
+    const tokenMint = new web3.PublicKey(config.token.ERC20ForSplTokenMint[network.name]);
+    const ERC20ForSPL = config.token.ERC20ForSpl[network.name];
 
     const neon_getEvmParamsRequest = await fetch(network.config.url, {
         method: 'POST',
@@ -33,7 +35,7 @@ async function init() {
     );
     console.log(solanaUser4TokenAta, 'solanaUser4TokenAta');
 
-    const delegatedPdaUser1 = config.utils.calculatePdaAccount(
+    const delegatedPdaUser1 = utils.calculatePdaAccount(
         'AUTH',
         ERC20ForSPL,
         new ethers.Wallet(process.env.PRIVATE_KEY_OWNER, ethers.provider).address,

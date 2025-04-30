@@ -2,8 +2,8 @@ const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
 const { getMint, getAccount, createTransferInstruction } = require("@solana/spl-token");
-const config = require("./config");
-const { deployContract, airdropSOL } = require("./utils");
+const config = require("../config.js");
+const { deployContract, airdropSOL } = require("./utils.js");
 
 describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  function() {
 
@@ -11,8 +11,8 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
 
     const solanaConnection = new web3.Connection(config.svm_node[network.name], "processed")
 
-    const seed = config.tokenMintSeed[network.name]
-    const decimals = config.tokenMintDecimals[network.name]
+    const seed = config.composability.tokenMintSeed[network.name]
+    const decimals = config.composability.tokenMintDecimals[network.name]
     const AMOUNT = ethers.parseUnits('1000', decimals)
     const SMALL_AMOUNT = ethers.parseUnits('100', decimals)
     const ZERO_AMOUNT = BigInt(0)
