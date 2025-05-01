@@ -1,5 +1,6 @@
+const args = process.argv.slice(2);
+const network = args[0];
 const web3 = require("@solana/web3.js");
-const { network } = require("hardhat");
 const {
     getAssociatedTokenAddress,
     createInitializeMint2Instruction,
@@ -16,7 +17,7 @@ const utils = require('../utils');
 const config = require('../../config.js');
 require("dotenv").config({path: __dirname + '/../../.env'});
 
-const connection = new web3.Connection(config.svm_node[network.name], "processed");
+const connection = new web3.Connection(config.svm_node[network], "processed");
 
 const keypair = web3.Keypair.fromSecretKey(
     bs58.decode(process.env.PRIVATE_KEY_SOLANA)
