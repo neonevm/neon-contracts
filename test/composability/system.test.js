@@ -2,13 +2,14 @@ const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
 const { getAccount, TOKEN_PROGRAM_ID, ACCOUNT_SIZE } = require("@solana/spl-token");
-const { deployContract, airdropSOL } = require("./utils");
+const { deployContract, airdropSOL } = require("./utils.js");
+const config = require("../config.js");
 
 describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async function() {
 
     console.log("Network name: " + network.name)
 
-    const solanaConnection = new web3.Connection(process.env.SVM_NODE, "processed")
+    const solanaConnection = new web3.Connection(config.svm_node[network.name], "processed")
 
     const ZERO_AMOUNT = BigInt(0)
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
@@ -111,7 +112,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             )
 
             // Fund the account to be able to get account info
-            await airdropSOL(ethers.encodeBase58(createWithSeedAccountInBytes), rentExemptBalance)
+            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)), rentExemptBalance)
 
             info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
             expect(info.owner.toBase58()).to.eq(web3.SystemProgram.programId.toBase58()) // Account belongs to System program initially
@@ -146,7 +147,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             )
 
             // Fund the account to be able to get account info
-            await airdropSOL(ethers.encodeBase58(createWithSeedAccountInBytes), parseInt(rentExemptBalance.toString()))
+            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)), parseInt(rentExemptBalance.toString()))
 
             info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
             expect(info.owner.toBase58()).to.eq(web3.SystemProgram.programId.toBase58()) // Account belongs to System program

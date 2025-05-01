@@ -50,8 +50,8 @@ module.exports = {
   },
   networks: {
     curvestand: {
-      url: process.env.NEON_EVM_NODE,
-      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.USER1_KEY],
+      url: "https://curve-stand.neontest.xyz",
+      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.PRIVATE_KEY_USER_1, process.env.PRIVATE_KEY_USER_2, process.env.PRIVATE_KEY_USER_3],
       allowUnlimitedContractSize: false,
       gasMultiplier: 2,
       maxFeePerGas: 10000,
@@ -59,7 +59,7 @@ module.exports = {
     },
     neondevnet: {
       url: "https://devnet.neonevm.org",
-      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.USER1_KEY, process.env.USER2_KEY, process.env.USER3_KEY],
+      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.PRIVATE_KEY_USER_1, process.env.PRIVATE_KEY_USER_2, process.env.PRIVATE_KEY_USER_3],
       chainId: 245022926,
       allowUnlimitedContractSize: false,
       gasMultiplier: 2,
@@ -68,19 +68,11 @@ module.exports = {
     },
     neonmainnet: {
       url: "https://neon-proxy-mainnet.solana.p2p.org",
-      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.USER1_KEY, process.env.USER2_KEY, process.env.USER3_KEY],
+      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.PRIVATE_KEY_USER_1, process.env.PRIVATE_KEY_USER_2, process.env.PRIVATE_KEY_USER_3],
       chainId: 245022934,
       allowUnlimitedContractSize: false,
       gas: "auto",
       gasPrice: "auto",
-    },
-    curvestand: {
-        url: process.env.EVM_NODE,
-        accounts: [process.env.PRIVATE_KEY_OWNER, process.env.USER1_KEY, process.env.USER2_KEY, process.env.USER3_KEY],
-        allowUnlimitedContractSize: false,
-        gasMultiplier: 2,
-        maxFeePerGas: 10000,
-        maxPriorityFeePerGas: 5000
     },
   },
   mocha: {

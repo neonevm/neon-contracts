@@ -15,6 +15,9 @@ library Constants {
     bytes32 private constant METAPLEX_PROGRAM_ID = 0x0b7065b1e3d17c45389d527f6b04c3cd58b86c731aa0fdb549b6d1bc03f82946;
     bytes32 private constant MEMO_PROGRAM_V2_ID = 0x054a535a992921064d24e87160da387c7c35b5ddbc92bb81e41fa8404105448d;
     bytes32 private constant SYSVAR_RENT_PUBKEY = 0x06a7d517192c5c51218cc94c3d4af17f58daee089ba1fd44e3dbd98a00000000;
+    bytes32 private constant NATIVE_MINT_PUBKEY = 0x069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001;
+    bytes32 private constant NATIVE_MINT_2022_PUBKEY = 0x830dfc9fde5fe6b8aa7c04a476e91e8ac6bb264aad90fa19c9df49d85c3e5b5e;
+    bytes32 private constant COMPUTE_BUDGET_PUBKEY = 0x0306466fe5211732ffecadba72c39be7bc8ce5bbc5f7126b2c439b3a40000000;
 
     error InvalidChain(uint chainId);
 
@@ -50,6 +53,18 @@ library Constants {
 
     function getSysvarRentPubkey() internal pure returns(bytes32) {
         return SYSVAR_RENT_PUBKEY;
+    }
+
+    function getNativeMintPubkey() internal pure returns(bytes32) {
+        return NATIVE_MINT_PUBKEY;
+    }
+
+    function getNativeMint2022Pubkey() internal pure returns(bytes32) {
+        return NATIVE_MINT_2022_PUBKEY;
+    }
+
+    function getComputeBudgetPubkey() internal pure returns(bytes32) {
+        return COMPUTE_BUDGET_PUBKEY;
     }
 
     function getNeonEvmProgramId() internal view returns(bytes32) {

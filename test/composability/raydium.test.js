@@ -2,8 +2,9 @@ const { network, ethers} = require("hardhat");
 const { expect } = require("chai");
 const web3 = require("@solana/web3.js");
 const { getAccount, getAssociatedTokenAddress, NATIVE_MINT } = require("@solana/spl-token");
-const { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } = require("./utils");
-const connection = new web3.Connection(process.env.SVM_NODE, "processed");
+const config = require("../config.js");
+const { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } = require("./utils.js");
+const connection = new web3.Connection(config.svm_node[network.name], "processed");
 
 describe('LibRaydiumProgram', function() {
     console.log("Network name: " + network.name)

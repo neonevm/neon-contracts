@@ -16,7 +16,7 @@ program.
 ## LibRaydiumData library
 This library provides a set of getter functions for querying different accounts & data. Also some calculations such as swap input or output amount; convert LP amount to tokens amounts; etc. Here are some of the getters:
 * `getPoolData` - Returns the data of Raydium CPMM pool. [Info](LibRaydiumData.sol#L150)
-* `getConfigData` - Returns the data for requested config index. [Info](LibRaydiumData.sol#L173)
+* `getConfigData` - Returns the data for requested utils index. [Info](LibRaydiumData.sol#L173)
 * `getTokenReserve` - Returns pool token reserve for selected token mint. [Info](LibRaydiumData.sol#L194)
 * `getPoolLpAmount` - Returns the pool's LP amount. [Info](LibRaydiumData.sol#L199)
 * `lpToAmount` - Converts LP amount to reserves amounts. [Info](LibRaydiumData.sol#L204)

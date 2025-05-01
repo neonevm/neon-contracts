@@ -1,17 +1,17 @@
-const { ethers } = require("hardhat");
+const { ethers, network} = require("hardhat");
 const { expect } = require("chai");
-const web3 = require("@solana/web3.js");
-const { config } = require('./config');
+const utils = require('./utils.js');
+const config = require('../config.js');
 require("dotenv").config();
 
 let owner;
-const ERC20ForSPLFactoryAddress = config.DATA.ADDRESSES.ERC20ForSplFactory;
+const ERC20ForSPLFactoryAddress = config.token.ERC20ForSplFactory[network.name];
 let ERC20ForSPLFactory;
 let ERC20ForSPL;
 let ERC20ForSPLMintable;
 let ERC20ForSplContractFactory;
 let ERC20ForSplMintableContractFactory;
-const TOKEN_MINT = config.utils.publicKeyToBytes32(config.DATA.ADDRESSES.ERC20ForSplTokenMint);
+const TOKEN_MINT = utils.publicKeyToBytes32(config.token.ERC20ForSplTokenMint[network.name]);
 const RECEIPTS_COUNT = 1;
 
 describe('Test init', async function () {
@@ -19,7 +19,7 @@ describe('Test init', async function () {
         [owner] = await ethers.getSigners();
 
         if (await ethers.provider.getBalance(owner.address) == 0) {
-            await config.utils.airdropNEON(owner.address);
+            await utils.airdropNEON(owner.address);
         }
 
         const ERC20ForSplFactoryContractFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory');

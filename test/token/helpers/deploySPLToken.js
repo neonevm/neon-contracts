@@ -1,3 +1,5 @@
+const args = process.argv.slice(2);
+const network = args[0];
 const web3 = require("@solana/web3.js");
 const {
     getAssociatedTokenAddress,
@@ -11,10 +13,11 @@ const {
 const { Metaplex } = require("@metaplex-foundation/js");
 const bs58 = require("bs58");
 const { createCreateMetadataAccountV3Instruction } = require("@metaplex-foundation/mpl-token-metadata");
-const { config } = require('../config');
+const utils = require('../utils');
+const config = require('../../config.js');
 require("dotenv").config({path: __dirname + '/../../.env'});
 
-const connection = new web3.Connection(process.env.SVM_NODE, "processed");
+const connection = new web3.Connection(config.svm_node[network], "processed");
 
 const keypair = web3.Keypair.fromSecretKey(
     bs58.decode(process.env.PRIVATE_KEY_SOLANA)
@@ -27,7 +30,7 @@ const solanaUser4 = web3.Keypair.fromSecretKey( // Solana user with tokens balan
 
 async function init() {
     if (await connection.getBalance(keypair.publicKey) == 0) {
-        await config.utils.airdropSOL(keypair);
+        await utils.airdropSOL(keypair);
     }
 
     const seed = 'seed' + Date.now().toString(); // random seed on each script call

@@ -36,7 +36,6 @@ library LibSPLTokenProgram {
         accounts[0] = tokenMint;
 
         isSigner = new bool[](1);
-        isSigner[0] = false;
 
         isWritable = new bool[](1);
         isWritable[0] = true;
@@ -70,14 +69,9 @@ library LibSPLTokenProgram {
         accounts[2] = Constants.getSysvarRentPubkey();
 
         isSigner = new bool[](3);
-        isSigner[0] = false;
-        isSigner[1] = false;
-        isSigner[2] = false;
 
         isWritable = new bool[](3);
         isWritable[0] = true;
-        isWritable[1] = false;
-        isWritable[2] = false;
 
         data = abi.encodePacked(
             bytes1(0x10), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L545)
@@ -107,14 +101,11 @@ library LibSPLTokenProgram {
         accounts[2] = mintAuthority;
 
         isSigner = new bool[](3);
-        isSigner[0] = false;
-        isSigner[1] = false;
         isSigner[2] = true;
 
         isWritable = new bool[](3);
         isWritable[0] = true;
         isWritable[1] = true;
-        isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
         bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
@@ -146,14 +137,11 @@ library LibSPLTokenProgram {
         accounts[2] = sender;
 
         isSigner = new bool[](3);
-        isSigner[0] = false;
-        isSigner[1] = false;
         isSigner[2] = true;
 
         isWritable = new bool[](3);
         isWritable[0] = true;
         isWritable[1] = true;
-        isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
         bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
@@ -185,12 +173,10 @@ library LibSPLTokenProgram {
         accounts[1] = currentAuthority;
 
         isSigner = new bool[](2);
-        isSigner[0] = false;
         isSigner[1] = true;
 
         isWritable = new bool[](2);
         isWritable[0] = true;
-        isWritable[1] = false;
 
         data = abi.encodePacked(
             bytes1(0x06), // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L514)
@@ -223,14 +209,10 @@ library LibSPLTokenProgram {
         accounts[2] = owner;
 
         isSigner = new bool[](3);
-        isSigner[0] = false;
-        isSigner[1] = false;
         isSigner[2] = true;
 
         isWritable = new bool[](3);
         isWritable[0] = true;
-        isWritable[1] = false;
-        isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
         bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
@@ -258,12 +240,10 @@ library LibSPLTokenProgram {
         accounts[1] = owner;
 
         isSigner = new bool[](2);
-        isSigner[0] = false;
         isSigner[1] = true;
 
         isWritable = new bool[](2);
         isWritable[0] = true;
-        isWritable[1] = false;
 
         data = hex'05'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L513)
     }
@@ -290,14 +270,11 @@ library LibSPLTokenProgram {
         accounts[2] = owner;
 
         isSigner = new bool[](3);
-        isSigner[0] = false;
-        isSigner[1] = false;
         isSigner[2] = true;
 
         isWritable = new bool[](3);
         isWritable[0] = true;
         isWritable[1] = true;
-        isWritable[2] = false;
 
         // Get amount in right-padded little-endian format
         bytes32 amountLE = bytes32(SolanaDataConverterLib.readLittleEndianUnsigned256(uint256(amount)));
@@ -327,14 +304,11 @@ library LibSPLTokenProgram {
         accounts[2] = authority;
 
         isSigner = new bool[](3);
-        isSigner[0] = false;
-        isSigner[1] = false;
         isSigner[2] = true;
 
         isWritable = new bool[](3);
         isWritable[0] = true;
         isWritable[1] = true;
-        isWritable[2] = false;
 
         data = hex'09'; // Instruction variant (see: https://github.com/solana-program/token/blob/08aa3ccecb30692bca18d6f927804337de82d5ff/program/src/instruction.rs#L526)
     }
@@ -352,7 +326,6 @@ library LibSPLTokenProgram {
         accounts[0] = tokenAccount;
 
         isSigner = new bool[](1);
-        isSigner[0] = false;
 
         isWritable = new bool[](1);
         isWritable[0] = true;
