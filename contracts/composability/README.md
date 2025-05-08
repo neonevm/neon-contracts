@@ -27,6 +27,15 @@ This contract demonstrates how the **LibSPLTokenProgram** & **LibSPLTokenData** 
   </dd>
 </dl>
 
+## Metaplex program
+<dl>
+  <dd>
+
+### CallMetaplexProgram contract
+This contract demonstrates how the **LibMetaplexProgram** & **LibMetaplexData** libraries can be used in practice to interact with Solana's Metaplex program. [Link to SPL Token Solidity libraries](./libraries/metaplex-program/)
+  </dd>
+</dl>
+
 ## Associated Token program
 <dl>
   <dd>
@@ -69,10 +78,17 @@ Token accounts_ owned by this contract.
 
 ##### SPL token mint ownership and authentication
 
-The `createInitializeTokenMint` function takes a `seed` parameter as input which is used along with 
+The `CallSPLTokenProgram.createInitializeTokenMint` function takes a `seed` parameter as input which is used along with 
 `msg.sender` to derive the created token mint account. While the **CallSPLTokenProgram** contract is given mint/freeze 
 authority on the created token mint account, the `mintTokens` function grants `msg.sender` permission to mint tokens
 by providing the `seed` that was used to create the token mint account.
+
+##### Metadata accounts ownership and authentication
+
+The `CallMetaplexProgram.createTokenMetadataAccount` function takes a `seed` parameter as input which is used along with
+`msg.sender` to derive a token mint account. Created token metadata account is associated with this token mint account 
+which must have been created and initialized beforehand by the same `msg.sender`. That same `msg.sender` is also granted 
+permission to update the token metadata account in the future, provided that it is set as mutable upon creation.
 
 ##### Arbitrary token accounts ownership and authentication
 
@@ -82,7 +98,7 @@ securely via this contract while this contract is the actual owner of those toke
 possible to create and initialize an _arbitrary SPL Token accounts_ for third party _Solana_ users, granting them full 
 ownership of created accounts on _Solana_.
 
-The `createInitializeArbitraryTokenAccount` function can be used for three different purposes:
+The `CallSPLTokenProgram.createInitializeArbitraryTokenAccount` function can be used for three different purposes:
 
 * To create and initialize an _arbitrary token account_ to be used by `msg.sender` to send tokens through the 
 **CallSPLTokenProgram** contract. In this case, both the `owner` and `tokenOwner` parameters passed to the function 
@@ -112,12 +128,14 @@ contract, instead it must interact directly with the **SPL Token** program on _S
 
 Contracts are deployed at the beginning of each test unless the `utils.js` file already contains the contract address.
 
-The `system.test.js` and `spl-token.test.js` test cases can be run on either _Curvestand_ test network or _Neon devnet_ 
+The `system.test.js`, `spl-token.test.js` and `metaplex.test.js` test cases can be run on either _Curvestand_ test network or _Neon devnet_ 
 using the following commands:
 
 `npx hardhat test ./test/composability/system.test.js --network < curvestand or neondevnet >`
 
 `npx hardhat test ./test/composability/spl-token.test.js --network < curvestand or neondevnet >`
+
+`npx hardhat test ./test/composability/metaplex.test.js --network < curvestand or neondevnet >`
 
 The `raydium.test.js` and `raydium-create-pool-and-lock-LP.test.js` test cases can only be run on _Neon devnet_ using the 
 following commands:

@@ -12,8 +12,8 @@ import { Ownable, Ownable2Step } from "@openzeppelin/contracts/access/Ownable2St
 import { ICallSolana } from '../precompiles/ICallSolana.sol';
 
 /// @title CallAssociatedTokenProgram
-/// @notice Example contract showing how to use LibAssociatedTokenProgram library to interact with Solana's Associated
-/// Token program
+/// @notice Example contract showing how to use LibAssociatedTokenProgram and LibAssociatedTokenData libraries to
+/// interact with Solana's Associated Token program
 /// @author maxpolizzo@gmail.com
 contract CallAssociatedTokenProgram is Ownable2Step {
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);

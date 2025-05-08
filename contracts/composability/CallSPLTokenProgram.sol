@@ -11,11 +11,13 @@ import { LibSPLTokenProgram } from "./libraries/spl-token-program/LibSPLTokenPro
 
 import { ICallSolana } from '../precompiles/ICallSolana.sol';
 
+import { CallMetaplexProgram } from './CallMetaplexProgram.sol';
+
 /// @title CallSPLTokenProgram
-/// @notice Example contract showing how to use LibSPLTokenProgram library to interact with Solana's SPL Token program
+/// @notice Example contract showing how to use LibSPLTokenProgram and LibSPLTokenData libraries to interact with
+/// Solana's SPL Token program
 /// @author maxpolizzo@gmail.com
-contract CallSPLTokenProgram {
-    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
+contract CallSPLTokenProgram is CallMetaplexProgram {
 
     function createInitializeTokenMint(bytes memory seed, uint8 decimals) external {
         // Create SPL token mint account: msg.sender and a seed are used to calculate the salt used to derive the token
@@ -540,13 +542,13 @@ contract CallSPLTokenProgram {
     }
 
     // Returns Solana public key for NeonEVM address
-    function getNeonAddress(address user) external view returns (bytes32) {
+    function getNeonAddress(address user) external view override returns (bytes32) {
         return CALL_SOLANA.getNeonAddress(user);
     }
 
     // SPL Token mint data getters
 
-    function getTokenMintAccount(address owner, bytes memory seed) public view returns(bytes32) {
+    function getTokenMintAccount(address owner, bytes memory seed) public view override returns(bytes32) {
         // Returns the token mint account derived from from msg.sender and seed
         return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
             owner, // account that created and owns the token mint

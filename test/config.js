@@ -39,6 +39,11 @@ module.exports = {
             neondevnet: "",
             neonmainnet: "",
         },
+        CallMetaplexProgram: {
+            curvestand: "",
+            neondevnet: "",
+            neonmainnet: "",
+        },
         CallAssociatedTokenProgram: {
             curvestand: "",
             neondevnet: "",
@@ -58,6 +63,23 @@ module.exports = {
             curvestand: 9,
             neondevnet: 9,
             neonmainnet: 9,
+        },
+        tokenMetadata: {
+            curvestand: {
+                tokenName: "Test token",
+                tokenSymbol: "TEST_0",
+                uri: "https://my-test-token.fi/logo.png"
+            },
+            neondevnet: {
+                tokenName: "Test token",
+                tokenSymbol: "TEST_0",
+                uri: "https://my-test-token.fi/logo.png"
+            },
+            neonmainnet: {
+                tokenName: "Test token",
+                tokenSymbol: "TEST_0",
+                uri: "https://my-test-token.fi/logo.png"
+            },
         }
     },
     token: {
@@ -72,7 +94,7 @@ module.exports = {
             neonmainnet: "",
         },
         ERC20ForSplTokenMint: {
-            curvestand: "7tJqfMmvXaeg8cv26n6imvqT6bZJu6yseUkU3DSkupxL",
+            curvestand: "",
             neondevnet: "",
             neonmainnet: "",
         },
