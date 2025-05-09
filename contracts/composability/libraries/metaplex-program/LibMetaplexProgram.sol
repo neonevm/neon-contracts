@@ -186,8 +186,7 @@ library LibMetaplexProgram {
         if (newUpdateAuthority == bytes32(0)) {
             assembly {
                 newUpdateAuthorityWithFlag := mload(0x40)
-                mstore(newUpdateAuthorityWithFlag, 0x01) // Assign length
-                mstore8(add(newUpdateAuthorityWithFlag, 0x20), 0x00) // Assign flag to indicate that no new update authority public key is provided
+                mstore(newUpdateAuthorityWithFlag, 0x01) // Assign length and keep next slot empty (flag is 0x00 in this case)
                 mstore(0x40, add(newUpdateAuthorityWithFlag, 0x40)) // Update free memory pointer
             }
         } else {
