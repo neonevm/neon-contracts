@@ -632,8 +632,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             )).to.be
                 .revertedWithCustomError(callSPLTokenProgram, 'InvalidTokenMintAuthorityType')
                 .withArgs(
-                    await callSPLTokenProgram.getTokenMintAccount(otherNeonEVMUser, Buffer.from(seed)),
-                    'Authority type must be MINT or FREEZE'
+                    await callSPLTokenProgram.getTokenMintAccount(otherNeonEVMUser, Buffer.from(seed))
                 )
         })
 
@@ -668,8 +667,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 .withArgs(
                     tokenMintInBytes,
                     newMintAuthorityInBytes,
-                    contractPublicKeyInBytes,
-                    "Only token mint's MINT authority can update MINT authority"
+                    contractPublicKeyInBytes
                 )
         })
 
@@ -712,8 +710,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 .withArgs(
                     tokenMintInBytes,
                     newFreezeAuthorityInBytes,
-                    contractPublicKeyInBytes,
-                    "Only token mint's FREEZE authority can update FREEZE authority"
+                    contractPublicKeyInBytes
                 )
         })
 
@@ -839,8 +836,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                         0 // Arbitrary nonce used to create the arbitrary token account
                     ),
                     currentOwnerInBytes,
-                    contractPublicKeyInBytes,
-                    "Only token account OWNER can update OWNER authority"
+                    contractPublicKeyInBytes
                 )
         })
 
@@ -861,8 +857,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                     ),
                     currentOwnerInBytes,
                     currentCloseAuthorityInBytes,
-                    contractPublicKeyInBytes,
-                    "Only token account OWNER or CLOSE authority can update CLOSE authority"
+                    contractPublicKeyInBytes
                 )
         })
 

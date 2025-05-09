@@ -9,7 +9,8 @@ import { LibSystemProgram } from "./libraries/system-program/LibSystemProgram.so
 import { ICallSolana } from '../precompiles/ICallSolana.sol';
 
 /// @title CallSystemProgram
-/// @notice Example contract showing how to use LibSystemProgram library to interact with Solana's System program
+/// @notice Example contract showing how to use LibSystemProgram and LibSystemData libraries to interact with Solana's
+/// System program
 /// @author maxpolizzo@gmail.com
 contract CallSystemProgram {
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);

@@ -11,11 +11,13 @@ import { LibSPLTokenProgram } from "./libraries/spl-token-program/LibSPLTokenPro
 
 import { ICallSolana } from '../precompiles/ICallSolana.sol';
 
+import { CallMetaplexProgram } from './CallMetaplexProgram.sol';
+
 /// @title CallSPLTokenProgram
-/// @notice Example contract showing how to use LibSPLTokenProgram library to interact with Solana's SPL Token program
+/// @notice Example contract showing how to use LibSPLTokenProgram and LibSPLTokenData libraries to interact with
+/// Solana's SPL Token program
 /// @author maxpolizzo@gmail.com
-contract CallSPLTokenProgram {
-    ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
+contract CallSPLTokenProgram is CallMetaplexProgram {
 
     function createInitializeTokenMint(bytes memory seed, uint8 decimals) external {
         // Create SPL token mint account: msg.sender and a seed are used to calculate the salt used to derive the token
@@ -276,8 +278,7 @@ contract CallSPLTokenProgram {
                 LibSPLTokenErrors.InvalidMintAuthority(
                     tokenMint,
                     mintAuthority,
-                    thisContractPubKey,
-                    "Only token mint's MINT authority can update MINT authority"
+                    thisContractPubKey
                 )
             );
         } else if (authorityType == LibSPLTokenProgram.AuthorityType.FREEZE) {
@@ -290,15 +291,11 @@ contract CallSPLTokenProgram {
                 LibSPLTokenErrors.InvalidFreezeAuthority(
                     tokenMint,
                     freezeAuthority,
-                    thisContractPubKey,
-                    "Only token mint's FREEZE authority can update FREEZE authority"
+                    thisContractPubKey
                 )
             );
         } else {
-            revert LibSPLTokenErrors.InvalidTokenMintAuthorityType(
-                tokenMint,
-                "Authority type must be MINT or FREEZE"
-            );
+            revert LibSPLTokenErrors.InvalidTokenMintAuthorityType(tokenMint);
         }
         // Format setAuthority instruction
         (   bytes32[] memory accounts,
@@ -344,8 +341,7 @@ contract CallSPLTokenProgram {
                 LibSPLTokenErrors.InvalidOwnerAuthority(
                     userATA,
                     tokenAccountOwner,
-                    thisContractPubKey,
-                    "Only token account OWNER can update OWNER authority"
+                    thisContractPubKey
                 )
             );
         } else if (authorityType == LibSPLTokenProgram.AuthorityType.CLOSE) {
@@ -361,16 +357,12 @@ contract CallSPLTokenProgram {
                         userATA,
                         tokenAccountOwner,
                         tokenAccountCloseAuthority,
-                        thisContractPubKey,
-                        "Only token account OWNER or CLOSE authority can update CLOSE authority"
+                        thisContractPubKey
                     )
                 );
             }
         } else {
-            revert LibSPLTokenErrors.InvalidTokenAccountAuthorityType(
-                userATA,
-                "Authority type must be OWNER or CLOSE"
-            );
+            revert LibSPLTokenErrors.InvalidTokenAccountAuthorityType(userATA);
         }
         // Format setAuthority instruction
         (   bytes32[] memory accounts,
@@ -540,13 +532,13 @@ contract CallSPLTokenProgram {
     }
 
     // Returns Solana public key for NeonEVM address
-    function getNeonAddress(address user) external view returns (bytes32) {
+    function getNeonAddress(address user) external view override returns (bytes32) {
         return CALL_SOLANA.getNeonAddress(user);
     }
 
     // SPL Token mint data getters
 
-    function getTokenMintAccount(address owner, bytes memory seed) public view returns(bytes32) {
+    function getTokenMintAccount(address owner, bytes memory seed) public view override returns(bytes32) {
         // Returns the token mint account derived from from msg.sender and seed
         return CALL_SOLANA.getResourceAddress(sha256(abi.encodePacked(
             owner, // account that created and owns the token mint

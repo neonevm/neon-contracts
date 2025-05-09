@@ -56,7 +56,7 @@ library LibSPLTokenData {
         );
         require(success, LibSPLTokenErrors.TokenMintDataQuery());
 
-        return to_bool(data);
+        return toBool(data);
     }
 
     /// @param tokenMint The 32 bytes SPL token mint account public key
@@ -126,7 +126,7 @@ library LibSPLTokenData {
             data.toBytes32(4), // 32 bytes mintAuthority
             (data.toUint64(36)).readLittleEndianUnsigned64(), // 8 bytes token supply
             data.toUint8(44), // 1 byte token decimals
-            to_bool(abi.encodePacked((data.toUint8(45)))), // bool isInitialized
+            toBool(abi.encodePacked((data.toUint8(45)))), // bool isInitialized
             bytes4(data.toUint32(46)), // 4 bytes freezeAuthorityOption
             data.toBytes32(50) // 32 bytes freezeAuthority
         );
@@ -144,7 +144,7 @@ library LibSPLTokenData {
         );
         require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
-        return to_bool(data);
+        return toBool(data);
     }
 
     /// @param tokenAccount The 32 bytes SPL token account public key
@@ -157,7 +157,7 @@ library LibSPLTokenData {
         );
         require(success, LibSPLTokenErrors.TokenAccountDataQuery());
 
-        return to_bool(data);
+        return toBool(data);
     }
 
     /// @param tokenAccount The 32 bytes SPL token account public key
@@ -254,9 +254,9 @@ library LibSPLTokenData {
             (data.toUint64(64)).readLittleEndianUnsigned64(), // 8 bytes token account balance
             bytes4(data.toUint32(72)), // 4 bytes delegateOption
             data.toBytes32(76), // 32 bytes delegate
-            to_bool(abi.encodePacked(data.toUint8(108))), // bool isInitialized
+            toBool(abi.encodePacked(data.toUint8(108))), // bool isInitialized
             bytes4(data.toUint32(109)), // 4 bytes isNativeOption
-            to_bool(abi.encodePacked(data.toUint64(113))), // bool isNative
+            toBool(abi.encodePacked(data.toUint64(113))), // bool isNative
             (data.toUint64(121)).readLittleEndianUnsigned64(), // 8 bytes delegated amount
             bytes4(data.toUint32(129)), // 4 bytes closeAuthorityOption
             data.toBytes32(133) // 32 bytes closeAuthority
@@ -284,7 +284,7 @@ library LibSPLTokenData {
         )));
     }
 
-    function to_bool(bytes memory data) private pure returns (bool result) {
+    function toBool(bytes memory data) private pure returns (bool result) {
         assembly {
             result := mload(add(data, 32))
         }
