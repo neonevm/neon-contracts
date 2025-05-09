@@ -69,21 +69,15 @@ library LibMetaplexData {
         // See: https://github.com/metaplex-foundation/mpl-token-metadata/blob/23aee718e723578ee5df411f045184e0ac9a9e63/programs/token-metadata/program/src/assertions/metadata.rs#L22
         require(
             bytes(tokenName).length <= MAX_NAME_LENGTH,
-            LibMetaplexErrors.InvalidTokenMetadata(
-                "Provided token name's length exceeds 32 characters maximum"
-            )
+            LibMetaplexErrors.InvalidTokenMetadata()
         );
         require(
             bytes(tokenSymbol).length <= MAX_SYMBOL_LENGTH,
-            LibMetaplexErrors.InvalidTokenMetadata(
-                "Provided token symbol's length exceeds 10 characters maximum"
-            )
+            LibMetaplexErrors.InvalidTokenMetadata()
         );
         require(
             bytes(tokenUri).length <= MAX_URI_LENGTH,
-            LibMetaplexErrors.InvalidTokenMetadata(
-                "Provided token uri's length exceeds 200 characters maximum"
-            )
+            LibMetaplexErrors.InvalidTokenMetadata()
         );
     }
 
@@ -94,7 +88,7 @@ library LibMetaplexData {
             0,
             MAX_METADATA_LEN
         );
-        require(success, LibMetaplexErrors.AccountDataQuery());
+        require(success, LibMetaplexErrors.MetadataAccountDataQuery());
 
         return TokenMetadata (
             string(sliceBytes(data, 69, 32)), // 32 utf-8 bytes token name
@@ -140,7 +134,7 @@ library LibMetaplexData {
                 nextSliceCopyPosition := add(nextSliceCopyPosition, 0x20)
             } {
                 // Copy the slice
-                mstore(nextSliceCopyPosition, mload(nextSliceStartPosition))
+                mcopy(nextSliceCopyPosition, nextSliceStartPosition, 0x20)
             }
             // Store copied data length a the tempBytes position, overwriting extra data that was copied
             mstore(tempBytes, _length)

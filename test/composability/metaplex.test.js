@@ -20,6 +20,7 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
     const uri = config.composability.tokenMetadata[network.name].uri
     const isMutable = true
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
+    const newUpdateAuthorityInBytes = web3.Keypair.generate().publicKey.toBuffer()
 
     let deployer,
         neonEVMUser,
@@ -95,7 +96,12 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
                 tokenSymbol,
                 uri,
                 isMutable
-            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'MetadataAlreadyExists')
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'MetadataAlreadyExists').withArgs(
+                await callSPLTokenProgram.getTokenMintAccount(deployer, Buffer.from(seed)),
+                await callSPLTokenProgram.getMetadataPDA(
+                    await callSPLTokenProgram.getTokenMintAccount(deployer, Buffer.from(seed))
+                ),
+            )
         })
 
         it('Derive token metadata PDA on-chain', async function() {
@@ -216,7 +222,6 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
         })
 
         it("Update metadata account's UPDATE authority", async function() {
-            const newUpdateAuthorityInBytes = web3.Keypair.generate().publicKey.toBuffer()
             tx = await callSPLTokenProgram.connect(deployer).updateTokenMetadataAccount(
                 Buffer.from(seed), // Seed that was used to create SPL token mint account
                 "Update",
@@ -259,7 +264,13 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
                 "https://my-new-updated-test-token.fi/logo.png",
                 ZERO_BYTES32, // No new update authority provided
                 true // isMutable
-            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'InvalidUpdateAuthority')
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'InvalidUpdateAuthority').withArgs(
+                 await callSPLTokenProgram.getMetadataPDA(
+                     await callSPLTokenProgram.getTokenMintAccount(deployer, Buffer.from(seed))
+                 ),
+                 newUpdateAuthorityInBytes,
+                 contractPublicKeyInBytes
+             )
         })
 
         it("Update metadata account to be immutable", async function() {
@@ -322,7 +333,9 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
                 "https://my-immutable-test-token.fi/logo.png",
                 ZERO_BYTES32, // No new update authority provided
                 true // isMutable
-            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'ImmutableMetadata')
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'ImmutableMetadata').withArgs(
+                await callSPLTokenProgram.getTokenMintAccount(deployer, Buffer.from(third_seed))
+            )
         })
 
         it('Update a non existent token metadata account for a non existent token mint (transaction reverts)', async function() {
@@ -333,7 +346,7 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
                 "https://my-imaginary-test-token.fi/logo.png",
                 ZERO_BYTES32, // No new update authority provided
                 true // isMutable
-            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'AccountDataQuery')
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'MetadataAccountDataQuery')
         })
     })
 })

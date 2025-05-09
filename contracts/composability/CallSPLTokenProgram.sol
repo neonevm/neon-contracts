@@ -278,8 +278,7 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
                 LibSPLTokenErrors.InvalidMintAuthority(
                     tokenMint,
                     mintAuthority,
-                    thisContractPubKey,
-                    "Only token mint's MINT authority can update MINT authority"
+                    thisContractPubKey
                 )
             );
         } else if (authorityType == LibSPLTokenProgram.AuthorityType.FREEZE) {
@@ -292,15 +291,11 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
                 LibSPLTokenErrors.InvalidFreezeAuthority(
                     tokenMint,
                     freezeAuthority,
-                    thisContractPubKey,
-                    "Only token mint's FREEZE authority can update FREEZE authority"
+                    thisContractPubKey
                 )
             );
         } else {
-            revert LibSPLTokenErrors.InvalidTokenMintAuthorityType(
-                tokenMint,
-                "Authority type must be MINT or FREEZE"
-            );
+            revert LibSPLTokenErrors.InvalidTokenMintAuthorityType(tokenMint);
         }
         // Format setAuthority instruction
         (   bytes32[] memory accounts,
@@ -346,8 +341,7 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
                 LibSPLTokenErrors.InvalidOwnerAuthority(
                     userATA,
                     tokenAccountOwner,
-                    thisContractPubKey,
-                    "Only token account OWNER can update OWNER authority"
+                    thisContractPubKey
                 )
             );
         } else if (authorityType == LibSPLTokenProgram.AuthorityType.CLOSE) {
@@ -363,16 +357,12 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
                         userATA,
                         tokenAccountOwner,
                         tokenAccountCloseAuthority,
-                        thisContractPubKey,
-                        "Only token account OWNER or CLOSE authority can update CLOSE authority"
+                        thisContractPubKey
                     )
                 );
             }
         } else {
-            revert LibSPLTokenErrors.InvalidTokenAccountAuthorityType(
-                userATA,
-                "Authority type must be OWNER or CLOSE"
-            );
+            revert LibSPLTokenErrors.InvalidTokenAccountAuthorityType(userATA);
         }
         // Format setAuthority instruction
         (   bytes32[] memory accounts,

@@ -14,18 +14,17 @@ library LibSPLTokenErrors {
     error InsufficientDelegatedAmount(bytes32 ata, uint64 delegatedAmount, uint64 claimedAmount);
 
     // Token mint authority errors
-    error InvalidMintAuthority(bytes32 tokenMint, bytes32 mintAuthority, bytes32 invalidAuthority, string message);
-    error InvalidFreezeAuthority(bytes32 tokenMint, bytes32 freezeAuthority, bytes32 invalidAuthority, string message);
-    error InvalidTokenMintAuthorityType(bytes32 tokenMint, string message);
+    error InvalidMintAuthority(bytes32 tokenMint, bytes32 mintAuthority, bytes32 invalidAuthority);
+    error InvalidFreezeAuthority(bytes32 tokenMint, bytes32 freezeAuthority, bytes32 invalidAuthority);
+    error InvalidTokenMintAuthorityType(bytes32 tokenMint);
 
     // Token account authority errors
-    error InvalidOwnerAuthority(bytes32 tokenAccount, bytes32 ownerAuthority, bytes32 invalidAuthority, string message);
+    error InvalidOwnerAuthority(bytes32 tokenAccount, bytes32 ownerAuthority, bytes32 invalidAuthority);
     error InvalidCloseAuthority(
         bytes32 tokenAccount,
         bytes32 ownerAuthority,
         bytes32 closeAuthority,
-        bytes32 invalidAuthority,
-        string message
+        bytes32 invalidAuthority
     );
-    error InvalidTokenAccountAuthorityType(bytes32 tokenAccount, string message);
+    error InvalidTokenAccountAuthorityType(bytes32 tokenAccount);
 }

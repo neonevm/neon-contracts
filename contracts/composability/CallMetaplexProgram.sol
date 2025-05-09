@@ -5,6 +5,7 @@ import { CallSolanaHelperLib } from '../utils/CallSolanaHelperLib.sol';
 import { Constants } from "./libraries/Constants.sol";
 import { LibSystemData } from "./libraries/system-program/LibSystemData.sol";
 import { LibSPLTokenData } from "./libraries/spl-token-program/LibSPLTokenData.sol";
+import { LibSPLTokenErrors } from "./libraries/spl-token-program/LibSPLTokenErrors.sol";
 import { LibMetaplexData } from "./libraries/metaplex-program/LibMetaplexData.sol";
 import { LibMetaplexErrors } from "./libraries/metaplex-program/LibMetaplexErrors.sol";
 import { LibMetaplexProgram } from "./libraries/metaplex-program/LibMetaplexProgram.sol";
@@ -25,9 +26,9 @@ contract CallMetaplexProgram {
     /// account associated to it)
     function createTokenMetadataAccount(
         bytes memory seed,
-        string memory tokenName,
-        string memory tokenSymbol,
-        string memory tokenUri,
+        string calldata tokenName,
+        string calldata tokenSymbol,
+        string calldata tokenUri,
         bool isMutable
     ) external {
         // Authentication: we derive the token mint account from msg.sender and seed
@@ -38,8 +39,7 @@ contract CallMetaplexProgram {
             LibSystemData.getSpace(metadataPDA) == 0,
             LibMetaplexErrors.MetadataAlreadyExists(
                 tokenMint,
-                metadataPDA,
-                "A token metadata account associated with provided token mint already exists"
+                metadataPDA
             )
         );
         // Check that this contract is the current token mint's MINT authority (only token mint's MINT authority can
@@ -48,11 +48,10 @@ contract CallMetaplexProgram {
         bytes32 mintAuthority = LibSPLTokenData.getSPLTokenMintAuthority(tokenMint);
         require(
             thisContractPubKey == mintAuthority,
-            LibMetaplexErrors.InvalidMintAuthority(
+            LibSPLTokenErrors.InvalidMintAuthority(
                 tokenMint,
                 mintAuthority,
-                thisContractPubKey,
-                "Only token mint's MINT authority can create a metadata account associated with this token mint"
+                thisContractPubKey
             )
         );
         // Get the payer account which will pay to fund the metadata account creation
@@ -97,45 +96,22 @@ contract CallMetaplexProgram {
     /// will not change the metadata account's UPDATE authority.
     function updateTokenMetadataAccount(
         bytes memory seed,
-        string memory newTokenName,
-        string memory newTokenSymbol,
-        string memory newTokenUri,
+        string calldata newTokenName,
+        string calldata newTokenSymbol,
+        string calldata newTokenUri,
         bytes32 newUpdateAuthority,
         bool isMutable
     ) external {
         // Authentication: we derive the token mint account from msg.sender and seed
         bytes32 tokenMint = getTokenMintAccount(msg.sender, seed);
-        // Verify that the metadata account associated with this token mint is mutable
-        require(
-            LibMetaplexData.getDeserializedMetadata(tokenMint).isMutable,
-            LibMetaplexErrors.ImmutableMetadata(
-                tokenMint,
-                "Metadata associated with provided token mint is immutable"
-            )
-        );
-        // Derive the token metadata account's public key
-        bytes32 metadataPDA = LibMetaplexData.getMetadataPDA(tokenMint);
-        // Check that this contract is the current token metadata account's UPDATE authority (only token mint's MINT authority can
-        // create a metadata account associated with this token mint)
-        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
-        bytes32 updateAuthority = LibMetaplexData.getDeserializedMetadata(tokenMint).updateAuthority;
-        require(
-            thisContractPubKey == updateAuthority,
-            LibMetaplexErrors.InvalidUpdateAuthority(
-                metadataPDA,
-                updateAuthority,
-                thisContractPubKey,
-                "Only token metadata account's UPDATE authority can update a metadata account"
-            )
-        );
+
         // Format updateMetadataAccountV2 instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
         ) = LibMetaplexProgram.formatUpdateMetadataAccountV2Instruction(
-            metadataPDA,
-            thisContractPubKey, // This contract will have UPDATE authority on the created metadata account
+            tokenMint,
             newUpdateAuthority, // New update authority
             newTokenName,
             newTokenSymbol,
