@@ -20,7 +20,7 @@ interface ICallSolana {
     
     
     // Returns Solana address of resource for contracts.
-    // Calculates as PDA([ACCONT_SEED_VERSION, "ContractData", msg.sender, salt], evm_loader_id)
+    // Calculates as PDA([ACCOUNT_SEED_VERSION, "ContractData", msg.sender, salt], evm_loader_id)
     function getResourceAddress(bytes32 salt) external view returns (bytes32);
     
     
@@ -109,7 +109,7 @@ interface ICallSolana {
     len(data) as uint64le
         data (see instruction to Solana program)
 
-The optimized way to serailize instruction is write this code on the solidity assembler.
+The optimized way to serialize instruction is write this code on the solidity assembler.
 To perform a call to `execute()` and `executeWithSeed()` methods the next code-sample can be helpful:
 ```solidity
     {
