@@ -86,7 +86,6 @@ contract CallAssociatedTokenProgram is Ownable2Step {
         ) = LibSPLTokenProgram.formatTransferInstruction(
             ata,
             recipientATA,
-            thisContractPubKey, // token account owner
             amount
         );
         // Prepare transfer instruction

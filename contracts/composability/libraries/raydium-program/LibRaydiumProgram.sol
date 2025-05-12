@@ -8,6 +8,7 @@ import {LibRaydiumData} from "./LibRaydiumData.sol";
 import {LibRaydiumErrors} from "./LibRaydiumErrors.sol";
 import {LibSPLTokenData} from "../spl-token-program/LibSPLTokenData.sol";
 import {LibSystemData} from "../system-program/LibSystemData.sol";
+import {LibMetaplexData} from "../metaplex-program/LibMetaplexData.sol";
 import {SolanaDataConverterLib} from "../../../utils/SolanaDataConverterLib.sol";
 
 
@@ -331,15 +332,14 @@ library LibRaydiumProgram {
             /// 607 bytes for account getPdaMetadataKey + 1x ACCOUNT_STORAGE_OVERHEAD
             accountsBytesSize += 735;
         }
-        lamports = LibSystemData.getRentExemptionBalance(
-            accountsBytesSize,
-            LibSystemData.getSystemAccountData(
-                Constants.getSysvarRentPubkey(),
-                LibSystemData.getSpace(Constants.getSysvarRentPubkey())
-            )
+        // Get latest rent data from Solana's Sysvar rent account
+        bytes memory rentDataBytes = LibSystemData.getSystemAccountData(
+            Constants.getSysvarRentPubkey(),
+            LibSystemData.getSpace(Constants.getSysvarRentPubkey())
         );
+        lamports = LibSystemData.getRentExemptionBalance(accountsBytesSize, rentDataBytes);
         if (withMetadata) {
-            lamports += 10000000; // account getPdaMetadataKey has to be filled with 0.01 SOLs
+            lamports += LibMetaplexData.getMetaplexCreateFee(rentDataBytes); // Metaplex program's fee for token metadata accounts creation
         }
 
         accounts[0] = Constants.getLockCPMMPoolAuthPubkey();

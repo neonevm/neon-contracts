@@ -337,7 +337,6 @@ contract CallRaydiumProgram {
             ) = LibSPLTokenProgram.formatTransferInstruction(
                 inputToken_ATA,
                 getNeonArbitraryTokenAccount(inputToken, msg.sender),
-                payerAccount,
                 payerTokenABalanceAfter - payerTokenABalance
             );
 

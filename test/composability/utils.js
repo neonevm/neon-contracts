@@ -13,10 +13,19 @@ const {
     createSyncNativeInstruction
 } = require('@solana/spl-token');
 const { Metaplex } = require("@metaplex-foundation/js");
-const { createCreateMetadataAccountV3Instruction } = require("@metaplex-foundation/mpl-token-metadata");
+const { createUmi } = require("@metaplex-foundation/umi-bundle-defaults");
+const {
+    createSignerFromKeypair,
+    signerIdentity,
+    publicKey
+} = require("@metaplex-foundation/umi");
+const { createMetadataAccountV3 } = require("@metaplex-foundation/mpl-token-metadata");
 const bs58 = require("bs58");
 const config = require("../config")
+const {Buffer} = require("buffer");
+const {AccountMeta, PublicKey} = require("@solana/web3.js");
 const connection = new web3.Connection(config.svm_node[network.name], "processed");
+const umi = createUmi(config.svm_node[network.name]);
 
 async function asyncTimeout(timeout) {
     return new Promise((resolve) => {
@@ -219,26 +228,30 @@ function publicKeyToBytes32(pubkey) {
 }
 
 async function setupSPLTokens() {
-    const keypair = web3.Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY_SOLANA));
-    if (await connection.getBalance(keypair.publicKey) < 0.05 * 10 ** 9) {
+    const keypair = web3.Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY_SOLANA))
+    const _keypair = umi.eddsa.createKeypairFromSecretKey(keypair.secretKey)
+    const authority = createSignerFromKeypair(umi, _keypair);
+    const authorityPubkey = new web3.PublicKey(authority.publicKey.toString())
+
+    if (await connection.getBalance(authorityPubkey) < 0.05 * 10 ** 9) {
         console.error('Provided Solana wallet needs at least 0.05 SOL to perform the test.');
         process.exit();
     }
 
     const seed = 'seed' + Date.now().toString(); // random seed on each script call
-    const createWithSeed = await web3.PublicKey.createWithSeed(keypair.publicKey, seed, new web3.PublicKey(TOKEN_PROGRAM_ID));
+    const createWithSeed = await web3.PublicKey.createWithSeed(authorityPubkey, seed, new web3.PublicKey(TOKEN_PROGRAM_ID));
     console.log(createWithSeed, 'createWithSeed');
 
     let tokenAta = await getAssociatedTokenAddress(
         createWithSeed,
-        keypair.publicKey,
+        authorityPubkey,
         true
     );
     console.log(tokenAta, 'tokenAta');
 
     let wsolAta = await getAssociatedTokenAddress(
         NATIVE_MINT,
-        keypair.publicKey,
+        authorityPubkey,
         true
     );
     console.log(wsolAta, 'wsolAta');
@@ -248,7 +261,7 @@ async function setupSPLTokens() {
     // SOL -> wSOL
     tx.add(
         web3.SystemProgram.transfer({
-            fromPubkey: keypair.publicKey,
+            fromPubkey: authorityPubkey,
             toPubkey: wsolAta,
             lamports: 50000000 // 0.05 SOL
         }),
@@ -258,8 +271,8 @@ async function setupSPLTokens() {
     // create tokenA
     tx.add(
         web3.SystemProgram.createAccountWithSeed({
-            fromPubkey: keypair.publicKey,
-            basePubkey: keypair.publicKey,
+            fromPubkey: authorityPubkey,
+            basePubkey: authorityPubkey,
             newAccountPubkey: createWithSeed,
             seed: seed,
             lamports: await connection.getMinimumBalanceForRentExemption(MINT_SIZE),
@@ -270,47 +283,58 @@ async function setupSPLTokens() {
 
     tx.add(
         createInitializeMint2Instruction(
-            createWithSeed, 
+            createWithSeed,
             9, // decimals
-            keypair.publicKey,
-            keypair.publicKey,
+            authorityPubkey,
+            authorityPubkey,
         )
     );
 
     const metaplex = new Metaplex(connection);
-    const metadata = metaplex.nfts().pdas().metadata({mint: createWithSeed});
-    tx.add(
-        createCreateMetadataAccountV3Instruction(
-            {
-                metadata: metadata,
-                mint: createWithSeed,
-                mintAuthority: keypair.publicKey,
-                payer: keypair.publicKey,
-                updateAuthority: keypair.publicKey
+    const metadata = metaplex.nfts().pdas().metadata({ mint: createWithSeed });
+    umi.use(signerIdentity(authority));
+    const ix = createMetadataAccountV3(
+        umi,
+        {
+            metadata: metadata,
+            mint: createWithSeed,
+            mintAuthority: authorityPubkey,
+            payer: authorityPubkey,
+            updateAuthority: authorityPubkey,
+            data: {
+                name: "Dev Neon EVM 2",
+                symbol: "devNEON 2",
+                uri: 'https://ipfs.io/ipfs/QmW2JdmwWsTVLw1Gx4ympCn1VHJiuojfNLS5ZNLEPcBd5x/doge.json',
+                sellerFeeBasisPoints: 0,
+                collection: null,
+                creators: null,
+                uses: null
             },
-            {
-                createMetadataAccountArgsV3: {
-                    data: {
-                        name: "Dev Neon EVM 2",
-                        symbol: "devNEON 2",
-                        uri: 'https://ipfs.io/ipfs/QmW2JdmwWsTVLw1Gx4ympCn1VHJiuojfNLS5ZNLEPcBd5x/doge.json',
-                        sellerFeeBasisPoints: 0,
-                        collection: null,
-                        creators: null,
-                        uses: null
-                    },
-                    isMutable: true,
-                    collectionDetails: null
-                },
-            }
-        )
-    );
+            isMutable: true,
+            collectionDetails: null
+        }
+    ).getInstructions()[0]
+    const keys = []
+    ix.keys.forEach((_key) => {
+        const key = {}
+        key.isSigner= _key.isSigner
+        key.isWritable= _key.isWritable
+        key.pubkey = new web3.PublicKey(_key.pubkey)
+        keys.push(key)
+    })
+    tx.add(
+        new web3.TransactionInstruction({
+            keys,
+            programId: ix.programId,
+            data: ix.data,
+        })
+    )
 
     tx.add(
         createAssociatedTokenAccountInstruction(
-            keypair.publicKey,
+            authorityPubkey,
             tokenAta,
-            keypair.publicKey,
+            authorityPubkey,
             createWithSeed
         )
     );
@@ -319,7 +343,7 @@ async function setupSPLTokens() {
         createMintToInstruction(
             createWithSeed,
             tokenAta,
-            keypair.publicKey,
+            authorityPubkey,
             1500 * 10 ** 9 // mint 1500 tokens
         )
     );
