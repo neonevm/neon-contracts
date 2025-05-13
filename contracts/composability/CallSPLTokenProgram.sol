@@ -148,8 +148,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
     ) external {
         // Authentication: we derive the token mint account from msg.sender and seed
         bytes32 tokenMint = getTokenMintAccount(msg.sender, seed);
-        // This contract is mint/freeze authority
-        bytes32 mintAuthority = CALL_SOLANA.getNeonAddress(address(this));
         // Format mintTo instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -157,7 +155,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
             bytes memory data
         ) = LibSPLTokenProgram.formatMintToInstruction(
             tokenMint,
-            mintAuthority,
             recipientATA,
             amount
         );
@@ -182,8 +179,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         bytes32 senderPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the sender's associated token account from the sender account and the token mint account
         bytes32 senderATA = getArbitraryTokenAccount(tokenMint, senderPubKey, 0);
-        // This contract owns the sender's associated token account
-        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format transfer instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -192,7 +187,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         ) = LibSPLTokenProgram.formatTransferInstruction(
             senderATA,
             recipientATA,
-            thisContractPubKey, // token account owner
             amount
         );
         // Prepare transfer instruction
@@ -234,8 +228,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
                 amount
             )
         );
-        // This contract owns the sender associated token account
-        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format transfer instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -244,7 +236,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         ) = LibSPLTokenProgram.formatTransferInstruction(
             senderATA,
             recipientATA,
-            thisContractPubKey, // token account owner
             amount
         );
         // Prepare transfer instruction
@@ -305,7 +296,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         ) = LibSPLTokenProgram.formatSetAuthorityInstruction(
             tokenMint, // account of which we want to update authority
             authorityType,
-            thisContractPubKey, // current authority
             newAuthority
         );
         // Prepare setAuthority instruction
@@ -372,7 +362,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         ) = LibSPLTokenProgram.formatSetAuthorityInstruction(
             userATA, // account of which we want to update authority
             authorityType,
-            thisContractPubKey, // current authority
             newAuthority
         );
         // Prepare setAuthority instruction
@@ -392,9 +381,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
         bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
-        // This contract owns the user's associated token account
-        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
-
         // Format approve instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -403,7 +389,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         ) = LibSPLTokenProgram.formatApproveInstruction(
             userATA,
             delegate,
-            thisContractPubKey, // token account owner
             amount
         );
         // Prepare approve instruction
@@ -423,16 +408,13 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
         bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
-        // This contract owns the user's associated token account
-        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format revoke instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
         ) = LibSPLTokenProgram.formatRevokeInstruction(
-            userATA,
-            thisContractPubKey // token account owner
+            userATA
         );
         // Prepare revoke instruction
         bytes memory revokeIx = CallSolanaHelperLib.prepareSolanaInstruction(
@@ -451,9 +433,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
         bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
-        // This contract owns the user's associated token account
-        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
-
         // Format burn instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -462,7 +441,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         ) = LibSPLTokenProgram.formatBurnInstruction(
             userATA,
             tokenMint,
-            thisContractPubKey, // token account owner
             amount
         );
         // Prepare burn instruction
@@ -482,8 +460,6 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
         bytes32 userPubKey = CALL_SOLANA.getNeonAddress(msg.sender);
         // Authentication: we derive the user's associated token account from the user account and the token mint account
         bytes32 userATA = getArbitraryTokenAccount(tokenMint, userPubKey, 0);
-        // This contract owns the user's associated token account
-        bytes32 thisContractPubKey = CALL_SOLANA.getNeonAddress(address(this));
         // Format closeAccount instruction
         (   bytes32[] memory accounts,
             bool[] memory isSigner,
@@ -491,8 +467,7 @@ contract CallSPLTokenProgram is CallMetaplexProgram {
             bytes memory data
         ) = LibSPLTokenProgram.formatCloseAccountInstruction(
             userATA,
-            destination, // The account which will receive the closed token account's SOL balance
-            thisContractPubKey // token accounttoken account owner
+            destination // The account which will receive the closed token account's SOL balance
         );
         // Prepare approve instruction
         bytes memory approveIx = CallSolanaHelperLib.prepareSolanaInstruction(

@@ -296,9 +296,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 Buffer.from(seed), // Seed that was used to generate SPL token mint
                 neonEVMUserTokenAccountInBytes, // Recipient token account
                 AMOUNT // Amount to mint
-            )).to.be.revertedWith(
-                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x3"
-            )
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'TokenMintDataQuery')
 
             newNeonEVMUserTokenAccountBalance = BigInt((await solanaConnection.getTokenAccountBalance(
                 new web3.PublicKey(ethers.encodeBase58(neonEVMUserTokenAccountInBytes))
@@ -575,9 +573,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 tokenMintInBytes,
                 neonEVMUserPublicKeyInBytes,
                 AMOUNT
-            )).to.be.revertedWith(
-                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: invalid account data for instruction"
-            )
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'TokenAccountDataQuery')
         })
     })
 
@@ -613,9 +609,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         it('User without initialized token account cannot revoke approval (transaction reverts)', async function() {
             await expect(callSPLTokenProgram.connect(otherNeonEVMUser).revokeApproval(
                 tokenMintInBytes
-            )).to.be.revertedWith(
-                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: invalid account data for instruction"
-            )
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'TokenAccountDataQuery')
         })
     })
 
@@ -783,7 +777,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 3,
                 contractPublicKeyInBytes,
             )).to.be.revertedWith(
-                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x4"
+                "Solana Program Error: A signature was required but not found"
             )
         })
 
@@ -1048,9 +1042,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             await expect(callSPLTokenProgram.connect(otherNeonEVMUser).closeTokenAccount(
                 tokenMintInBytes,
                 otherNeonEVMUserPublicKeyInBytes
-            )).to.be.revertedWith(
-                "External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: invalid account data for instruction"
-            )
+            )).to.be.revertedWithCustomError(callSPLTokenProgram, 'TokenAccountDataQuery')
         })
     })
 

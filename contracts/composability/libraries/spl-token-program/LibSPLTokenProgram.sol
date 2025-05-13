@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import { Constants } from "../Constants.sol";
 import { SolanaDataConverterLib } from "../../../utils/SolanaDataConverterLib.sol";
+import { LibSPLTokenData } from "./LibSPLTokenData.sol";
 
 /// @title LibSPLTokenProgram
 /// @notice Helper library for interactions with Solana's SPL Token program
@@ -81,15 +82,13 @@ library LibSPLTokenProgram {
 
     /// @notice Helper function to format a `mintTo` instruction
     /// @param tokenMint The mint account of the token to be minted
-    /// @param mintAuthority The account which has been granted authority to mint considered token
     /// @param recipientATA The associated token account to which token will be minted
     /// @param amount The amount of token to be minted
     function formatMintToInstruction(
         bytes32 tokenMint,
-        bytes32 mintAuthority,
         bytes32 recipientATA,
         uint64 amount
-    ) internal pure returns (
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -98,7 +97,7 @@ library LibSPLTokenProgram {
         accounts = new bytes32[](3);
         accounts[0] = tokenMint;
         accounts[1] = recipientATA;
-        accounts[2] = mintAuthority;
+        accounts[2] = LibSPLTokenData.getSPLTokenMintAuthority(tokenMint);
 
         isSigner = new bool[](3);
         isSigner[2] = true;
@@ -118,14 +117,12 @@ library LibSPLTokenProgram {
     /// @notice Helper function to format a `transfer` instruction
     /// @param senderATA The sender's associated token account to be debited
     /// @param recipientATA The recipient's associated token account to be credited
-    /// @param sender The sender's account which owns the sender's associated token account to be debited
     /// @param amount The amount of token to be transferred
     function formatTransferInstruction(
         bytes32 senderATA,
         bytes32 recipientATA,
-        bytes32 sender,
         uint64 amount
-    ) internal pure returns (
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -134,7 +131,7 @@ library LibSPLTokenProgram {
         accounts = new bytes32[](3);
         accounts[0] = senderATA;
         accounts[1] = recipientATA;
-        accounts[2] = sender;
+        accounts[2] = LibSPLTokenData.getSPLTokenAccountOwner(senderATA);
 
         isSigner = new bool[](3);
         isSigner[2] = true;
@@ -155,19 +152,32 @@ library LibSPLTokenProgram {
     /// authority or a a SPL token account's owner or close authority
     /// @param account The SPL token mint or account of which we want to update authority
     /// @param authorityType The type of authority to be updated
-    /// @param currentAuthority The current authority to be revoked
     /// @param newAuthority The new authority to be set
     function formatSetAuthorityInstruction(
         bytes32 account,
         AuthorityType authorityType,
-        bytes32 currentAuthority,
         bytes32 newAuthority
-    ) internal pure returns (
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
         bytes memory data
     ) {
+        // Get the public key of the current authority to be revoked
+        bytes32 currentAuthority;
+        if (authorityType == AuthorityType.MINT) {
+            currentAuthority = LibSPLTokenData.getSPLTokenMintAuthority(account);
+        } else if (authorityType == AuthorityType.FREEZE) {
+            currentAuthority = LibSPLTokenData.getSPLTokenFreezeAuthority(account);
+        } else if (authorityType == AuthorityType.OWNER) {
+            currentAuthority = LibSPLTokenData.getSPLTokenAccountOwner(account);
+        } else if (authorityType == AuthorityType.CLOSE) {
+            currentAuthority = LibSPLTokenData.getSPLTokenAccountCloseAuthority(account);
+            if(currentAuthority == bytes32(0)) {
+                currentAuthority = LibSPLTokenData.getSPLTokenAccountOwner(account);
+            }
+        }
+
         accounts = new bytes32[](2);
         accounts[0] = account;
         accounts[1] = currentAuthority;
@@ -190,14 +200,12 @@ library LibSPLTokenProgram {
     /// token account to a third party account
     /// @param ata The associated token account that we want to delegate
     /// @param delegate The account that we want to delegate to
-    /// @param owner The account owning the associated token account that we want to delegate
     /// @param amount The amount of token that we want to delegate
     function formatApproveInstruction(
         bytes32 ata,
         bytes32 delegate,
-        bytes32 owner,
         uint64 amount
-    ) internal pure returns (
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -206,7 +214,7 @@ library LibSPLTokenProgram {
         accounts = new bytes32[](3);
         accounts[0] = ata;
         accounts[1] = delegate;
-        accounts[2] = owner;
+        accounts[2] = LibSPLTokenData.getSPLTokenAccountOwner(ata);
 
         isSigner = new bool[](3);
         isSigner[2] = true;
@@ -225,11 +233,9 @@ library LibSPLTokenProgram {
     /// @notice Helper function to format a `revoke` instruction in order to revoke all delegation granted by an
     // associated token account
     /// @param ata The associated token account for which we want to revoke all delegation
-    /// @param owner The account owning the associated token account for which we want to revoke all delegation
     function formatRevokeInstruction(
-        bytes32 ata,
-        bytes32 owner
-    ) internal pure returns (
+        bytes32 ata
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -237,7 +243,7 @@ library LibSPLTokenProgram {
     ) {
         accounts = new bytes32[](2);
         accounts[0] = ata;
-        accounts[1] = owner;
+        accounts[1] = LibSPLTokenData.getSPLTokenAccountOwner(ata);
 
         isSigner = new bool[](2);
         isSigner[1] = true;
@@ -251,14 +257,12 @@ library LibSPLTokenProgram {
     /// @notice Helper function to format a `burn` instruction in order to burn tokens from a token account
     /// @param ata The associated token account which we want to burn tokens from
     /// @param tokenMint The token mint corresponding to the tokens we want to burn
-    /// @param owner The owner of the ata which we want to burn tokens from
     /// @param amount The amount of tokens we want to burn
     function formatBurnInstruction(
         bytes32 ata,
         bytes32 tokenMint,
-        bytes32 owner,
         uint64 amount
-    ) internal pure returns (
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
@@ -267,7 +271,7 @@ library LibSPLTokenProgram {
         accounts = new bytes32[](3);
         accounts[0] = ata;
         accounts[1] = tokenMint;
-        accounts[2] = owner;
+        accounts[2] = LibSPLTokenData.getSPLTokenAccountOwner(ata);
 
         isSigner = new bool[](3);
         isSigner[2] = true;
@@ -287,21 +291,25 @@ library LibSPLTokenProgram {
     /// @notice Helper function to format a `closeAccount` instruction in order to close an associated token account
     /// @param ata The associated token account that we want to close
     /// @param destination The account that will receive the closed ata's SOL balance
-    /// @param authority The ata's current close authority
     function formatCloseAccountInstruction(
         bytes32 ata,
-        bytes32 destination,
-        bytes32 authority
-    ) internal pure returns (
+        bytes32 destination
+    ) internal view returns (
         bytes32[] memory accounts,
         bool[] memory isSigner,
         bool[] memory isWritable,
         bytes memory data
     ) {
+        // Get the public key of the ata's CLOSE authority or OWNER
+        bytes32 closeAuthority = LibSPLTokenData.getSPLTokenAccountCloseAuthority(ata);
+        if(closeAuthority == bytes32(0)) {
+            closeAuthority = LibSPLTokenData.getSPLTokenAccountOwner(ata);
+        }
+
         accounts = new bytes32[](3);
         accounts[0] = ata;
         accounts[1] = destination;
-        accounts[2] = authority;
+        accounts[2] = closeAuthority;
 
         isSigner = new bool[](3);
         isSigner[2] = true;
