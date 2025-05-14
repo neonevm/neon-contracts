@@ -26,7 +26,7 @@ interface ISPLTokenProgram {
         bytes32 mintAuthority;
     }
 
-    /// @notice Getter returing the user's ATA in bytes32 format for this SPLToken
+    /// @notice Getter returning the user's ATA in bytes32 format for this SPLToken
     function findAccount(bytes32 salt) external pure returns(bytes32);
 
     /// @notice Check if account is a system account. System account is not owned by anyone until it's initialized.
