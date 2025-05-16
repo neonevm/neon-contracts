@@ -126,20 +126,60 @@ contract, instead it must interact directly with the **SPL Token** program on _S
 
 ## Tests
 
+### Private keys setup
+
+Private keys used in tests must be stored in an encrypted keystore file (located at 
+`~/Library/Preferences/hardhat-nodejs/keystore.json` by default) before running tests. To do so, run the following 
+commands in the CLI. You will be asked to choose a password (which will be used to encrypt provided secrets) and to 
+enter the secret values to be encrypted.
+
+```shell
+npx hardhat keystore set PRIVATE_KEY_OWNER
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_USER_1
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_USER_2
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_USER_3
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA_2
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA_3
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA_4
+```
+
+### Environment variables
+
+The keystore's password can be added to the `.env` file (as `KEYSTORE_PASSWORD`)  which allows secrets to be decrypted 
+automatically when running tests. Otherwise, each running test have the CLI prompt a request to enter the keystore's 
+password manually.
+
+### Running tests
+
 Contracts are deployed at the beginning of each test unless the `utils.js` file already contains the contract address.
 
 The `system.test.js`, `spl-token.test.js` and `metaplex.test.js` test cases can be run on either _Curvestand_ test network or _Neon devnet_ 
 using the following commands:
 
-`npx hardhat test ./test/composability/system.test.js --network < curvestand or neondevnet >`
+`npx hardhat test mocha ./test/composability/system.test.js --network < curvestand or neondevnet >`
 
-`npx hardhat test ./test/composability/spl-token.test.js --network < curvestand or neondevnet >`
+`npx hardhat test mocha ./test/composability/spl-token.test.js --network < curvestand or neondevnet >`
 
-`npx hardhat test ./test/composability/metaplex.test.js --network < curvestand or neondevnet >`
+`npx hardhat test mocha ./test/composability/metaplex.test.js --network < curvestand or neondevnet >`
 
 The `raydium.test.js` and `raydium-create-pool-and-lock-LP.test.js` test cases can only be run on _Neon devnet_ using the 
 following commands:
 
-`npx hardhat test ./test/composability/raydium.test.js --network neondevnet`
+`npx hardhat test mocha ./test/composability/raydium.test.js --network neondevnet`
 
-`npx hardhat test ./test/composability/raydium-create-pool-and-lock-LP.test.js --network neondevnet`
+`npx hardhat test mocha ./test/composability/raydium-create-pool-and-lock-LP.test.js --network neondevnet`

@@ -1,18 +1,21 @@
-const { network, ethers} = require("hardhat");
-const { expect } = require("chai");
-const web3 = require("@solana/web3.js");
-const { getAccount, getAssociatedTokenAddress, NATIVE_MINT } = require("@solana/spl-token");
-const config = require("../config.js");
-const { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } = require("./utils.js");
-const connection = new web3.Connection(config.svm_node[network.name], "processed");
+import hre from "hardhat"
+import { expect } from "chai"
+import web3 from "@solana/web3.js"
+import { getAccount, getAssociatedTokenAddress, NATIVE_MINT } from "@solana/spl-token"
+import config from "../config.js"
+import { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } from "./utils.js"
+import { decryptWallets } from "../../wallets.js";
+const connection = new web3.Connection(config.svm_node[hre.globalOptions.network], "processed")
 
 describe('LibRaydiumProgram', function() {
-    console.log("Network name: " + network.name)
+
+    console.log("\nNetwork name: " + hre.globalOptions.network)
 
     const RECEIPTS_COUNT = 1;
     const tokenA = NATIVE_MINT.toBase58(); // wSOL
     const WSOL = "0xc7Fc9b46e479c5Cb42f6C458D1881e55E6B7986c";
-    let deployer,
+    let ethers,
+        deployer,
         neonEVMUser,
         CallRaydiumProgram,
         payer,
@@ -22,26 +25,29 @@ describe('LibRaydiumProgram', function() {
         poolId
 
     before(async function() {
-        const deployment = await deployContract('CallRaydiumProgram', null);
+        const wallets = await decryptWallets()
+        ethers = (await hre.network.connect()).ethers
+        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallRaydiumProgram', null);
         deployer = deployment.deployer
         neonEVMUser = deployment.user
         CallRaydiumProgram = deployment.contract
         payer = await CallRaydiumProgram.getPayer();
-        tokenB = await setupSPLTokens();
+        tokenB = await setupSPLTokens(wallets.solanaUser1);
         console.log(tokenA, 'tokenA');
         console.log(tokenB, 'tokenB');
 
         // setup ATA accounts for our CallRaydiumProgram's payer
         await setupATAAccounts(
+            wallets.solanaUser1,
             ethers.encodeBase58(payer),
             [tokenA, tokenB]
         );
 
-        const erc20ForSplFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSpl');
+        const erc20ForSplFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSpl', deployer);
         tokenA_Erc20ForSpl = erc20ForSplFactory.attach(WSOL);
 
         // deploy ERC20ForSpl interface for fresh minted spltoken tokenB
-        tokenB_Erc20ForSpl = await ethers.deployContract("contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSpl", [ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32)]);
+        tokenB_Erc20ForSpl = await ethers.deployContract("contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSpl", [ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32)], wallets.owner);
         await tokenB_Erc20ForSpl.waitForDeployment();
 
         console.log(
@@ -50,7 +56,8 @@ describe('LibRaydiumProgram', function() {
 
         // approve tokenA and tokenB to be claimed by deployer
         let [approvedTokenA, approverTokenB] = await approveSplTokens(
-            tokenA, 
+            wallets.solanaUser1,
+            tokenA,
             tokenB, 
             tokenA_Erc20ForSpl, 
             tokenB_Erc20ForSpl, 

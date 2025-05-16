@@ -1,6 +1,6 @@
-const {ethers, network} = require("hardhat")
-const web3 = require("@solana/web3.js");
-const {
+import hre from "hardhat"
+import web3 from "@solana/web3.js"
+import {
     getAssociatedTokenAddress,
     createInitializeMint2Instruction,
     TOKEN_PROGRAM_ID,
@@ -11,29 +11,28 @@ const {
     getAssociatedTokenAddressSync,
     createApproveInstruction,
     createSyncNativeInstruction
-} = require('@solana/spl-token');
-const { Metaplex } = require("@metaplex-foundation/js");
-const { createUmi } = require("@metaplex-foundation/umi-bundle-defaults");
-const {
+} from '@solana/spl-token'
+import { Metaplex } from "@metaplex-foundation/js"
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults"
+import {
     createSignerFromKeypair,
-    signerIdentity,
-    publicKey
-} = require("@metaplex-foundation/umi");
-const { createMetadataAccountV3 } = require("@metaplex-foundation/mpl-token-metadata");
-const bs58 = require("bs58");
-const config = require("../config")
-const {Buffer} = require("buffer");
-const {AccountMeta, PublicKey} = require("@solana/web3.js");
-const connection = new web3.Connection(config.svm_node[network.name], "processed");
-const umi = createUmi(config.svm_node[network.name]);
+    signerIdentity
+} from "@metaplex-foundation/umi"
+import { createMetadataAccountV3 } from "@metaplex-foundation/mpl-token-metadata"
+import { Buffer } from "buffer"
+import config from "../config"
 
-async function asyncTimeout(timeout) {
+const ethers = (await hre.network.connect()).ethers;
+const solanaConnection = new web3.Connection(config.svm_node[hre.globalOptions.network], "processed")
+const umi = createUmi(config.svm_node[hre.globalOptions.network])
+
+export async function asyncTimeout(timeout) {
     return new Promise((resolve) => {
         setTimeout(() => resolve(), timeout)
     })
 }
 
-function asyncForLoop(iterable, asyncCallback, index, result) {
+export function asyncForLoop(iterable, asyncCallback, index, result) {
     return new Promise(async (resolve, reject) => {
         try {
             if(index < iterable.length) {
@@ -48,7 +47,7 @@ function asyncForLoop(iterable, asyncCallback, index, result) {
     })
 }
 
-function asyncWhileLoop(isConditionFulfilled, asyncCallback, result) {
+export function asyncWhileLoop(isConditionFulfilled, asyncCallback, result) {
     return new Promise(async (resolve, reject) => {
         try {
             if(!isConditionFulfilled) {
@@ -63,10 +62,10 @@ function asyncWhileLoop(isConditionFulfilled, asyncCallback, result) {
     })
 }
 
-async function airdropNEON(address, amount) {
+export async function airdropNEON(address, amount) {
     const neonAmount = parseInt(ethers.formatUnits(amount.toString(), 18))
     if(neonAmount > 0) {
-        const res = await fetch(config.neon_faucet[network.name].url, {
+        const res = await fetch(config.neon_faucet[hre.globalOptions.network].url, {
             method: 'POST',
             body: JSON.stringify({"amount": neonAmount, "wallet": address}),
             headers: {'Content-Type': 'application/json'}
@@ -92,10 +91,10 @@ async function airdropNEON(address, amount) {
     }
 }
 
-async function airdropSOL(solanaConnection, recipientPubKey, solAmount) {
+export async function airdropSOL(recipientPubKey, solAmount) {
     if(solAmount > 0) {
         const params = [recipientPubKey, solAmount]
-        const res = await fetch(config.svm_node[network.name], {
+        const res = await fetch(config.svm_node[hre.globalOptions.network], {
             method: 'POST',
             body: JSON.stringify({"jsonrpc": "2.0", "id": 1, "method": "requestAirdrop", "params": params}),
             headers: {'Content-Type': 'application/json'}
@@ -121,20 +120,12 @@ async function airdropSOL(solanaConnection, recipientPubKey, solAmount) {
     }
 }
 
-async function deployContract(contractName, contractAddress = null) {
-    if (!process.env.PRIVATE_KEY_OWNER) {
-        throw new Error("\nMissing private key: PRIVATE_KEY_OWNER")
-    }
-    if (!process.env.PRIVATE_KEY_USER_1) {
-        throw new Error("\nMissing private key: PRIVATE_KEY_USER_1")
-    }
-    const minBalance = BigInt(ethers.parseUnits(config.neon_faucet[network.name].min_balance, 18))
-    const deployer = (await ethers.getSigners())[0]
+export async function deployContract(deployer, user, contractName, contractAddress = null) {
+    const minBalance = BigInt(ethers.parseUnits(config.neon_faucet[hre.globalOptions.network].min_balance, 18))
     let deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
     if(deployerBalance < minBalance) {
         await airdropNEON(deployer.address, minBalance - deployerBalance)
     }
-    const user = (await ethers.getSigners())[1]
     let userBalance = BigInt(await ethers.provider.getBalance(user.address))
     if(userBalance < minBalance) {
         await airdropNEON(user.address, minBalance - userBalance)
@@ -142,19 +133,22 @@ async function deployContract(contractName, contractAddress = null) {
     const otherUser = ethers.Wallet.createRandom(ethers.provider)
     await airdropNEON(otherUser.address, minBalance)
 
-    const contractFactory = await ethers.getContractFactory(contractName)
+    const contractFactory = await ethers.getContractFactory(contractName, deployer)
     let contract
-    if (!config.composability[contractName][network.name] && !contractAddress) {
+    if(contractName.split(':').length > 1) {
+        contractName = contractName.split(':')[contractName.split(':').length - 1]
+    }
+    if (!config.composability[contractName][hre.globalOptions.network] && !contractAddress) {
         console.log("\nDeployer address: " + deployer.address)
         deployerBalance = BigInt(await ethers.provider.getBalance(deployer.address))
         console.log("\nDeployer balance: " + ethers.formatUnits(deployerBalance.toString(), 18) + " NEON")
 
-        console.log("\nDeploying " + contractName + " contract to " + network.name + "...")
+        console.log("\nDeploying " + contractName + " contract to " + hre.globalOptions.network + "...")
         contract = await contractFactory.deploy()
         await contract.waitForDeployment()
         console.log("\n" + contractName + " contract deployed to: " + contract.target)
     } else {
-        const deployedContractAddress = contractAddress ? contractAddress : config.composability[contractName][network.name]
+        const deployedContractAddress = contractAddress ? contractAddress : config.composability[contractName][hre.globalOptions.network]
         console.log("\n" + contractName + " contract already deployed to: " + deployedContractAddress)
         contract = contractFactory.attach(deployedContractAddress)
     }
@@ -162,8 +156,8 @@ async function deployContract(contractName, contractAddress = null) {
     return { deployer, user, otherUser, contract }
 }
 
-async function getSolanaTransactions(neonTxHash) {
-    return await fetch(network.config.url, neonTxHash, {
+export async function getSolanaTransactions(neonTxHash) {
+    return await fetch(hre.userConfig.networks[hre.globalOptions.network].url, neonTxHash, {
         method: 'POST',
         body: JSON.stringify({
             "jsonrpc":"2.0",
@@ -175,7 +169,7 @@ async function getSolanaTransactions(neonTxHash) {
     })
 }
 
-async function executeSolanaInstruction(instruction, lamports, contractInstance, salt, msgSender) {
+export async function executeSolanaInstruction(instruction, lamports, contractInstance, salt, msgSender) {
     if (salt === undefined) {
         salt = '0x0000000000000000000000000000000000000000000000000000000000000000';
     }
@@ -190,7 +184,7 @@ async function executeSolanaInstruction(instruction, lamports, contractInstance,
     return [tx, receipt];
 }
 
-function prepareInstructionAccounts(instruction, overwriteAccounts) {
+export function prepareInstructionAccounts(instruction, overwriteAccounts) {
     let encodeKeys = '';
     for (let i = 0, len = instruction.keys.length; i < len; ++i) {
         if (typeof(overwriteAccounts) != "undefined" && Object.hasOwn(overwriteAccounts, i)) {
@@ -209,7 +203,7 @@ function prepareInstructionAccounts(instruction, overwriteAccounts) {
     return '0x' + ethers.zeroPadBytes(ethers.toBeHex(instruction.keys.length), 8).substring(2) + encodeKeys;
 }
 
-function prepareInstructionData(instruction) {
+export function prepareInstructionData(instruction) {
     const packedInstructionData = ethers.solidityPacked(
         ["bytes"],
         [instruction.data]
@@ -219,21 +213,20 @@ function prepareInstructionData(instruction) {
     return '0x' + ethers.zeroPadBytes(ethers.toBeHex(instruction.data.length), 8).substring(2) + packedInstructionData;
 }
 
-function prepareInstruction(instruction) {
+export function prepareInstruction(instruction) {
     return publicKeyToBytes32(instruction.programId.toBase58()) + prepareInstructionAccounts(instruction).substring(2) + prepareInstructionData(instruction).substring(2);
 }
 
-function publicKeyToBytes32(pubkey) {
+export function publicKeyToBytes32(pubkey) {
     return ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(pubkey)), 32);
 }
 
-async function setupSPLTokens() {
-    const keypair = web3.Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY_SOLANA))
+export async function setupSPLTokens(keypair) {
     const _keypair = umi.eddsa.createKeypairFromSecretKey(keypair.secretKey)
     const authority = createSignerFromKeypair(umi, _keypair);
     const authorityPubkey = new web3.PublicKey(authority.publicKey.toString())
 
-    if (await connection.getBalance(authorityPubkey) < 0.05 * 10 ** 9) {
+    if (await solanaConnection.getBalance(authorityPubkey) < 0.05 * 10 ** 9) {
         console.error('Provided Solana wallet needs at least 0.05 SOL to perform the test.');
         process.exit();
     }
@@ -275,7 +268,7 @@ async function setupSPLTokens() {
             basePubkey: authorityPubkey,
             newAccountPubkey: createWithSeed,
             seed: seed,
-            lamports: await connection.getMinimumBalanceForRentExemption(MINT_SIZE),
+            lamports: await solanaConnection.getMinimumBalanceForRentExemption(MINT_SIZE),
             space: MINT_SIZE,
             programId: new web3.PublicKey(TOKEN_PROGRAM_ID)
         })
@@ -290,7 +283,7 @@ async function setupSPLTokens() {
         )
     );
 
-    const metaplex = new Metaplex(connection);
+    const metaplex = new Metaplex(solanaConnection);
     const metadata = metaplex.nfts().pdas().metadata({ mint: createWithSeed });
     umi.use(signerIdentity(authority));
     const ix = createMetadataAccountV3(
@@ -360,14 +353,13 @@ async function setupSPLTokens() {
         })
     );
 
-    await web3.sendAndConfirmTransaction(connection, tx, [keypair]);
+    await web3.sendAndConfirmTransaction(solanaConnection, tx, [keypair]);
     await asyncTimeout(3000);
     return createWithSeed.toBase58();
 }
 
-async function setupATAAccounts(publicKey, tokenMintsArray) {
+export async function setupATAAccounts(keypair, publicKey, tokenMintsArray) {
     console.log(tokenMintsArray, 'tokenMintsArray');
-    const keypair = web3.Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY_SOLANA));
     let atasToBeCreated = '';
     const tx = new web3.Transaction();
 
@@ -377,7 +369,7 @@ async function setupATAAccounts(publicKey, tokenMintsArray) {
             new web3.PublicKey(publicKey), 
             true
         );
-        const ataInfo = await connection.getAccountInfo(associatedToken);
+        const ataInfo = await solanaConnection.getAccountInfo(associatedToken);
         console.log(associatedToken, 'associatedToken');
 
         // create ATA only if it's missing
@@ -398,7 +390,7 @@ async function setupATAAccounts(publicKey, tokenMintsArray) {
     if (tx.instructions.length) {
         console.log('\nCreating ATA accounts for the following SPLTokens - ', atasToBeCreated.substring(0, atasToBeCreated.length - 2));
         const signature = await web3.sendAndConfirmTransaction(
-            connection,
+            solanaConnection,
             tx,
             [keypair]
         );
@@ -408,7 +400,7 @@ async function setupATAAccounts(publicKey, tokenMintsArray) {
     }
 }
 
-function isValidHex(hex) {
+export function isValidHex(hex) {
     const isHexStrict = /^(0x)?[0-9a-f]*$/i.test(hex.toString());
     if (!isHexStrict) {
         throw new Error(`Given value "${hex}" is not a valid hex string.`);
@@ -417,7 +409,7 @@ function isValidHex(hex) {
     }
 }
 
-function calculatePdaAccount(prefix, tokenEvmAddress, salt, neonEvmProgram) {
+export function calculatePdaAccount(prefix, tokenEvmAddress, salt, neonEvmProgram) {
     const neonContractAddressBytes = Buffer.from(isValidHex(tokenEvmAddress) ? tokenEvmAddress.replace(/^0x/i, '') : tokenEvmAddress, 'hex');
     const seed = [
         new Uint8Array([0x03]),
@@ -429,15 +421,13 @@ function calculatePdaAccount(prefix, tokenEvmAddress, salt, neonEvmProgram) {
     return web3.PublicKey.findProgramAddressSync(seed, neonEvmProgram);
 }
 
-async function approveSplTokens(tokenAMint, tokenBMint, ERC20ForSPL_A, ERC20ForSPL_B, owner) {
-    const keypair = web3.Keypair.fromSecretKey(bs58.decode(process.env.PRIVATE_KEY_SOLANA));
-
-    const neon_getEvmParamsRequest = await fetch(network.config.url, {
+export async function approveSplTokens(keypair, tokenAMint, tokenBMint, ERC20ForSPL_A, ERC20ForSPL_B, owner) {
+    const neon_getEvmParamsRequest = await fetch(hre.userConfig.networks[hre.globalOptions.network].url, {
         method: 'POST',
         body: JSON.stringify({"method":"neon_getEvmParams","params":[],"id":1,"jsonrpc":"2.0"}),
         headers: { 'Content-Type': 'application/json' }
     });
-    neon_getEvmParams = await neon_getEvmParamsRequest.json();
+    const neon_getEvmParams = await neon_getEvmParamsRequest.json();
     console.log(neon_getEvmParams, 'neon_getEvmParams');
 
     const tx = new web3.Transaction();
@@ -498,18 +488,10 @@ async function approveSplTokens(tokenAMint, tokenBMint, ERC20ForSPL_A, ERC20ForS
     );
 
     const signature = await web3.sendAndConfirmTransaction(
-        connection,
+        solanaConnection,
         tx,
         [keypair]
     );
     await asyncTimeout(3000);
     return [tokenA_ATA.toBase58(), tokenB_ATA.toBase58()];
-}
-
-module.exports = {
-    airdropSOL,
-    deployContract,
-    setupSPLTokens,
-    setupATAAccounts,
-    approveSplTokens
 }
