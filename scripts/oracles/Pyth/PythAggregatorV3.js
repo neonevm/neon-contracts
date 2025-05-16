@@ -4,12 +4,15 @@
 // You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
-const { ethers } = require("hardhat");
+import hre from "hardhat"
+import { decryptWallets } from "../../../wallets.js";
 
 async function main() {
+    const wallets = await decryptWallets()
+    const ethers = (await hre.network.connect()).ethers
     const PYTH_PRICE_FEED_ID = ""; // bytes32
     const PYTH_PRICE_FEED_ACCOUNT = ""; // bytes32
-    const PythAggregatorV3Factory = await ethers.getContractFactory("PythAggregatorV3");
+    const PythAggregatorV3Factory = await ethers.getContractFactory("PythAggregatorV3", wallets.owner);
     const PythAggregatorV3Address = "";
     let PythAggregatorV3;
 

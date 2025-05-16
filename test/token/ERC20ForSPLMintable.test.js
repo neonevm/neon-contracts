@@ -1,37 +1,40 @@
-const { ethers, network } = require("hardhat");
-const { expect } = require("chai");
-const web3 = require("@solana/web3.js");
-const {
+import hre from "hardhat"
+import * as _ethers from "ethers"
+import { expect } from "chai"
+import web3 from "@solana/web3.js"
+import {
     createAssociatedTokenAccountInstruction,
     getAssociatedTokenAddress,
     getAccount
-} = require("@solana/spl-token");
-const utils = require('./utils.js');
-const config = require('../config.js');
-require("dotenv").config();
+} from "@solana/spl-token"
+import utils from "./utils.js"
+import { decryptWallets } from "../../wallets.js"
+import config from "../config.js"
+import "dotenv/config"
 
 describe('Test init',  function () {
     const connection = new web3.Connection(
-        config.svm_node[network.name],
+        config.svm_node[hre.globalOptions.network],
         "processed", //  See: https://solana-labs.github.io/solana-web3.js/v1.x/types/Commitment.html
         { confirmTransactionInitialTimeout: 0 } // See: https://solana-labs.github.io/solana-web3.js/v1.x/types/ConnectionConfig.html
     );
     const NAME = "TestERC20ForSPLMintable";
     const SYMBOL = "tERC20xSPL";
     const DECIMALS = 9;
-    const ZERO_AMOUNT = ethers.toBigInt('0');
-    const ONE_AMOUNT = ethers.toBigInt('1')
-    const AMOUNT =  ethers.parseUnits('1', DECIMALS);
-    const DOUBLE_AMOUNT =  ethers.parseUnits('2', DECIMALS);
-    const LARGE_AMOUNT =  ethers.parseUnits('1000', DECIMALS);
-    const UINT64_MAX_AMOUNT =  ethers.toBigInt('18446744073709551615'); // 2**64 - 1
+    const ZERO_AMOUNT = _ethers.toBigInt('0');
+    const ONE_AMOUNT = _ethers.toBigInt('1')
+    const AMOUNT =  _ethers.parseUnits('1', DECIMALS);
+    const DOUBLE_AMOUNT =  _ethers.parseUnits('2', DECIMALS);
+    const LARGE_AMOUNT =  _ethers.parseUnits('1000', DECIMALS);
+    const UINT64_MAX_AMOUNT =  _ethers.toBigInt('18446744073709551615'); // 2**64 - 1
     const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
     const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
     const RECEIPTS_COUNT = 3;
     const TIMEOUT = 20000;
-    const other  = ethers.Wallet.createRandom()
-    const other2 = ethers.Wallet.createRandom();
-    let owner, user1, user2, user3;
+    const other  = _ethers.Wallet.createRandom()
+    const other2 = _ethers.Wallet.createRandom();
+    let ethers;
+    let wallets;
     let solanaUser1, solanaUser1ATA, solanaUser1PDA, solanaUser1NeonEVMAddress;
     let solanaUser2, solanaUser2PDA, solanaUser2NeonEVMAddress;
     let solanaUser3, solanaUser3ATA, solanaUser3PDA, solanaUser3NeonEVMAddress;
@@ -52,15 +55,15 @@ describe('Test init',  function () {
     let tx, solanaTx;
 
     before(async function() {
+        wallets = await decryptWallets()
+        ethers = (await hre.network.connect()).ethers
 
         // ============================= DEPLOY CONTRACTS ====================================
-
-        [owner, user1, user2, user3] = await ethers.getSigners();
-
-        await utils.airdropNEON(owner.address);
-        await utils.airdropNEON(user1.address);
-        await utils.airdropNEON(user2.address);
-        await utils.airdropNEON(user3.address);
+        
+        await utils.airdropNEON(wallets.owner.address);
+        await utils.airdropNEON(wallets.user1.address);
+        await utils.airdropNEON(wallets.user2.address);
+        await utils.airdropNEON(wallets.user3.address);
 
         solanaUser1 = web3.Keypair.generate()
         solanaUser2 = web3.Keypair.generate()
@@ -71,13 +74,16 @@ describe('Test init',  function () {
         await utils.airdropSOL(solanaUser3);
 
         const ERC20ForSPLFactoryContractFactory = await ethers.getContractFactory(
-            'contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory'
+            'contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory',
+            wallets.owner
         );
         const ERC20ForSPLMintableContractFactory = await ethers.getContractFactory(
-            'contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSplMintable'
+            'contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSplMintable',
+            wallets.owner
         );
         const MockVaultContractFactory = await ethers.getContractFactory(
-            'contracts/mocks//MockVault.sol:MockVault'
+            'contracts/mocks/MockVault.sol:MockVault',
+            wallets.owner
         );
 
         if (ethers.isAddress(ERC20ForSPLFactoryAddress)) {
@@ -91,7 +97,8 @@ describe('Test init',  function () {
             ERC20ForSPLFactory = ERC20ForSPLFactoryContractFactory.attach(ERC20ForSPLFactoryAddress);
         } else {
             ERC20ForSPLFactory = await ethers.deployContract(
-                'contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory'
+                'contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory',
+                wallets.owner
             );
             await ERC20ForSPLFactory.waitForDeployment();
             ERC20ForSPLFactoryAddress = ERC20ForSPLFactory.target;
@@ -118,7 +125,7 @@ describe('Test init',  function () {
                 NAME,
                 SYMBOL,
                 DECIMALS,
-                owner.address
+                 wallets.owner.address
             )
             await tx.wait(RECEIPTS_COUNT);
             ERC20ForSPLMintableAddress = await ERC20ForSPLFactory.allErc20ForSpl(
@@ -144,9 +151,11 @@ describe('Test init',  function () {
             );
             MockVault = MockVaultContractFactory.attach(MockVaultAddress);
         } else {
-            MockVault = await ethers.deployContract('contracts/mocks/MockVault.sol:MockVault', [
-                ERC20ForSPLMintable.target
-            ]);
+            MockVault = await ethers.deployContract(
+                'contracts/mocks/MockVault.sol:MockVault',
+                [ERC20ForSPLMintable.target],
+                wallets.owner
+            );
             await MockVault.waitForDeployment();
             MockVaultAddress = MockVault.target
             console.log('\nCreating instance of just now deployed MockVault contract on Neon EVM with address',
@@ -159,22 +168,22 @@ describe('Test init',  function () {
 
         // ============================= GET USERS EVM ADDRESSES AND SOLANA ACCOUNTS ====================================
 
-        ownerSolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(owner.address));
-        user1SolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(user1.address));
-        user2SolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(user2.address));
-        user3SolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(user3.address));
+        ownerSolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(wallets.owner.address));
+        user1SolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(wallets.user1.address));
+        user2SolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(wallets.user2.address));
+        user3SolanaPublicKey = ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(wallets.user3.address));
 
         console.log('\nOwner addresses:');
-        console.log('Neon EVM address -', owner.address);
+        console.log('Neon EVM address -',  wallets.owner.address);
         console.log('Solana data account -', ownerSolanaPublicKey);
         console.log('\nUser1 addresses:');
-        console.log('Neon EVM address -', user1.address);
+        console.log('Neon EVM address -', wallets.user1.address);
         console.log('Solana data account -', user1SolanaPublicKey);
         console.log('\nUser2 addresses:');
-        console.log('Neon EVM address -', user2.address);
+        console.log('Neon EVM address -', wallets.user2.address);
         console.log('Solana data account -', user2SolanaPublicKey);
         console.log('\nUser3 addresses:');
-        console.log('Neon EVM address -', user3.address);
+        console.log('Neon EVM address -', wallets.user3.address);
         console.log('Solana data account -', user3SolanaPublicKey);
 
         // ============================= GET SOLANA USERS ASSOCIATED TOKEN ACCOUNTS ====================================
@@ -232,7 +241,7 @@ describe('Test init',  function () {
             await utils.asyncTimeout(TIMEOUT);
         }
 
-        const neon_getEvmParamsRequest = await fetch(network.config.url, {
+        const neon_getEvmParamsRequest = await fetch(hre.userConfig.networks[hre.globalOptions.network].url, {
             method: 'POST',
             body: JSON.stringify({"method":"neon_getEvmParams","params":[],"id":1,"jsonrpc":"2.0"}),
             headers: { 'Content-Type': 'application/json' }
@@ -245,7 +254,7 @@ describe('Test init',  function () {
             for (let i = 0; i < 100; ++i) {
                 if (i == 1) {
                     expect(await ethers.provider.getStorage(ERC20ForSPLMintable.target, i)).to.eq(
-                        ethers.zeroPadValue(owner.address, 32)
+                        ethers.zeroPadValue(wallets.owner.address, 32)
                     );
                 } else {
                     expect(await ethers.provider.getStorage(ERC20ForSPLMintable.target, i)).to.eq(
@@ -288,16 +297,16 @@ describe('Test init',  function () {
 
                 // ==================== MINT TO USERS AND TRANSFER TOKENS TO SOLANA APPROVER ATA =======================
 
-                tx = await ERC20ForSPLMintable.connect(owner).mint(owner.address, LARGE_AMOUNT);
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).mint(wallets.owner.address, LARGE_AMOUNT);
                 await tx.wait(RECEIPTS_COUNT);
-                tx = await ERC20ForSPLMintable.connect(owner).mint(user1.address, LARGE_AMOUNT);
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).mint(wallets.user1.address, LARGE_AMOUNT);
                 await tx.wait(RECEIPTS_COUNT);
-                tx = await ERC20ForSPLMintable.connect(owner).mint(user2.address, LARGE_AMOUNT);
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).mint(wallets.user2.address, LARGE_AMOUNT);
                 await tx.wait(RECEIPTS_COUNT);
 
-                grantedTestersWithBalance = (await ERC20ForSPLMintable.balanceOf(owner.address)) >= LARGE_AMOUNT &&
-                    (await ERC20ForSPLMintable.balanceOf(user1.address)) >= LARGE_AMOUNT &&
-                    (await ERC20ForSPLMintable.balanceOf(user2.address)) >= LARGE_AMOUNT;
+                grantedTestersWithBalance = (await ERC20ForSPLMintable.balanceOf(wallets.owner.address)) >= LARGE_AMOUNT &&
+                    (await ERC20ForSPLMintable.balanceOf(wallets.user1.address)) >= LARGE_AMOUNT &&
+                    (await ERC20ForSPLMintable.balanceOf(wallets.user2.address)) >= LARGE_AMOUNT;
             })
 
             it('Static ERC20 getter functions return values', async function () {
@@ -307,33 +316,33 @@ describe('Test init',  function () {
             });
 
             it('Other ERC20 getter functions return values', async function () {
-                const expectedSupply = (await ERC20ForSPLMintable.balanceOf(owner.address)) +
-                    (await ERC20ForSPLMintable.balanceOf(user1.address)) +
-                    (await ERC20ForSPLMintable.balanceOf(user2.address)) +
-                    (await ERC20ForSPLMintable.balanceOf(user3.address)) +
+                const expectedSupply = (await ERC20ForSPLMintable.balanceOf(wallets.owner.address)) +
+                    (await ERC20ForSPLMintable.balanceOf(wallets.user1.address)) +
+                    (await ERC20ForSPLMintable.balanceOf(wallets.user2.address)) +
+                    (await ERC20ForSPLMintable.balanceOf(wallets.user3.address)) +
                     (await ERC20ForSPLMintable.balanceOf(other.address)) +
                     (await ERC20ForSPLMintable.balanceOf(other2.address)) +
                     ethers.toBigInt((await connection.getTokenAccountBalance(solanaApproverATA)).value.amount);
                 expect(await ERC20ForSPLMintable.totalSupply()).to.eq(expectedSupply);
-                expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(LARGE_AMOUNT);
-                expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
-                expect(await ERC20ForSPLMintable.allowance(user2.address, user1.address)).to.eq(ZERO_AMOUNT);
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(LARGE_AMOUNT);
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user3.address)).to.eq(ZERO_AMOUNT);
+                expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address)).to.eq(ZERO_AMOUNT);
             });
 
             it('getAccountDelegateData return value', async function () {
                 // Check initial return value
-                let accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(user2.address)
+                let accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(wallets.user2.address)
                 expect(accountDelegateData[0]).to.eq(ZERO_BYTES32);
                 expect(accountDelegateData[1]).to.eq(ZERO_AMOUNT);
 
                 // Delegate token account to other
-                tx = await ERC20ForSPLMintable.connect(user2).approveSolana(
+                tx = await ERC20ForSPLMintable.connect(wallets.user2).approveSolana(
                     await ERC20ForSPLMintable.solanaAccount(other.address),
                     AMOUNT
                 );
                 await tx.wait(RECEIPTS_COUNT);
 
-                accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(user2.address)
+                accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(wallets.user2.address)
                 expect(accountDelegateData[0]).to.eq(
                     await ERC20ForSPLMintable.solanaAccount(other.address)
                 );
@@ -366,23 +375,23 @@ describe('Test init',  function () {
                 const offChainPDAAccount = utils.calculatePdaAccount(
                     'ContractData',
                     ERC20ForSPLMintable.target,
-                    user1.address,
+                    wallets.user1.address,
                     new web3.PublicKey(neonEVMParams.result.neonEvmProgramId)
                 )[0].toBase58();
 
-                expect(ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(user1.address))).to.eq(offChainPDAAccount)
+                expect(ethers.encodeBase58(await ERC20ForSPLMintable.solanaAccount(wallets.user1.address))).to.eq(offChainPDAAccount)
             });
 
             it('claim', async function () {
                 // Transfer AMOUNT to approver's ATA
-                tx = await ERC20ForSPLMintable.connect(owner).transferSolana(solanaApproverATAInBytes, AMOUNT);
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).transferSolana(solanaApproverATAInBytes, AMOUNT);
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Save initial approver and recipient balances
                 let initialApproverBalance = ethers.toBigInt(parseInt((
                     await connection.getTokenAccountBalance(solanaApproverATA)
                 ).value.amount));
-                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
 
                 // Approve recipient Ext Authority to claim AMOUNT
                 let delegateAuthorityPublicKey;
@@ -391,11 +400,11 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await utils.delegateSolana({
-                        curvestand: network.config.url,
+                        curvestand: hre.userConfig.networks[hre.globalOptions.network].url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
-                        delegateEVMAddress: user1.address,
+                        delegateEVMAddress: wallets.user1.address,
                         solanaApproverATA,
                         solanaApprover,
                         amount: AMOUNT
@@ -410,14 +419,14 @@ describe('Test init',  function () {
                 );
 
                 // Claim
-                tx = await ERC20ForSPLMintable.connect(user1).claim(
+                tx = await ERC20ForSPLMintable.connect(wallets.user1).claim(
                     solanaApproverATAInBytes,
                     AMOUNT
                 );
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Check balances after claim
-                expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.equal(
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.equal(
                    initialRecipientBalance + AMOUNT
                 );
                 expect((await connection.getTokenAccountBalance(solanaApproverATA)).value.amount).to.equal(
@@ -431,14 +440,14 @@ describe('Test init',  function () {
 
             it('claimTo: recipient with balance (already initialized token account)', async function () {
                 // Transfer AMOUNT to approver's ATA
-                tx = await ERC20ForSPLMintable.connect(owner).transferSolana(solanaApproverATAInBytes, AMOUNT);
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).transferSolana(solanaApproverATAInBytes, AMOUNT);
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Save initial approver and recipient balances
                 let initialApproverBalance = ethers.toBigInt(parseInt((
                     await connection.getTokenAccountBalance(solanaApproverATA)
                 ).value.amount));
-                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
 
                 // Approve caller's Ext Authority to claim AMOUNT
                 let delegateAuthorityPublicKey;
@@ -447,11 +456,11 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await utils.delegateSolana({
-                        curvestand: network.config.url,
+                        curvestand: hre.userConfig.networks[hre.globalOptions.network].url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
-                        delegateEVMAddress: user1.address,
+                        delegateEVMAddress: wallets.user1.address,
                         solanaApproverATA,
                         solanaApprover,
                         amount: AMOUNT
@@ -466,15 +475,15 @@ describe('Test init',  function () {
                 );
 
                 // Claim
-                tx = await ERC20ForSPLMintable.connect(user1).claimTo(
+                tx = await ERC20ForSPLMintable.connect(wallets.user1).claimTo(
                     solanaApproverATAInBytes,
-                    user2.address,
+                    wallets.user2.address,
                     AMOUNT
                 );
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Check balances after claim
-                expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.equal(
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.equal(
                     initialRecipientBalance + AMOUNT
                 );
                 expect((await connection.getTokenAccountBalance(solanaApproverATA)).value.amount).to.equal(
@@ -488,7 +497,7 @@ describe('Test init',  function () {
 
             it('claimTo: new recipient (non-initialized token account)', async function () {
                 // Transfer AMOUNT to approver's ATA
-                tx = await ERC20ForSPLMintable.connect(owner).transferSolana(solanaApproverATAInBytes, AMOUNT);
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).transferSolana(solanaApproverATAInBytes, AMOUNT);
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Save initial approver and recipient balances
@@ -504,11 +513,11 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await utils.delegateSolana({
-                        curvestand: network.config.url,
+                        curvestand: hre.userConfig.networks[hre.globalOptions.network].url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
-                        delegateEVMAddress: user1.address,
+                        delegateEVMAddress: wallets.user1.address,
                         solanaApproverATA,
                         solanaApprover,
                         amount: AMOUNT
@@ -523,7 +532,7 @@ describe('Test init',  function () {
                 );
 
                 // Claim
-                tx = await ERC20ForSPLMintable.connect(user1).claimTo(
+                tx = await ERC20ForSPLMintable.connect(wallets.user1).claimTo(
                     solanaApproverATAInBytes,
                     other2.address,
                     AMOUNT
@@ -547,26 +556,26 @@ describe('Test init',  function () {
                 let initialOwner = await ERC20ForSPLMintable.owner();
                 console.log(initialOwner, 'initialOwner');
 
-                let tx = await ERC20ForSPLMintable.transferOwnership(user1.address);
+                let tx = await ERC20ForSPLMintable.transferOwnership(wallets.user1.address);
                 await tx.wait(RECEIPTS_COUNT);
 
                 // owner is still the owner, because user1 haven't claimed yet the ownership
-                expect(await ERC20ForSPLMintable.owner()).to.equal(owner.address);
+                expect(await ERC20ForSPLMintable.owner()).to.equal(wallets.owner.address);
 
-                tx = await ERC20ForSPLMintable.connect(user1).acceptOwnership();
+                tx = await ERC20ForSPLMintable.connect(wallets.user1).acceptOwnership();
                 await tx.wait(RECEIPTS_COUNT);
 
-                expect(await ERC20ForSPLMintable.owner()).to.equal(user1.address);
+                expect(await ERC20ForSPLMintable.owner()).to.equal(wallets.user1.address);
                 expect(await ERC20ForSPLMintable.owner()).to.not.equal(initialOwner);
 
                 // switch back to the initial owner
-                tx = await ERC20ForSPLMintable.connect(user1).transferOwnership(owner.address);
+                tx = await ERC20ForSPLMintable.connect(wallets.user1).transferOwnership(wallets.owner.address);
                 await tx.wait(RECEIPTS_COUNT);
 
                 // owner is still the user1, because owner haven't claimed yet the ownership
-                expect(await ERC20ForSPLMintable.owner()).to.equal(user1.address);
+                expect(await ERC20ForSPLMintable.owner()).to.equal(wallets.user1.address);
 
-                tx = await ERC20ForSPLMintable.connect(owner).acceptOwnership();
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).acceptOwnership();
                 await tx.wait(RECEIPTS_COUNT);
 
                 expect(await ERC20ForSPLMintable.owner()).to.equal(initialOwner);
@@ -574,7 +583,7 @@ describe('Test init',  function () {
 
             it('Test malicious ownership change', async function () {
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).acceptOwnership()
+                    ERC20ForSPLMintable.connect(wallets.user1).acceptOwnership()
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'OwnableUnauthorizedAccount'
@@ -583,7 +592,7 @@ describe('Test init',  function () {
 
             it('Test malicious ownership renounce', async function () {
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).renounceOwnership()
+                    ERC20ForSPLMintable.connect(wallets.user1).renounceOwnership()
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'OwnableUnauthorizedAccount'
@@ -597,7 +606,7 @@ describe('Test init',  function () {
                         NAME,
                         SYMBOL,
                         18,
-                        owner.address
+                         wallets.owner.address
                     )
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLFactory,
@@ -625,7 +634,7 @@ describe('Test init',  function () {
                 let initialApproverBalance = ethers.toBigInt(parseInt((
                     await connection.getTokenAccountBalance(solanaApproverATA)
                 ).value.amount));
-                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
 
                 // Set claimAmount to be greater than initialApproverBalance
                 const claimAmount =  ethers.toBigInt(initialApproverBalance) + AMOUNT;
@@ -637,11 +646,11 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await utils.delegateSolana({
-                        curvestand: network.config.url,
+                        curvestand: hre.userConfig.networks[hre.globalOptions.network].url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
-                        delegateEVMAddress: user1.address,
+                        delegateEVMAddress: wallets.user1.address,
                         solanaApproverATA,
                         solanaApprover,
                         amount: claimAmount
@@ -662,14 +671,14 @@ describe('Test init',  function () {
                 expect(claimAmount).to.eq(delegatedAmount);
 
                 // Claim
-                await expect(ERC20ForSPLMintable.connect(user1).claimTo(
+                await expect(ERC20ForSPLMintable.connect(wallets.user1).claimTo(
                     solanaApproverATAInBytes,
-                    user2.address,
+                    wallets.user2.address,
                     claimAmount
                 )).to.be.revertedWithCustomError(ERC20ForSPLMintable, 'ERC20InsufficientBalance');
 
                 // Check balances after claim
-                expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.equal(
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.equal(
                     initialRecipientBalance
                 );
                 expect((await connection.getTokenAccountBalance(solanaApproverATA)).value.amount).to.equal(
@@ -691,11 +700,11 @@ describe('Test init',  function () {
                     || !delegateAuthorityPublicKey
                 ) {
                     delegateAuthorityPublicKey = await utils.delegateSolana({
-                        curvestand: network.config.url,
+                        curvestand: hre.userConfig.networks[hre.globalOptions.network].url,
                         web3,
                         connection,
                         ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
-                        delegateEVMAddress: user1.address,
+                        delegateEVMAddress: wallets.user1.address,
                         solanaApproverATA,
                         solanaApprover,
                         amount: AMOUNT
@@ -718,7 +727,7 @@ describe('Test init',  function () {
                     (await connection.getTokenAccountBalance(solanaApproverATA)).value.amount
                 ));
                 if(initialApproverBalance < claimAmount) {
-                    tx = await ERC20ForSPLMintable.connect(owner).transferSolana(
+                    tx = await ERC20ForSPLMintable.connect(wallets.owner).transferSolana(
                         solanaApproverATAInBytes,
                         claimAmount - initialApproverBalance
                     );
@@ -728,7 +737,7 @@ describe('Test init',  function () {
                 initialApproverBalance = ethers.toBigInt(parseInt(
                     (await connection.getTokenAccountBalance(solanaApproverATA)).value.amount
                 ));
-                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
 
                 // Check that claim amount is less than or equals approverBalance
                 expect(claimAmount).to.be.lessThanOrEqual(initialApproverBalance);
@@ -736,14 +745,14 @@ describe('Test init',  function () {
                 expect(claimAmount).to.be.greaterThan(delegatedAmount);
 
                 // Claim
-                await expect(ERC20ForSPLMintable.connect(user1).claimTo(
+                await expect(ERC20ForSPLMintable.connect(wallets.user1).claimTo(
                     solanaApproverATAInBytes,
-                    user2.address,
+                    wallets.user2.address,
                     claimAmount
                 )).to.be.revertedWith('External call fails TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA: Error processing Instruction 0: custom program error: 0x1');
 
                 // Check balances after claim
-                expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.equal(
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.equal(
                     initialRecipientBalance
                 );
                 expect((await connection.getTokenAccountBalance(solanaApproverATA)).value.amount).to.equal(
@@ -760,15 +769,15 @@ describe('Test init',  function () {
             it('burn', async function () {
                 if (grantedTestersWithBalance) {
                     // Save initial caller balance and initial token supply
-                    const initialBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                    const initialBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
                     const initialSupply = await ERC20ForSPLMintable.totalSupply();
 
                     // Call burn
-                    tx = await ERC20ForSPLMintable.connect(user1).burn(AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user1).burn(AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check caller's balance and token supply after burn
-                    expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.equal(initialBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.equal(initialBalance - AMOUNT);
                     expect(await ERC20ForSPLMintable.totalSupply()).to.equal(initialSupply - AMOUNT);
                 } else {
                     this.skip();
@@ -778,7 +787,7 @@ describe('Test init',  function () {
             it('burn: reverts with AmountExceedsUint64 custom error', async function () {
                 // Call burn with amount > type(uint64).max
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).burn(UINT64_MAX_AMOUNT + ONE_AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user1).burn(UINT64_MAX_AMOUNT + ONE_AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'AmountExceedsUint64'
@@ -787,9 +796,9 @@ describe('Test init',  function () {
 
             it('Malicious burn: reverts with ERC20InsufficientBalance custom error', async function () {
                 // User3 has no balance
-                expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user3.address)).to.eq(ZERO_AMOUNT);
                 // Call burn from user3
-                await expect(ERC20ForSPLMintable.connect(user3).burn(AMOUNT)).to.be.revertedWithCustomError(
+                await expect(ERC20ForSPLMintable.connect(wallets.user3).burn(AMOUNT)).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'ERC20InsufficientBalance'
                 );
@@ -798,19 +807,19 @@ describe('Test init',  function () {
             it('burnFrom', async function () {
                 if (grantedTestersWithBalance) {
                     // Approve user2 to burn on behalf of user1
-                    tx = await ERC20ForSPLMintable.connect(user1).approve(user2.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user1).approve(wallets.user2.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT)
 
                     // Save initial balance and initial token supply
-                    const initialBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                    const initialBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
                     const initialSupply = await ERC20ForSPLMintable.totalSupply();
 
                     // Call burnFrom
-                    tx = await ERC20ForSPLMintable.connect(user2).burnFrom(user1.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user2).burnFrom(wallets.user1.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check balance and token supply after burn
-                    expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.equal(initialBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.equal(initialBalance - AMOUNT);
                     expect(await ERC20ForSPLMintable.totalSupply()).to.equal(initialSupply - AMOUNT);
                 } else {
                     this.skip();
@@ -820,7 +829,7 @@ describe('Test init',  function () {
             it('burnFrom:  reverts with ERC20InsufficientAllowance custom error when called with ZERO_ADDRESS', async function () {
                 // Call burnFrom with ZERO_ADDRESS
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).burnFrom(ZERO_ADDRESS, AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user1).burnFrom(ZERO_ADDRESS, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'ERC20InvalidSender'
@@ -830,18 +839,18 @@ describe('Test init',  function () {
             it('transfer', async function () {
                 if (grantedTestersWithBalance) {
                     // Save initial sender and recipient balances
-                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
-                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
+                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
 
                     // Call transfer
-                    tx = await ERC20ForSPLMintable.connect(user1).transfer(user2.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(wallets.user2.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check sender and recipient balances after transfer
-                    expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(
                         initialSenderBalance - AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(
                         initialRecipientBalance + AMOUNT
                     );
                 } else {
@@ -852,7 +861,7 @@ describe('Test init',  function () {
             it('transfer: reverts with ERC20InvalidReceiver custom error', async function () {
                 // Call transfer from user1
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).transfer(ZERO_ADDRESS, AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user1).transfer(ZERO_ADDRESS, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'ERC20InvalidReceiver'
@@ -861,10 +870,10 @@ describe('Test init',  function () {
 
             it('Malicious transfer: reverts with ERC20InsufficientBalance custom error', async function () {
                 // User3 has no balance
-                expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user3.address)).to.eq(ZERO_AMOUNT);
                 // Call transfer from user3
                 await expect(
-                    ERC20ForSPLMintable.connect(user3).transfer(user1.address, AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user3).transfer(wallets.user1.address, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'ERC20InsufficientBalance'
@@ -874,19 +883,19 @@ describe('Test init',  function () {
             it('transferSolana', async function () {
                 if (grantedTestersWithBalance) {
                     // Save initial sender and recipient balances
-                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
-                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
+                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
 
                     // Call transferSolana
-                    tx = await ERC20ForSPLMintable.connect(user1).transferSolana(
-                        await ERC20ForSPLMintable.solanaAccount(user2.address),
+                    tx = await ERC20ForSPLMintable.connect(wallets.user1).transferSolana(
+                        await ERC20ForSPLMintable.solanaAccount(wallets.user2.address),
                         AMOUNT
                     );
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check sender and recipient balances after transferSolana
-                    expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(initialSenderBalance - AMOUNT);
-                    expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(initialSenderBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(
                         initialRecipientBalance + AMOUNT
                     );
                 } else {
@@ -896,11 +905,11 @@ describe('Test init',  function () {
 
             it('Malicious transferSolana: reverts with ERC20InsufficientBalance custom error', async function () {
                 // User3 has no balance
-                expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
+                expect(await ERC20ForSPLMintable.balanceOf(wallets.user3.address)).to.eq(ZERO_AMOUNT);
                 // Call transferSolana from user3
                 await expect(
-                    ERC20ForSPLMintable.connect(user3).transferSolana(
-                        await ERC20ForSPLMintable.solanaAccount(user2.address),
+                    ERC20ForSPLMintable.connect(wallets.user3).transferSolana(
+                        await ERC20ForSPLMintable.solanaAccount(wallets.user2.address),
                         AMOUNT
                     )
                 ).to.be.revertedWithCustomError(
@@ -911,14 +920,14 @@ describe('Test init',  function () {
 
             it('approve', async function () {
                 // Save initial allowance
-                const initialAllowance = await ERC20ForSPLMintable.allowance(user2.address, user1.address);
+                const initialAllowance = await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address);
 
                 // Call approve
-                tx = await ERC20ForSPLMintable.connect(user2).approve(user1.address, AMOUNT);
+                tx = await ERC20ForSPLMintable.connect(wallets.user2).approve(wallets.user1.address, AMOUNT);
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Check allowance after approve
-                expect(await ERC20ForSPLMintable.allowance(user2.address, user1.address)).to.eq(
+                expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address)).to.eq(
                     initialAllowance + AMOUNT
                 );
             });
@@ -926,7 +935,7 @@ describe('Test init',  function () {
             it('approve: reverts with ERC20InvalidSpender custom error', async function () {
                 // Call approve passing ZERO_ADDRESS as spender
                 await expect(
-                    ERC20ForSPLMintable.connect(user2).approve(ZERO_ADDRESS, AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user2).approve(ZERO_ADDRESS, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'ERC20InvalidSpender'
@@ -936,26 +945,26 @@ describe('Test init',  function () {
             it('transferFrom', async function () {
                 if (grantedTestersWithBalance) {
                     // Approve user1 to spend AMOUNT on behalf of user2
-                    tx = await ERC20ForSPLMintable.connect(user2).approve(user1.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user2).approve(wallets.user1.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Save initial allowance and initial sender and recipient balances
-                    const initialAllowance = await ERC20ForSPLMintable.allowance(user2.address, user1.address);
-                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
-                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                    const initialAllowance = await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address);
+                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
+                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
 
                     // Call transferFrom
-                    tx = await ERC20ForSPLMintable.connect(user1).transferFrom(user2.address, user1.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user1).transferFrom(wallets.user2.address, wallets.user1.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check allowance and sender and recipient balances after transferFrom
-                    expect(await ERC20ForSPLMintable.allowance(user2.address, user1.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address)).to.eq(
                         initialAllowance - AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(
                         initialRecipientBalance + AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(initialSenderBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(initialSenderBalance - AMOUNT);
                 } else {
                     this.skip();
                 }
@@ -964,26 +973,26 @@ describe('Test init',  function () {
             it('transferFrom to MockVault smart contract', async function () {
                 if (grantedTestersWithBalance) {
                     // Approve user1 to spend AMOUNT on behalf of user2
-                    tx = await ERC20ForSPLMintable.connect(user2).approve(MockVaultAddress, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user2).approve(MockVaultAddress, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Save initial allowance and initial sender and recipient balances
-                    const initialAllowance = await ERC20ForSPLMintable.allowance(user2.address, MockVaultAddress);
-                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                    const initialAllowance = await ERC20ForSPLMintable.allowance(wallets.user2.address, MockVaultAddress);
+                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
                     const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(MockVaultAddress);
 
                     // Call transferFrom
-                    tx = await MockVault.connect(user2).deposit(AMOUNT);
+                    tx = await MockVault.connect(wallets.user2).deposit(AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check allowance and sender and recipient balances after transferFrom
-                    expect(await ERC20ForSPLMintable.allowance(user2.address, MockVaultAddress)).to.eq(
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, MockVaultAddress)).to.eq(
                         initialAllowance - AMOUNT
                     );
                     expect(await ERC20ForSPLMintable.balanceOf(MockVaultAddress)).to.eq(
                         initialRecipientBalance + AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(initialSenderBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(initialSenderBalance - AMOUNT);
                 } else {
                     this.skip();
                 }
@@ -993,7 +1002,7 @@ describe('Test init',  function () {
                 if (grantedTestersWithBalance) {
                     // Call transferFrom from user3
                     await expect(
-                        ERC20ForSPLMintable.connect(user3).transferFrom(ZERO_ADDRESS, user3.address, AMOUNT)
+                        ERC20ForSPLMintable.connect(wallets.user3).transferFrom(ZERO_ADDRESS, wallets.user3.address, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
                         'ERC20InvalidSender'
@@ -1005,10 +1014,10 @@ describe('Test init',  function () {
 
             it('Malicious transferFrom: reverts with ERC20InsufficientAllowance custom error', async function () {
                 // User3 has no allowance
-                expect(await ERC20ForSPLMintable.allowance(user2.address, user3.address)).to.eq(ZERO_AMOUNT);
+                expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user3.address)).to.eq(ZERO_AMOUNT);
                 // Call transferFrom from user3
                 await expect(
-                    ERC20ForSPLMintable.connect(user3).transferFrom(user2.address, user3.address, AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user3).transferFrom(wallets.user2.address, wallets.user3.address, AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'ERC20InsufficientAllowance'
@@ -1018,14 +1027,14 @@ describe('Test init',  function () {
             it("Malicious transferFrom: reverts with ERC20InsufficientBalance custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // User3 has no balance
-                    expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user3.address)).to.eq(ZERO_AMOUNT);
                     // Approve user1 to spend AMOUNT on behalf of user3
-                    tx = await ERC20ForSPLMintable.connect(user3).approve(user1.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user3).approve(wallets.user1.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
-                    expect(await ERC20ForSPLMintable.allowance(user3.address, user1.address)).to.eq(AMOUNT);
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user3.address, wallets.user1.address)).to.eq(AMOUNT);
                     // Call transferFrom from user1
                     await expect(
-                        ERC20ForSPLMintable.connect(user1).transferFrom(user3.address, user1.address, AMOUNT)
+                        ERC20ForSPLMintable.connect(wallets.user1).transferFrom(wallets.user3.address, wallets.user1.address, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
                         'ERC20InsufficientBalance'
@@ -1038,27 +1047,27 @@ describe('Test init',  function () {
             it("transferSolanaFrom to NeonEVM user's arbitrary token account on Solana", async function () {
                 if (grantedTestersWithBalance) {
                     // Approve user1 to spend AMOUNT on behalf of user2
-                    tx = await ERC20ForSPLMintable.connect(user2).approve(user1.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user2).approve(wallets.user1.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Save initial allowance and initial sender and recipient balances
-                    const initialAllowance = await ERC20ForSPLMintable.allowance(user2.address, user1.address);
-                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
-                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                    const initialAllowance = await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address);
+                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
+                    const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
 
                     // Call transferSolanaFrom
-                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(user1.address);
-                    tx = await ERC20ForSPLMintable.connect(user1).transferSolanaFrom(user2.address, recipientSolanaAccount, AMOUNT);
+                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(wallets.user1.address);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user1).transferSolanaFrom(wallets.user2.address, recipientSolanaAccount, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check allowance and sender and recipient balances after transferSolanaFrom
-                    expect(await ERC20ForSPLMintable.allowance(user2.address, user1.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address)).to.eq(
                         initialAllowance - AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(
                         initialRecipientBalance + AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(initialSenderBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(initialSenderBalance - AMOUNT);
                 } else {
                     this.skip();
                 }
@@ -1070,26 +1079,26 @@ describe('Test init',  function () {
                     const solanaUser1ATAInBytes = utils.publicKeyToBytes32(solanaUser1ATA.toBase58());
 
                     // Approve user1 to spend AMOUNT on behalf of user2
-                    tx = await ERC20ForSPLMintable.connect(user2).approve(user1.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user2).approve(wallets.user1.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Save initial allowance and initial sender and recipient balances
-                    const initialAllowance = await ERC20ForSPLMintable.allowance(user2.address, user1.address);
-                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                    const initialAllowance = await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address);
+                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
                     // Get initial recipient balance from Solana (because balanceOf won't show user's ATA token balance
                     // until user has scheduled at least one NeonEVM transaction)
                     const initialRecipientBalance = (await getAccount(connection, solanaUser1ATA)).amount;
 
                     // Call transferSolanaFrom
-                    tx = await ERC20ForSPLMintable.connect(user1).transferSolanaFrom(
-                        user2.address,
+                    tx = await ERC20ForSPLMintable.connect(wallets.user1).transferSolanaFrom(
+                        wallets.user2.address,
                         solanaUser1ATAInBytes,
                         AMOUNT
                     );
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check allowance and sender and recipient balances after transferSolanaFrom
-                    expect(await ERC20ForSPLMintable.allowance(user2.address, user1.address)).to.eq(
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user1.address)).to.eq(
                         initialAllowance - AMOUNT
                     );
 
@@ -1100,7 +1109,7 @@ describe('Test init',  function () {
                     expect(finalRecipientBalance).to.eq(
                         initialRecipientBalance + AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(initialSenderBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(initialSenderBalance - AMOUNT);
                 } else {
                     this.skip();
                 }
@@ -1112,22 +1121,22 @@ describe('Test init',  function () {
                     const solanaUser1ATAInBytes = utils.publicKeyToBytes32(solanaUser1ATA.toBase58());
 
                     // Approve MockVault to spend AMOUNT on behalf of user2
-                    tx = await ERC20ForSPLMintable.connect(user2).approve(MockVaultAddress, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user2).approve(MockVaultAddress, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Save initial allowance and initial sender and recipient balances
-                    const initialAllowance = await ERC20ForSPLMintable.allowance(user2.address, MockVaultAddress);
-                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(user2.address);
+                    const initialAllowance = await ERC20ForSPLMintable.allowance(wallets.user2.address, MockVaultAddress);
+                    const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(wallets.user2.address);
                     // Get initial recipient balance from Solana (because balanceOf won't show user's ATA token balance
                     // until user has scheduled at least one NeonEVM transaction)
                     const initialRecipientBalance = (await getAccount(connection, solanaUser1ATA)).amount;
 
                     // Call transferSolanaFrom
-                    tx = await MockVault.connect(user2).depositToSolana(AMOUNT, solanaUser1ATAInBytes);
+                    tx = await MockVault.connect(wallets.user2).depositToSolana(AMOUNT, solanaUser1ATAInBytes);
                     await tx.wait(RECEIPTS_COUNT);
 
                     // Check allowance and sender and recipient balances after transferSolanaFrom
-                    expect(await ERC20ForSPLMintable.allowance(user2.address,MockVaultAddress)).to.eq(
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user2.address,MockVaultAddress)).to.eq(
                         initialAllowance - AMOUNT
                     );
 
@@ -1138,7 +1147,7 @@ describe('Test init',  function () {
                     expect(finalRecipientBalance).to.eq(
                         initialRecipientBalance + AMOUNT
                     );
-                    expect(await ERC20ForSPLMintable.balanceOf(user2.address)).to.eq(initialSenderBalance - AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user2.address)).to.eq(initialSenderBalance - AMOUNT);
                 } else {
                     this.skip();
                 }
@@ -1147,9 +1156,9 @@ describe('Test init',  function () {
             it("Malicious transferSolanaFrom: reverts with ERC20InvalidSender custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // Call transferSolanaFrom from user3
-                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(user3.address);
+                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(wallets.user3.address);
                     await expect(
-                        ERC20ForSPLMintable.connect(user3).transferSolanaFrom(ZERO_ADDRESS, recipientSolanaAccount, AMOUNT)
+                        ERC20ForSPLMintable.connect(wallets.user3).transferSolanaFrom(ZERO_ADDRESS, recipientSolanaAccount, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
                         'ERC20InvalidSender'
@@ -1162,11 +1171,11 @@ describe('Test init',  function () {
             it("Malicious transferSolanaFrom: reverts with ERC20InsufficientAllowance custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // User3 has no allowance
-                    expect(await ERC20ForSPLMintable.allowance(user2.address, user3.address)).to.eq(ZERO_AMOUNT);
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user2.address, wallets.user3.address)).to.eq(ZERO_AMOUNT);
                     // Call transferSolanaFrom from user3
-                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(user3.address);
+                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(wallets.user3.address);
                     await expect(
-                        ERC20ForSPLMintable.connect(user3).transferSolanaFrom(user2.address, recipientSolanaAccount, AMOUNT)
+                        ERC20ForSPLMintable.connect(wallets.user3).transferSolanaFrom(wallets.user2.address, recipientSolanaAccount, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
                         'ERC20InsufficientAllowance'
@@ -1179,15 +1188,15 @@ describe('Test init',  function () {
             it("Malicious transferSolanaFrom: reverts with ERC20InsufficientBalance custom error", async function () {
                 if (grantedTestersWithBalance) {
                     // User3 has no balance
-                    expect(await ERC20ForSPLMintable.balanceOf(user3.address)).to.eq(ZERO_AMOUNT);
+                    expect(await ERC20ForSPLMintable.balanceOf(wallets.user3.address)).to.eq(ZERO_AMOUNT);
                     // Approve user1 to spend AMOUNT on behalf of user3
-                    tx = await ERC20ForSPLMintable.connect(user3).approve(user1.address, AMOUNT);
+                    tx = await ERC20ForSPLMintable.connect(wallets.user3).approve(wallets.user1.address, AMOUNT);
                     await tx.wait(RECEIPTS_COUNT);
-                    expect(await ERC20ForSPLMintable.allowance(user3.address, user1.address)).to.eq(AMOUNT);
+                    expect(await ERC20ForSPLMintable.allowance(wallets.user3.address, wallets.user1.address)).to.eq(AMOUNT);
                     // Call transferSolanaFrom from user1
-                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(user1.address);
+                    const recipientSolanaAccount = await ERC20ForSPLMintable.solanaAccount(wallets.user1.address);
                     await expect(
-                        ERC20ForSPLMintable.connect(user1).transferSolanaFrom(user3.address, recipientSolanaAccount, AMOUNT)
+                        ERC20ForSPLMintable.connect(wallets.user1).transferSolanaFrom(wallets.user3.address, recipientSolanaAccount, AMOUNT)
                     ).to.be.revertedWithCustomError(
                         ERC20ForSPLMintable,
                         'ERC20InsufficientBalance'
@@ -1200,38 +1209,38 @@ describe('Test init',  function () {
 
             it('approveSolana: approve different accounts then revoke approval ', async function () {
                 // Approve user1 to spend on behalf of owner
-                tx = await ERC20ForSPLMintable.connect(owner).approveSolana(
-                    await ERC20ForSPLMintable.solanaAccount(user1.address),
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).approveSolana(
+                    await ERC20ForSPLMintable.solanaAccount(wallets.user1.address),
                     AMOUNT
                 );
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Check owner's accountDelegateData
-                let accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(owner.address);
-                expect(accountDelegateData[0]).to.eq(await ERC20ForSPLMintable.solanaAccount(user1.address));
+                let accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(wallets.owner.address);
+                expect(accountDelegateData[0]).to.eq(await ERC20ForSPLMintable.solanaAccount(wallets.user1.address));
                 expect(accountDelegateData[1]).to.eq(AMOUNT);
 
                 // Approve user2 to spend on behalf of owner
-                tx = await ERC20ForSPLMintable.connect(owner).approveSolana(
-                    await ERC20ForSPLMintable.solanaAccount(user2.address),
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).approveSolana(
+                    await ERC20ForSPLMintable.solanaAccount(wallets.user2.address),
                     DOUBLE_AMOUNT
                 );
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Check owner's accountDelegateData
-                accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(owner.address);
-                expect(accountDelegateData[0]).to.eq(await ERC20ForSPLMintable.solanaAccount(user2.address));
+                accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(wallets.owner.address);
+                expect(accountDelegateData[0]).to.eq(await ERC20ForSPLMintable.solanaAccount(wallets.user2.address));
                 expect(accountDelegateData[1]).to.eq(DOUBLE_AMOUNT);
 
                 // Revoke approval
-                tx = await ERC20ForSPLMintable.connect(owner).approveSolana(
+                tx = await ERC20ForSPLMintable.connect(wallets.owner).approveSolana(
                     await ERC20ForSPLMintable.solanaAccount(ZERO_ADDRESS),
                     ZERO_AMOUNT
                 );
                 await tx.wait(RECEIPTS_COUNT);
 
                 // Check owner's accountDelegateData
-                accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(owner.address);
+                accountDelegateData = await ERC20ForSPLMintable.getAccountDelegateData(wallets.owner.address);
                 expect(accountDelegateData[0]).to.eq(
                     '0x0000000000000000000000000000000000000000000000000000000000000000'
                 );
@@ -1241,7 +1250,7 @@ describe('Test init',  function () {
             it('Transfer amount > type(uint64).max: reverts with AmountExceedsUint64 custom error', async function () {
                 // Call transfer with amount > type(uint64).max
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).transfer(user2.address, UINT64_MAX_AMOUNT + ONE_AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user1).transfer(wallets.user2.address, UINT64_MAX_AMOUNT + ONE_AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'AmountExceedsUint64'
@@ -1251,7 +1260,7 @@ describe('Test init',  function () {
             it('Burn amount > type(uint64).max: reverts with AmountExceedsUint64 custom error', async function () {
                 // Call burn with amount > type(uint64).max
                 await expect(
-                    ERC20ForSPLMintable.connect(user1).burn(UINT64_MAX_AMOUNT + ONE_AMOUNT)
+                    ERC20ForSPLMintable.connect(wallets.user1).burn(UINT64_MAX_AMOUNT + ONE_AMOUNT)
                 ).to.be.revertedWithCustomError(
                     ERC20ForSPLMintable,
                     'AmountExceedsUint64'
@@ -1289,7 +1298,7 @@ describe('Test init',  function () {
                         const initialRecipientBalance = (await getAccount(connection, solanaUser1ATA)).amount;
 
                         // Transfer tokens to the NeonEVM address associated to solanaUser1 account
-                        tx = await ERC20ForSPLMintable.connect(user1).transfer(solanaUser1NeonEVMAddress, AMOUNT);
+                        tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(solanaUser1NeonEVMAddress, AMOUNT);
                         await tx.wait(RECEIPTS_COUNT);
 
                         // Check that tokens were sent to solanaUser1's ATA
@@ -1299,7 +1308,7 @@ describe('Test init',  function () {
 
                     it('balanceOf includes Solana ATA balance only after delegating to external authority', async function() {
                         // Transfer tokens to the NeonEVM address associated to solanaUser1 account
-                        tx = await ERC20ForSPLMintable.connect(user1).transfer(solanaUser1NeonEVMAddress, AMOUNT);
+                        tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(solanaUser1NeonEVMAddress, AMOUNT);
                         await tx.wait(RECEIPTS_COUNT);
 
                         // Initially returned balance of solanaUser1 is zero
@@ -1313,7 +1322,7 @@ describe('Test init',  function () {
                             || !delegateAuthorityPublicKey
                             ) {
                             delegateAuthorityPublicKey = await utils.delegateSolana({
-                                curvestand: network.config.url,
+                                curvestand: hre.userConfig.networks[hre.globalOptions.network].url,
                                 web3,
                                 connection,
                                 ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -1332,7 +1341,7 @@ describe('Test init',  function () {
 
                     it('transfers from Solana ATA when arbitrary token account does not exist', async function() {
                         // Transfer tokens to the NeonEVM address associated to solanaUser1 account
-                        tx = await ERC20ForSPLMintable.connect(user1).transfer(solanaUser1NeonEVMAddress, AMOUNT);
+                        tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(solanaUser1NeonEVMAddress, AMOUNT);
                         await tx.wait(RECEIPTS_COUNT);
 
                         // Get arbitrary token account attributed to solanaUser1 by NeonEVM
@@ -1345,7 +1354,7 @@ describe('Test init',  function () {
 
                         // Save initial sender and recipient balances
                         const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(solanaUser1NeonEVMAddress);
-                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
 
                         // Save initial balance of solanaUser1's ATA
                         const initialSenderATABalance = (await getAccount(connection, solanaUser1ATA)).amount;
@@ -1356,13 +1365,13 @@ describe('Test init',  function () {
                             neonEVMParams,
                             solanaUser1,
                             ERC20ForSPLMintableAddress,
-                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [user1.address, AMOUNT])
+                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [wallets.user1.address, AMOUNT])
                         );
                         await utils.asyncTimeout(TIMEOUT);
 
                         // Check that scheduled transaction was executed
                         expect(await ERC20ForSPLMintable.balanceOf(solanaUser1NeonEVMAddress)).to.eq(initialSenderBalance - AMOUNT);
-                        expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(initialRecipientBalance + AMOUNT);
+                        expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(initialRecipientBalance + AMOUNT);
 
                         // Check solanaUser1's ATA balance
                         expect((await getAccount(connection, solanaUser1ATA)).amount).to.eq(initialSenderATABalance - AMOUNT);
@@ -1390,7 +1399,7 @@ describe('Test init',  function () {
                         expect(await connection.getAccountInfo(solanaUser2PDA)).to.be.null;
 
                         // Transfer to the NeonEVM address associated to solanaUser2 account
-                        tx = await ERC20ForSPLMintable.connect(user1).transfer(solanaUser2NeonEVMAddress, AMOUNT);
+                        tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(solanaUser2NeonEVMAddress, AMOUNT);
                         await tx.wait(RECEIPTS_COUNT);
 
                         // Check that solanaUser2's arbitrary token account has been initialized
@@ -1406,7 +1415,7 @@ describe('Test init',  function () {
                     it('transfer from arbitrary token account',async function() {
                         // Save initial sender and recipient balances
                         const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(solanaUser2NeonEVMAddress);
-                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
 
                         // Save initial balance of solanaUser2's arbitrary token account
                         const initialSenderPDABalance = (await getAccount(connection, solanaUser2PDA)).amount;
@@ -1417,13 +1426,13 @@ describe('Test init',  function () {
                             neonEVMParams,
                             solanaUser2,
                             ERC20ForSPLMintableAddress,
-                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [user1.address, AMOUNT])
+                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [wallets.user1.address, AMOUNT])
                         );
                         await utils.asyncTimeout(TIMEOUT);
 
                         // Check that scheduled transaction was executed
                         expect(await ERC20ForSPLMintable.balanceOf(solanaUser2NeonEVMAddress)).to.eq(initialSenderBalance - AMOUNT);
-                        expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(initialRecipientBalance + AMOUNT);
+                        expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(initialRecipientBalance + AMOUNT);
 
                         // Check solanaUser2's arbitrary token account balance
                         expect((await getAccount(connection, solanaUser2PDA)).amount).to.eq(initialSenderPDABalance - AMOUNT);
@@ -1451,7 +1460,7 @@ describe('Test init',  function () {
                         expect(await connection.getAccountInfo(solanaUser3PDA)).to.be.null;
 
                         // Transfer to the NeonEVM address associated to solanaUser3 account
-                        tx = await ERC20ForSPLMintable.connect(user1).transfer(solanaUser3NeonEVMAddress, DOUBLE_AMOUNT);
+                        tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(solanaUser3NeonEVMAddress, DOUBLE_AMOUNT);
                         await tx.wait(RECEIPTS_COUNT);
 
                         // Wait for solanaUser3's arbitrary token account to be created
@@ -1497,7 +1506,7 @@ describe('Test init',  function () {
                         const initialRecipientBalance = (await getAccount(connection, solanaUser3ATA)).amount;
 
                         // Transfer tokens to the NeonEVM address associated to solanaUser1 account
-                        tx = await ERC20ForSPLMintable.connect(user1).transfer(solanaUser3NeonEVMAddress, DOUBLE_AMOUNT);
+                        tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(solanaUser3NeonEVMAddress, DOUBLE_AMOUNT);
                         await tx.wait(RECEIPTS_COUNT);
 
                         // Check that tokens were sent to solanaUser3's ATA
@@ -1510,7 +1519,7 @@ describe('Test init',  function () {
                         const solanaUser3PDABalance = (await getAccount(connection, solanaUser3PDA)).amount;
 
                         // Transfer tokens to the NeonEVM address associated to solanaUser3 account
-                        tx = await ERC20ForSPLMintable.connect(user1).transfer(solanaUser3NeonEVMAddress, AMOUNT);
+                        tx = await ERC20ForSPLMintable.connect(wallets.user1).transfer(solanaUser3NeonEVMAddress, AMOUNT);
                         await tx.wait(RECEIPTS_COUNT);
 
                         // Initially returned balance of solanaUser3 equals balance of solanaUser3 arbitrary token account
@@ -1524,7 +1533,7 @@ describe('Test init',  function () {
                             || !delegateAuthorityPublicKey
                             ) {
                             delegateAuthorityPublicKey = await utils.delegateSolana({
-                                curvestand: network.config.url,
+                                curvestand: hre.userConfig.networks[hre.globalOptions.network].url,
                                 web3,
                                 connection,
                                 ERC20ForSPLContractAddress: ERC20ForSPLMintableAddress,
@@ -1543,7 +1552,7 @@ describe('Test init',  function () {
 
                     it('transfer from arbitrary token account in priority', async function(){
                         // Save initial recipient balance
-                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
                         // Save initial sender balance
                         const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(solanaUser3NeonEVMAddress);
                         // Save initial balance of solanaUser3's arbitrary token account
@@ -1557,13 +1566,13 @@ describe('Test init',  function () {
                             neonEVMParams,
                             solanaUser3,
                             ERC20ForSPLMintableAddress,
-                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [user1.address, AMOUNT])
+                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [wallets.user1.address, AMOUNT])
                         );
                         await utils.asyncTimeout(TIMEOUT);
 
                         // Check that scheduled transaction was executed
                         expect(await ERC20ForSPLMintable.balanceOf(solanaUser3NeonEVMAddress)).to.eq(initialSenderBalance - AMOUNT);
-                        expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(initialRecipientBalance + AMOUNT);
+                        expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(initialRecipientBalance + AMOUNT);
 
                         // Check that solanaUser3's arbitrary token account balance decreased by AMOUNT
                         expect((await getAccount(connection, solanaUser3PDA)).amount).to.eq(initialSolanaUser3PDABalance - AMOUNT);
@@ -1574,7 +1583,7 @@ describe('Test init',  function () {
 
                     it('transfer from both arbitrary token account and associated token account', async function(){
                         // Save initial recipient balance
-                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
                         // Save initial sender balance
                         const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(solanaUser3NeonEVMAddress);
                         // Save initial balance of solanaUser3's arbitrary token account
@@ -1588,13 +1597,13 @@ describe('Test init',  function () {
                             neonEVMParams,
                             solanaUser3,
                             ERC20ForSPLMintableAddress,
-                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [user1.address, DOUBLE_AMOUNT])
+                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [wallets.user1.address, DOUBLE_AMOUNT])
                         );
                         await utils.asyncTimeout(TIMEOUT);
 
                         // Check that scheduled transaction was executed
                         expect(await ERC20ForSPLMintable.balanceOf(solanaUser3NeonEVMAddress)).to.eq(initialSenderBalance - DOUBLE_AMOUNT);
-                        expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(initialRecipientBalance + DOUBLE_AMOUNT);
+                        expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(initialRecipientBalance + DOUBLE_AMOUNT);
 
                         // Check that solanaUser3's arbitrary token account balance decreased by AMOUNT
                         expect((await getAccount(connection, solanaUser3PDA)).amount).to.eq(initialSolanaUser3PDABalance - AMOUNT);
@@ -1608,7 +1617,7 @@ describe('Test init',  function () {
 
                     it('transfer from associated token account when arbitrary token account balance is zero', async function(){
                         // Save initial recipient balance
-                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+                        const initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
                         // Save initial sender balance
                         const initialSenderBalance = await ERC20ForSPLMintable.balanceOf(solanaUser3NeonEVMAddress);
                         // Save initial balance of solanaUser3's ATA
@@ -1623,13 +1632,13 @@ describe('Test init',  function () {
                             neonEVMParams,
                             solanaUser3,
                             ERC20ForSPLMintableAddress,
-                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [user1.address, AMOUNT])
+                            ERC20ForSPLMintable.interface.encodeFunctionData("transfer", [wallets.user1.address, AMOUNT])
                         );
                         await utils.asyncTimeout(TIMEOUT);
 
                         // Check that scheduled transaction was executed
                         expect(await ERC20ForSPLMintable.balanceOf(solanaUser3NeonEVMAddress)).to.eq(initialSenderBalance - AMOUNT);
-                        expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(initialRecipientBalance + AMOUNT);
+                        expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(initialRecipientBalance + AMOUNT);
 
                         // Check that solanaUser3's arbitrary token account balance is still zero
                         expect((await getAccount(connection, solanaUser3PDA)).amount).to.eq(ZERO_AMOUNT);
@@ -1643,7 +1652,7 @@ describe('Test init',  function () {
 
         it('mint: malicious mint reverts with OwnableUnauthorizedAccount OZ error', async function () {
             // Call mint from user1 (not owner)
-            await expect(ERC20ForSPLMintable.connect(user1).mint(user1.address, AMOUNT)).to.be.revertedWithCustomError(
+            await expect(ERC20ForSPLMintable.connect(wallets.user1).mint(wallets.user1.address, AMOUNT)).to.be.revertedWithCustomError(
                 ERC20ForSPLMintable,
                 'OwnableUnauthorizedAccount'
             );
@@ -1651,7 +1660,7 @@ describe('Test init',  function () {
 
         it('mint: mint to address(0) reverts with ERC20InvalidReceiver custom error', async function () {
             // Call mint to ZERO_ADDRESS
-            await expect(ERC20ForSPLMintable.connect(owner).mint(ZERO_ADDRESS, AMOUNT)).to.be.revertedWithCustomError(
+            await expect(ERC20ForSPLMintable.connect(wallets.owner).mint(ZERO_ADDRESS, AMOUNT)).to.be.revertedWithCustomError(
                 ERC20ForSPLMintable,
                 'ERC20InvalidReceiver'
             );
@@ -1661,8 +1670,8 @@ describe('Test init',  function () {
             let totalSupply = await ERC20ForSPLMintable.totalSupply();
             let amountLeftToMint = UINT64_MAX_AMOUNT - totalSupply
             // Call mint with amount value such that amount + totalSupply > type(uint64).max
-            await expect(ERC20ForSPLMintable.connect(owner).mint(
-                user1.address,
+            await expect(ERC20ForSPLMintable.connect(wallets.owner).mint(
+                wallets.user1.address,
                 amountLeftToMint + ONE_AMOUNT)
             ).to.be.revertedWithCustomError(ERC20ForSPLMintable, 'AmountExceedsUint64');
         });
@@ -1673,7 +1682,7 @@ describe('Test init',  function () {
             let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(other.address);
 
             // Call mint
-            tx = await ERC20ForSPLMintable.connect(owner).mint(other.address, AMOUNT);
+            tx = await ERC20ForSPLMintable.connect(wallets.owner).mint(other.address, AMOUNT);
             await tx.wait(RECEIPTS_COUNT);
 
             // Check token supply and recipient balance after mint
@@ -1684,15 +1693,15 @@ describe('Test init',  function () {
         it('mint: mint to address with balance (already initialized token account)', async function () {
             // Save initial token supply and initial recipient balance
             let initialSupply = await ERC20ForSPLMintable.totalSupply();
-            let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(user1.address);
+            let initialRecipientBalance = await ERC20ForSPLMintable.balanceOf(wallets.user1.address);
 
             // Call mint
-            tx = await ERC20ForSPLMintable.connect(owner).mint(user1.address, AMOUNT);
+            tx = await ERC20ForSPLMintable.connect(wallets.owner).mint(wallets.user1.address, AMOUNT);
             await tx.wait(RECEIPTS_COUNT);
 
             // Check token supply and recipient balance after mint
             expect(await ERC20ForSPLMintable.totalSupply()).to.eq(initialSupply + AMOUNT);
-            expect(await ERC20ForSPLMintable.balanceOf(user1.address)).to.eq(initialRecipientBalance + AMOUNT);
+            expect(await ERC20ForSPLMintable.balanceOf(wallets.user1.address)).to.eq(initialRecipientBalance + AMOUNT);
         });
     })
 });

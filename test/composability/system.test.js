@@ -1,21 +1,23 @@
-const { network, ethers} = require("hardhat");
-const { expect } = require("chai");
-const web3 = require("@solana/web3.js");
-const { getAccount, TOKEN_PROGRAM_ID, ACCOUNT_SIZE } = require("@solana/spl-token");
-const { deployContract, airdropSOL } = require("./utils.js");
-const config = require("../config.js");
+import { network, globalOptions } from "hardhat"
+import * as _ethers from "ethers"
+import { expect } from "chai"
+import web3 from "@solana/web3.js"
+import { getAccount, TOKEN_PROGRAM_ID, ACCOUNT_SIZE } from "@solana/spl-token"
+import { deployContract, airdropSOL } from "./utils.js"
+import config from "../config.js"
+import { decryptWallets } from "../../wallets.js";
 
 describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async function() {
 
-    console.log("Network name: " + network.name)
-
-    const solanaConnection = new web3.Connection(config.svm_node[network.name], "processed")
+    console.log("\nNetwork name: " + globalOptions.network)
 
     const ZERO_AMOUNT = BigInt(0)
+    const AMOUNT = _ethers.parseUnits('1', 9)
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
-    const AMOUNT = ethers.parseUnits('1', 9)
 
-    let deployer,
+    let ethers,
+        solanaConnection,
+        deployer,
         neonEVMUser,
         callSystemProgram,
         mockCallSystemProgram,
@@ -29,11 +31,14 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
         newRecipientSOLBalance
 
     before(async function() {
-        const deployment = await deployContract('CallSystemProgram', null)
+        const wallets = await decryptWallets()
+        ethers = (await network.connect()).ethers
+        solanaConnection = new web3.Connection(config.svm_node[globalOptions.network], "processed")
+        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallSystemProgram', null)
         deployer = deployment.deployer
         neonEVMUser = deployment.user
         callSystemProgram = deployment.contract
-        mockCallSystemProgram = (await deployContract('MockCallSystemProgram', null)).contract
+        mockCallSystemProgram = (await deployContract(wallets.owner, wallets.user1, 'MockCallSystemProgram', null)).contract
 
         basePubKey = await callSystemProgram.getNeonAddress(callSystemProgram.target)
         rentExemptBalance = await solanaConnection.getMinimumBalanceForRentExemption(ACCOUNT_SIZE)
@@ -112,7 +117,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             )
 
             // Fund the account to be able to get account info
-            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)), rentExemptBalance)
+            await airdropSOL(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)), rentExemptBalance)
 
             info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
             expect(info.owner.toBase58()).to.eq(web3.SystemProgram.programId.toBase58()) // Account belongs to System program initially
@@ -147,7 +152,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
             )
 
             // Fund the account to be able to get account info
-            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)), parseInt(rentExemptBalance.toString()))
+            await airdropSOL(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)), parseInt(rentExemptBalance.toString()))
 
             info = await solanaConnection.getAccountInfo(new web3.PublicKey(ethers.encodeBase58(createWithSeedAccountInBytes)))
             expect(info.owner.toBase58()).to.eq(web3.SystemProgram.programId.toBase58()) // Account belongs to System program
