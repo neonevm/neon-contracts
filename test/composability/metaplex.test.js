@@ -1,28 +1,30 @@
-const { network, ethers} = require("hardhat");
-const { expect } = require("chai");
-const web3 = require("@solana/web3.js");
-const config = require("../config.js");
-const { deployContract, airdropSOL } = require("./utils.js");
-const { createUmi } = require("@metaplex-foundation/umi-bundle-defaults");
-const { findMetadataPda } = require("@metaplex-foundation/mpl-token-metadata");
-const { publicKey } = require("@metaplex-foundation/umi");
+import { network, globalOptions } from "hardhat"
+import { expect } from "chai"
+import web3 from "@solana/web3.js"
+import config from "../config.js"
+import { deployContract } from "./utils.js"
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults"
+import { findMetadataPda } from "@metaplex-foundation/mpl-token-metadata"
+import { publicKey } from "@metaplex-foundation/umi"
+import { decryptWallets } from "../../wallets.js";
 
-describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  function() {
+describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m', function() {
 
-    console.log("Network name: " + network.name)
+    console.log("\nNetwork name: " + globalOptions.network)
 
-    const seed = config.composability.tokenMintSeed[network.name]
+    const seed = config.composability.tokenMintSeed[globalOptions.network]
     const second_seed = "mySecondTokenMintSeed"
     const third_seed = "myThirdTokenMintSeed"
-    const decimals = config.composability.tokenMintDecimals[network.name]
-    const tokenName = config.composability.tokenMetadata[network.name].tokenName
-    const tokenSymbol = config.composability.tokenMetadata[network.name].tokenSymbol
-    const uri = config.composability.tokenMetadata[network.name].uri
+    const decimals = config.composability.tokenMintDecimals[globalOptions.network]
+    const tokenName = config.composability.tokenMetadata[globalOptions.network].tokenName
+    const tokenSymbol = config.composability.tokenMetadata[globalOptions.network].tokenSymbol
+    const uri = config.composability.tokenMetadata[globalOptions.network].uri
     const isMutable = true
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
     const newUpdateAuthorityInBytes = web3.Keypair.generate().publicKey.toBuffer()
 
-    let deployer,
+    let ethers,
+        deployer,
         neonEVMUser,
         otherNeonEVMUser,
         callMetaplexProgram,
@@ -35,14 +37,16 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
         otherTokenMintInBytes
 
     before(async function() {
-        const deployment = await deployContract('CallSPLTokenProgram', null)
+        const wallets = await decryptWallets()
+        ethers = (await network.connect()).ethers
+        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallSPLTokenProgram', null)
         deployer = deployment.deployer
         neonEVMUser = deployment.user
         otherNeonEVMUser = deployment.otherUser
         callSPLTokenProgram = deployment.contract
-        callMetaplexProgram = (await deployContract('CallMetaplexProgram', null)).contract
-        callSystemProgram = (await deployContract('CallSystemProgram', null)).contract
-        callAssociatedTokenProgram = (await deployContract('CallAssociatedTokenProgram', null)).contract
+        callMetaplexProgram = (await deployContract(wallets.owner, wallets.user1, 'CallMetaplexProgram', null)).contract
+        callSystemProgram = (await deployContract(wallets.owner, wallets.user1, 'CallSystemProgram', null)).contract
+        callAssociatedTokenProgram = (await deployContract(wallets.owner, wallets.user1, 'CallAssociatedTokenProgram', null)).contract
         // Create and initialize new SPL token mint
         tx = await callSPLTokenProgram.connect(deployer).createInitializeTokenMint(
             Buffer.from(seed), // Seed to generate new SPL token mint account on-chain
@@ -106,7 +110,7 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m',  func
 
         it('Derive token metadata PDA on-chain', async function() {
             // Derive metadata PDA using Metaplex SDK
-            const umi = createUmi(config.svm_node[network.name]);
+            const umi = createUmi(config.svm_node[globalOptions.network])
             const metadataPDAFromSDK = findMetadataPda(
                 umi,
                 { mint: publicKey(ethers.encodeBase58(tokenMintInBytes)) }

@@ -117,12 +117,57 @@ the `getUserExtAuthority` function, passing the attributed _NeonEVM_ account `ad
 Once those two steps have been completed, the _Solana_ user's ATA token balance will be included in the balance returned
 by the `balanceOf` function and this ATA token balance will be spendable via the `transfer` and `transferFrom` functions.
 
-## Running tests
-* **ERC20ForSpl** - this action is done in 2 steps. First we have to deploy a SPLToken on Solana and then to pass it into the ERC20ForSpl's constructor.
-    * run ```node test/helpers/deploySPLToken.js neondevnet``` to deploy new SPLToken.
-    * paste the new SPLToken mint address to `utils.DATA.ADDRESSES.ERC20ForSplTokenMint` inside `test/utils.js`.
-    * run `npx hardhat test test/ERC20ForSpl.js --network neondevnet`
-* **ERC20ForSplMintable** - run `npx hardhat test test/ERC20ForSplMintable.js --network neondevnet`
+## Tests
+
+### Private keys setup
+
+Private keys used in tests must be stored in an encrypted keystore file (located at
+`~/Library/Preferences/hardhat-nodejs/keystore.json` by default on macOS systems) before running tests. To do so, run the following
+commands in the CLI. You will be asked to choose a password (which will be used to encrypt provided secrets) and to
+enter the secret values to be encrypted. 
+
+```shell
+npx hardhat keystore set PRIVATE_KEY_OWNER
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_USER_1
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_USER_2
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_USER_3
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA_2
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA_3
+```
+```shell
+npx hardhat keystore set PRIVATE_KEY_SOLANA_4
+```
+
+### Environment variables
+
+The keystore's password can be added to the `.env` file (as `KEYSTORE_PASSWORD`) which allows secrets to be decrypted 
+automatically when running tests. Otherwise, each running test have the CLI prompt a request to enter the keystore's 
+password manually.
+
+### Running tests
+
+* **ERC20ForSpl** - this action is done in 2 steps. First we have to deploy a SPLToken on Solana and then to pass it 
+    into the ERC20ForSpl's constructor.
+    * run ```npx hardhat run ./test/token/helpers/deploySPLToken.js --network < curvestand or neondevnet >``` to deploy new 
+    SPLToken.
+    * paste the new SPLToken mint address into `./test/config.js` inside `config.token.ERC20ForSplTokenMint.< curvestand 
+  or neondevnet >`, depending on the network tests are running on.
+    * run `npx hardhat test mocha ./test/token/ERC20ForSPL.test.js --network < curvestand or neondevnet >`
+* **ERC20ForSplMintable** - run `npx hardhat test mocha ./test/token/ERC20ForSPLMintable.test.js --network < curvestand or neondevnet >`
+* **ERC20ForSplFactory** - run `npx hardhat test mocha ./test/token/ERC20ForSplFactory.test.js --network < curvestand or neondevnet >`
 
 ## Audit
 The external audit was performed and completed by [Halborn](https://www.halborn.com/). The final report is located [here](./v2-audit/ERC20ForSPL_SSC_FINAL.pdf). 
