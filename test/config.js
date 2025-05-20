@@ -1,4 +1,4 @@
-module.exports = {
+const config = {
     neon_faucet: {
         curvestand: {
             url: "https://curve-stand.neontest.xyz/request_neon",
@@ -94,7 +94,7 @@ module.exports = {
             neonmainnet: "",
         },
         ERC20ForSplTokenMint: {
-            curvestand: "",
+            curvestand: "6yDSqgJJuySCMGvKtjcuUvbAEp5fk5SGydtjDu69u95T",
             neondevnet: "",
             neonmainnet: "",
         },
@@ -106,3 +106,4 @@ module.exports = {
     }
 }
 
+export default config

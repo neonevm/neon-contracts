@@ -4,12 +4,15 @@
 // You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
-const { ethers } = require("hardhat");
-const web3 = require('@solana/web3.js');
+import hre from "hardhat"
+import web3 from '@solana/web3.js'
+import { getSecrets } from "../../../neon-secrets.js";
 
 async function main() {
-    const SolanaVRFFactory = await ethers.getContractFactory("SolanaVRF");
-    let SolanaVRFAddress = "0x7007B99847E2634395b2c3244416bFD80495EF45";
+    const { wallets } = await getSecrets()
+    const ethers = (await hre.network.connect()).ethers
+    const SolanaVRFFactory = await ethers.getContractFactory("SolanaVRF", wallets.owner);
+    let SolanaVRFAddress = "";
     let SolanaVRF;
 
     if (ethers.isAddress(SolanaVRFAddress)) {
@@ -19,7 +22,7 @@ async function main() {
             `SolanaVRF attached at ${SolanaVRFAddress}`
         );
     } else {
-        SolanaVRF = await ethers.deployContract("SolanaVRF");
+        SolanaVRF = await ethers.deployContract("SolanaVRF", wallets.owner);
         await SolanaVRF.waitForDeployment();
         SolanaVRFAddress = SolanaVRF.target;
 

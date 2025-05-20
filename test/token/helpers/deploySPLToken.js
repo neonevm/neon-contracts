@@ -1,7 +1,6 @@
-const args = process.argv.slice(2);
-const network = args[0];
-const web3 = require("@solana/web3.js");
-const {
+import hre from "hardhat";
+import web3 from "@solana/web3.js"
+import {
     getAssociatedTokenAddress,
     createInitializeMint2Instruction,
     TOKEN_PROGRAM_ID,
@@ -9,24 +8,29 @@ const {
     MINT_SIZE,
     createMintToInstruction,
     createAssociatedTokenAccountInstruction
-} = require('@solana/spl-token');
-const { Metaplex } = require("@metaplex-foundation/js");
-const bs58 = require("bs58");
-const { createCreateMetadataAccountV3Instruction } = require("@metaplex-foundation/mpl-token-metadata");
-const utils = require('../utils');
-const config = require('../../config.js');
-require("dotenv").config({path: __dirname + '/../../.env'});
+} from '@solana/spl-token'
+import { Metaplex } from "@metaplex-foundation/js"
+import { createUmi } from "@metaplex-foundation/umi-bundle-defaults"
+import {
+    createSignerFromKeypair,
+    signerIdentity
+} from "@metaplex-foundation/umi"
+import { createMetadataAccountV3 } from "@metaplex-foundation/mpl-token-metadata"
+import { getSecrets } from "../../../neon-secrets.js";
+import utils from '../utils'
+import config from '../../config.js'
+import "dotenv/config"
 
-const connection = new web3.Connection(config.svm_node[network], "processed");
-
-const keypair = web3.Keypair.fromSecretKey(
-    bs58.decode(process.env.PRIVATE_KEY_SOLANA)
-);
+const connection = new web3.Connection(config.svm_node[hre.globalOptions.network], "processed");
+const umi = createUmi(config.svm_node[hre.globalOptions.network])
+const { wallets } = await getSecrets()
+const keypair = wallets.solanaUser1;
 console.log(keypair.publicKey.toBase58(), 'publicKey');
+const _keypair = umi.eddsa.createKeypairFromSecretKey(keypair.secretKey)
+const authority = createSignerFromKeypair(umi, _keypair);
+const authorityPubkey = new web3.PublicKey(authority.publicKey.toString())
 
-const solanaUser4 = web3.Keypair.fromSecretKey( // Solana user with tokens balance for airdropping tokens
-    bs58.decode(process.env.PRIVATE_KEY_SOLANA_4)
-);
+const solanaUser4 = wallets.solanaUser4; // Solana user with tokens balance for airdropping tokens
 
 async function init() {
     if (await connection.getBalance(keypair.publicKey) == 0) {
@@ -73,33 +77,44 @@ async function init() {
     );
 
     const metaplex = new Metaplex(connection);
-    const metadata = metaplex.nfts().pdas().metadata({mint: createWithSeed});
-    tx.add(
-        createCreateMetadataAccountV3Instruction(
-            {
-                metadata: metadata,
-                mint: createWithSeed,
-                mintAuthority: keypair.publicKey,
-                payer: keypair.publicKey,
-                updateAuthority: keypair.publicKey
+    const metadata = metaplex.nfts().pdas().metadata({ mint: createWithSeed });
+    umi.use(signerIdentity(authority));
+    const ix = createMetadataAccountV3(
+        umi,
+        {
+            metadata: metadata,
+            mint: createWithSeed,
+            mintAuthority: authorityPubkey,
+            payer: authorityPubkey,
+            updateAuthority: authorityPubkey,
+            data: {
+                name: "Dev Neon EVM",
+                symbol: "devNEON",
+                uri: 'https://ipfs.io/ipfs/QmTZGs6GyUi3hTGtQiFNu4cYNMdMv4RS1XCyYVTQtjaXYF',
+                sellerFeeBasisPoints: 0,
+                collection: null,
+                creators: null,
+                uses: null
             },
-            {
-                createMetadataAccountArgsV3: {
-                    data: {
-                        name: "Dev Neon EVM",
-                        symbol: "devNEON",
-                        uri: 'https://ipfs.io/ipfs/QmTZGs6GyUi3hTGtQiFNu4cYNMdMv4RS1XCyYVTQtjaXYF',
-                        sellerFeeBasisPoints: 0,
-                        collection: null,
-                        creators: null,
-                        uses: null
-                    },
-                    isMutable: true,
-                    collectionDetails: null
-                },
-            }
-        )
-    );
+            isMutable: true,
+            collectionDetails: null
+        }
+    ).getInstructions()[0]
+    const keys = []
+    ix.keys.forEach((_key) => {
+        const key = {}
+        key.isSigner= _key.isSigner
+        key.isWritable= _key.isWritable
+        key.pubkey = new web3.PublicKey(_key.pubkey)
+        keys.push(key)
+    })
+    tx.add(
+        new web3.TransactionInstruction({
+            keys,
+            programId: ix.programId,
+            data: ix.data,
+        })
+    )
 
     tx.add(
         createAssociatedTokenAccountInstruction(
