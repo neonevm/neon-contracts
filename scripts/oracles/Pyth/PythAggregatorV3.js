@@ -5,10 +5,10 @@
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
 import hre from "hardhat"
-import { decryptWallets } from "../../../wallets.js";
+import { getSecrets } from "../../../neon-secrets.js";
 
 async function main() {
-    const wallets = await decryptWallets()
+    const { wallets } = await getSecrets()
     const ethers = (await hre.network.connect()).ethers
     const PYTH_PRICE_FEED_ID = ""; // bytes32
     const PYTH_PRICE_FEED_ACCOUNT = ""; // bytes32

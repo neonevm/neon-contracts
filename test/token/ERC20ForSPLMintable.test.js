@@ -8,7 +8,7 @@ import {
     getAccount
 } from "@solana/spl-token"
 import utils from "./utils.js"
-import { decryptWallets } from "../../wallets.js"
+import { getSecrets } from "../../neon-secrets.js"
 import config from "../config.js"
 import "dotenv/config"
 
@@ -55,7 +55,7 @@ describe('Test init',  function () {
     let tx, solanaTx;
 
     before(async function() {
-        wallets = await decryptWallets()
+        wallets = (await getSecrets()).wallets
         ethers = (await hre.network.connect()).ethers
 
         // ============================= DEPLOY CONTRACTS ====================================

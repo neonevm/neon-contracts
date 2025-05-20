@@ -6,7 +6,7 @@ import { deployContract } from "./utils.js"
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults"
 import { findMetadataPda } from "@metaplex-foundation/mpl-token-metadata"
 import { publicKey } from "@metaplex-foundation/umi"
-import { decryptWallets } from "../../wallets.js";
+import { getSecrets } from "../../neon-secrets.js";
 
 describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m', function() {
 
@@ -37,7 +37,7 @@ describe('\u{1F680} \x1b[36mMetaplex program composability tests\x1b[33m', funct
         otherTokenMintInBytes
 
     before(async function() {
-        const wallets = await decryptWallets()
+        const { wallets } = await getSecrets()
         ethers = (await network.connect()).ethers
         const deployment = await deployContract(wallets.owner, wallets.user1, 'CallSPLTokenProgram', null)
         deployer = deployment.deployer

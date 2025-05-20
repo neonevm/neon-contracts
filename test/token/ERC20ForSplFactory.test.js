@@ -1,6 +1,6 @@
 import { network, globalOptions } from "hardhat"
 import { expect } from "chai"
-import { decryptWallets } from "../../wallets.js";
+import { getSecrets } from "../../neon-secrets.js";
 import utils from './utils.js'
 import config from '../config.js'
 import "dotenv/config"
@@ -20,7 +20,7 @@ let ERC20ForSplMintableContractFactory;
 
 describe('Test init', async function () {
     before(async function() {
-        const wallets = await decryptWallets()
+        const { wallets } = await getSecrets()
         ethers = (await network.connect()).ethers
         owner = wallets.owner
 

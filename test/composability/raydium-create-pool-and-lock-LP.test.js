@@ -4,7 +4,7 @@ import {
     NATIVE_MINT
 } from '@solana/spl-token'
 import { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } from "./utils.js"
-import { decryptWallets } from "../../wallets.js";
+import { getSecrets } from "../../neon-secrets.js";
 
 describe('LibRaydiumProgram', function() {
     console.log("\nNetwork name: " + globalOptions.network)
@@ -23,7 +23,7 @@ describe('LibRaydiumProgram', function() {
         poolId
 
     before(async function() {
-        const wallets = await decryptWallets()
+        const { wallets } = await getSecrets()
         ethers = (await network.connect()).ethers
         const deployment = await deployContract(wallets.owner, wallets.user1, 'CallRaydiumProgram', null);
         deployer = deployment.deployer

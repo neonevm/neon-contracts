@@ -6,10 +6,10 @@
 // global scope, and execute the script.
 import hre from "hardhat"
 import web3 from '@solana/web3.js'
-import { decryptWallets } from "../../../wallets.js";
+import { getSecrets } from "../../../neon-secrets.js";
 
 async function main() {
-    const wallets = await decryptWallets()
+    const { wallets } = await getSecrets()
     const ethers = (await hre.network.connect()).ethers
     const SolanaVRFFactory = await ethers.getContractFactory("SolanaVRF", wallets.owner);
     let SolanaVRFAddress = "";
