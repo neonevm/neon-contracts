@@ -16,14 +16,14 @@ import {
     signerIdentity
 } from "@metaplex-foundation/umi"
 import { createMetadataAccountV3 } from "@metaplex-foundation/mpl-token-metadata"
-import { decryptWallets } from "../../../wallets.js";
+import { getSecrets } from "../../../neon-secrets.js";
 import utils from '../utils'
 import config from '../../config.js'
 import "dotenv/config"
 
 const connection = new web3.Connection(config.svm_node[hre.globalOptions.network], "processed");
 const umi = createUmi(config.svm_node[hre.globalOptions.network])
-const wallets = await decryptWallets()
+const { wallets } = await getSecrets()
 const keypair = wallets.solanaUser1;
 console.log(keypair.publicKey.toBase58(), 'publicKey');
 const _keypair = umi.eddsa.createKeypairFromSecretKey(keypair.secretKey)

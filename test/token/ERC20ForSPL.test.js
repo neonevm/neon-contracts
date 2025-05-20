@@ -9,7 +9,7 @@ import {
     createMintToInstruction,
     createTransferInstruction
 } from '@solana/spl-token'
-import { decryptWallets } from "../../wallets.js";
+import { getSecrets } from "../../neon-secrets.js";
 import utils from './utils.js'
 import config from '../config.js'
 import "dotenv/config"
@@ -39,7 +39,7 @@ let neon_getEvmParams;
 
 describe('Test init', async function () {
     before(async function() {
-        wallets = await decryptWallets()
+        wallets = (await getSecrets()).wallets
         ethers = (await network.connect()).ethers
 
         if (await ethers.provider.getBalance(wallets.owner.address) == 0) {

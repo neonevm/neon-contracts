@@ -5,7 +5,7 @@ import web3 from "@solana/web3.js"
 import { getAccount, TOKEN_PROGRAM_ID, ACCOUNT_SIZE } from "@solana/spl-token"
 import { deployContract, airdropSOL } from "./utils.js"
 import config from "../config.js"
-import { decryptWallets } from "../../wallets.js";
+import { getSecrets } from "../../neon-secrets.js";
 
 describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async function() {
 
@@ -31,7 +31,7 @@ describe('\u{1F680} \x1b[36mSystem program composability tests\x1b[33m',  async 
         newRecipientSOLBalance
 
     before(async function() {
-        const wallets = await decryptWallets()
+        const { wallets } = await getSecrets()
         ethers = (await network.connect()).ethers
         solanaConnection = new web3.Connection(config.svm_node[globalOptions.network], "processed")
         const deployment = await deployContract(wallets.owner, wallets.user1, 'CallSystemProgram', null)

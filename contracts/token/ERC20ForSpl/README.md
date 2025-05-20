@@ -119,12 +119,11 @@ by the `balanceOf` function and this ATA token balance will be spendable via the
 
 ## Tests
 
-### Private keys setup
+### Secret values setup
 
-Private keys used in tests must be stored in an encrypted keystore file (located at
-`~/Library/Preferences/hardhat-nodejs/keystore.json` by default on macOS systems) before running tests. To do so, run the following
-commands in the CLI. You will be asked to choose a password (which will be used to encrypt provided secrets) and to
-enter the secret values to be encrypted. 
+Secret values (such as private keys) used in tests should be stored using Hardhat's encrypted keystore file (located at
+`~/Library/Preferences/hardhat-nodejs/keystore.json` by default) before running tests. To do so, run the following
+commands in the CLI:
 
 ```shell
 npx hardhat keystore set PRIVATE_KEY_OWNER
@@ -151,11 +150,16 @@ npx hardhat keystore set PRIVATE_KEY_SOLANA_3
 npx hardhat keystore set PRIVATE_KEY_SOLANA_4
 ```
 
-### Environment variables
+You will be asked to choose a password (which will be used to encrypt provided secrets) and to enter the secret values
+to be encrypted. The keystore password can be added to the `.env` file (as `KEYSTORE_PASSWORD`)  which allows secrets
+to be decrypted automatically when running Hardhat tests and scripts. Otherwise, each running Hardhat test and script
+will have the CLI prompt a request to enter the keystore password manually.
 
-The keystore's password can be added to the `.env` file (as `KEYSTORE_PASSWORD`) which allows secrets to be decrypted 
-automatically when running tests. Otherwise, each running test have the CLI prompt a request to enter the keystore's 
-password manually.
+> [!CAUTION]
+> Although it is not recommended (as it involves risks of leaking secrets) it is possible to store plain-text secrets in
+`.env` file using the same keys as listed above. When doing so, user will be asked to confirm wanting to use plain-text
+secrets found in `.env` file when running Hardhat tests and scripts.
+
 
 ### Running tests
 
