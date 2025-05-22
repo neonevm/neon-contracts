@@ -11,10 +11,14 @@ const {
     createAssociatedTokenAccountInstruction
 } = require('@solana/spl-token');
 const { Metaplex } = require("@metaplex-foundation/js");
+const { createMetadataAccountV3 } = require("@metaplex-foundation/mpl-token-metadata");
 const bs58 = require("bs58");
-const { createCreateMetadataAccountV3Instruction } = require("@metaplex-foundation/mpl-token-metadata");
-const utils = require('../utils');
+
 const config = require('../../config.js');
+const {createUmi} = require('@metaplex-foundation/umi-bundle-defaults');
+const umi = createUmi(config.svm_node[network])
+const {createSignerFromKeypair, signerIdentity} = require('@metaplex-foundation/umi');
+const utils = require('../utils');
 require("dotenv").config({path: __dirname + '/../../.env'});
 
 const connection = new web3.Connection(config.svm_node[network], "processed");
@@ -73,33 +77,44 @@ async function init() {
     );
 
     const metaplex = new Metaplex(connection);
-    const metadata = metaplex.nfts().pdas().metadata({mint: createWithSeed});
-    tx.add(
-        createCreateMetadataAccountV3Instruction(
-            {
-                metadata: metadata,
-                mint: createWithSeed,
-                mintAuthority: keypair.publicKey,
-                payer: keypair.publicKey,
-                updateAuthority: keypair.publicKey
+    const metadata = metaplex.nfts().pdas().metadata({ mint: createWithSeed });
+    umi.use(signerIdentity(keypair));
+    const ix = createMetadataAccountV3(
+        umi,
+        {
+            metadata: metadata,
+            mint: createWithSeed,
+            mintAuthority: keypair.publicKey,
+            payer: keypair.publicKey,
+            updateAuthority: keypair.publicKey,
+            data: {
+                name: "Dev Neon EVM",
+                symbol: "devNEON",
+                uri: 'https://ipfs.io/ipfs/QmTZGs6GyUi3hTGtQiFNu4cYNMdMv4RS1XCyYVTQtjaXYF',
+                sellerFeeBasisPoints: 0,
+                collection: null,
+                creators: null,
+                uses: null
             },
-            {
-                createMetadataAccountArgsV3: {
-                    data: {
-                        name: "Dev Neon EVM",
-                        symbol: "devNEON",
-                        uri: 'https://ipfs.io/ipfs/QmTZGs6GyUi3hTGtQiFNu4cYNMdMv4RS1XCyYVTQtjaXYF',
-                        sellerFeeBasisPoints: 0,
-                        collection: null,
-                        creators: null,
-                        uses: null
-                    },
-                    isMutable: true,
-                    collectionDetails: null
-                },
-            }
-        )
-    );
+            isMutable: true,
+            collectionDetails: null
+        }
+    ).getInstructions()[0]
+    const keys = []
+    ix.keys.forEach((_key) => {
+        const key = {}
+        key.isSigner= _key.isSigner
+        key.isWritable= _key.isWritable
+        key.pubkey = new web3.PublicKey(_key.pubkey)
+        keys.push(key)
+    })
+    tx.add(
+        new web3.TransactionInstruction({
+            keys,
+            programId: ix.programId,
+            data: ix.data,
+        })
+    )
 
     tx.add(
         createAssociatedTokenAccountInstruction(

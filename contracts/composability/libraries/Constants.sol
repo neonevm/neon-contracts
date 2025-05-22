@@ -132,4 +132,22 @@ library Constants {
             revert InvalidChain(chainId);
         }
     }
+
+    function getKaminoLendingProgramId() internal view returns(bytes32) {
+        uint chainId = getChainId();
+        if (chainId == NEON_CHAIN_MAINNET) {
+            return 0x04b2acb11258cce3682c418ba872ff3df91102712f15af12b6be69b3435b0008;
+        } else {
+            revert InvalidChain(chainId);
+        }
+    }
+
+    function getKaminoFarmsProgramId() internal view returns(bytes32) {
+        uint chainId = getChainId();
+        if (chainId == NEON_CHAIN_MAINNET) {
+            return 0xd8b0101763d3e51f126e6156de85de8c613059b84468d0da3fe8a2a2251cc701;
+        } else {
+            revert InvalidChain(chainId);
+        }
+    }
 }
