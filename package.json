@@ -43,5 +43,10 @@
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5.4.5"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^0.15.11",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.11",
+    "@nomicfoundation/ignition-core": "^0.15.11"
   }
 }
