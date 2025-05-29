@@ -1,6 +1,6 @@
 {
   "name": "@neonevm/call-solana",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "license": "MIT",
   "author": "Neon Labs",
   "contributors": [
@@ -16,13 +16,14 @@
   "files": [
     "/README.md",
     "/package.json",
-    "/composability/*.sol",
     "/composability/libraries/*.sol",
     "/composability/libraries/**/*.sol",
     "/composability/libraries/**/*.md",
-    "/precompiles/*.sol",
-    "/precompiles/README.md",
-    "/utils/*.sol",
+    "/precompiles/ICallSolana.sol",
+    "/precompiles/QueryAccount.sol",
+    "/utils/CallSolanaHelperLib.sol",
+    "/utils/SolanaDataConverterLib.sol",
+    "!/composability/*.sol",
     "!/composability/mock-contracts/*",
     "!/mocks/*",
     "!/oracles/*",
