@@ -126,20 +126,26 @@ contract, instead it must interact directly with the **SPL Token** program on _S
 
 ## Tests
 
+### Secret values setup
+
+See detailed [instructions](../../README.md) for setting up secret values (such as private keys) used to run tests.
+
+### Running tests
+
 Contracts are deployed at the beginning of each test unless the `utils.js` file already contains the contract address.
 
 The `system.test.js`, `spl-token.test.js` and `metaplex.test.js` test cases can be run on either _Curvestand_ test network or _Neon devnet_ 
 using the following commands:
 
-`npx hardhat test ./test/composability/system.test.js --network < curvestand or neondevnet >`
+`npx hardhat test mocha ./test/composability/system.test.js --network < curvestand or neondevnet >`
 
-`npx hardhat test ./test/composability/spl-token.test.js --network < curvestand or neondevnet >`
+`npx hardhat test mocha ./test/composability/spl-token.test.js --network < curvestand or neondevnet >`
 
-`npx hardhat test ./test/composability/metaplex.test.js --network < curvestand or neondevnet >`
+`npx hardhat test mocha ./test/composability/metaplex.test.js --network < curvestand or neondevnet >`
 
 The `raydium.test.js` and `raydium-create-pool-and-lock-LP.test.js` test cases can only be run on _Neon devnet_ using the 
 following commands:
 
-`npx hardhat test ./test/composability/raydium.test.js --network neondevnet`
+`npx hardhat test mocha ./test/composability/raydium.test.js --network neondevnet`
 
-`npx hardhat test ./test/composability/raydium-create-pool-and-lock-LP.test.js --network neondevnet`
+`npx hardhat test mocha ./test/composability/raydium-create-pool-and-lock-LP.test.js --network neondevnet`
