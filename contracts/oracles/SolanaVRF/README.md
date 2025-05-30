@@ -23,19 +23,6 @@ const randomness = await vrf.waitFulfilled(seed);
 console.log(Buffer.from(randomness.randomness).readBigUInt64LE(), 'randomness');
 ```
 
-### Private keys setup
+### Secret values setup
 
-Private keys used in tests must be stored in an encrypted keystore file (located at
-`~/Library/Preferences/hardhat-nodejs/keystore.json` by default on macOS systems) before running tests. To do so, run the following
-commands in the CLI. You will be asked to choose a password (which will be used to encrypt provided secrets) and to
-enter the secret values to be encrypted.
-
-```shell
-npx hardhat keystore set PRIVATE_KEY_OWNER
-```
-
-### Environment variables
-
-The keystore's password can be added to the `.env` file (as `KEYSTORE_PASSWORD`) which allows secrets to be decrypted
-automatically when running tests. Otherwise, each running test have the CLI prompt a request to enter the keystore's
-password manually.
+See detailed [instructions](../../../README.md) for setting up secret values (such as private keys) used to run scripts.

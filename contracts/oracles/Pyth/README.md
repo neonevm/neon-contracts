@@ -18,19 +18,6 @@ This smart contract represents an instance of the ChainlinkAggregatorV3 interfac
 | INF/USD | [0x4Ff8DfecEb1d29bbF58e92Cc9847fd20b51406aD](https://neon.blockscout.com/address/0x4Ff8DfecEb1d29bbF58e92Cc9847fd20b51406aD) | 0xf51570985c642c49c2d6e50156390fdba80bb6d5f7fa389d2f012ced4f7d208f |
 
 
-### Private keys setup
+### Secret values setup
 
-Private keys used in tests must be stored in an encrypted keystore file (located at
-`~/Library/Preferences/hardhat-nodejs/keystore.json` by default on macOS systems) before running tests. To do so, run the following
-commands in the CLI. You will be asked to choose a password (which will be used to encrypt provided secrets) and to
-enter the secret values to be encrypted.
-
-```shell
-npx hardhat keystore set PRIVATE_KEY_OWNER
-```
-
-### Environment variables
-
-The keystore's password can be added to the `.env` file (as `KEYSTORE_PASSWORD`) which allows secrets to be decrypted
-automatically when running tests. Otherwise, each running test have the CLI prompt a request to enter the keystore's
-password manually.
+See detailed [instructions](../../../README.md) for setting up secret values (such as private keys) used to run scripts.

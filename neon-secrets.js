@@ -20,20 +20,31 @@ export async function getSecrets() {
     const ethers = (await hre.network.connect()).ethers
     let usingPlainTextSecrets = false
     let plainTextSecretsWarningPrompted = false
+    // We first check is some secret keys are present in .env file
+    const envFileSecretKeys = []
+    secretsKeys.forEach((key) => {
+        if(process.env[key]) {
+            envFileSecretKeys.push(key)
+        }
+    })
+    if(envFileSecretKeys.length) {
+        // Prompt warning message asking user to confirm wanting to use plain text secrets in .env file
+        usingPlainTextSecrets = await promptPlainTextSecretsWarning(envFileSecretKeys)
+        if(!usingPlainTextSecrets) {
+            // If user did not confirm using plain text secrets in .env file
+            throw new Error("User denied using plain text secrets from .env file")
+        }
+    }
     try {
         const secrets = await asyncForLoop(
             secretsKeys,
             async function(secretsKeys, index, secrets) {
                 const secretName = getSecretName(secretsKeys[index])
                 if(process.env[secretsKeys[index]]) { // If secret is found in .env file
-                    if(!usingPlainTextSecrets // And user has not confirmed wanting to use plain-text secrets
-                    && !plainTextSecretsWarningPrompted // And warning message about using plain-text secrets has not been prompted yet
-                    ) {
-                        // Prompt warning message asking user to confirm wanting to use plain text secrets in .env file
-                        usingPlainTextSecrets = await promptPlainTextSecretsWarning()
-                    }
                     if(usingPlainTextSecrets) {
                         // If user confirmed using plain text secrets in .env file
+                        console.log("\n\u{26A0} \x1b[33mReading secret " + secretsKeys[index] + " from \x1b[36m.env" +
+                            "\x1b[33m file\x1b[0m\n")
                         if(secretsKeys[index].split("PRIVATE_KEY").length > 1) {
                             try {
                                 if(secretsKeys[index].split("SOLANA").length > 1) {  // SVM private key
@@ -83,8 +94,8 @@ export async function getSecrets() {
                     } else {
                         // If user did already confirm wanting to use plain text secrets and some secret is not found in
                         // .env file
-                        console.error("\n\u{26A0} \x1b[33mError: missing secret " + secretsKeys[index] + " in " +
-                            ".env file. Will try to decrypt secret from Hardhat's encrypted keystore instead.")
+                        console.log("\n\u{26A0} \x1b[33mDecrypting secret " + secretsKeys[index] + " from \x1b[36m" +
+                            "Hardhat's encrypted keystore\x1b[0m\n")
                         try {
                             return await decryptSecret(ethers, secrets, secretsKeys[index], true)
                         } catch(error) {
@@ -191,11 +202,19 @@ async function decryptSecrets(ethers) {
     return secrets
 }
 
-async function promptPlainTextSecretsWarning() {
-    const warningMessage = "\x1b[33mSome plain-text secrets have been found in \x1b[36m.env\x1b[33m file, which" +
-        " involves the risk of leaking secret values. You should store secrets using Hardhat's encrypted keystore " +
-        "instead.\n\n\x1b[33mWould you like to continue using plain-text secrets found in \x1b[36m.env\x1b[33m file?" +
-        "\x1b[34m"
+async function promptPlainTextSecretsWarning(envFileSecretKeys) {
+    let warningMessage = "\x1b[33mThe following plain-text secrets have been found in \x1b[36m.env\x1b[33m " +
+        "file: "
+    for(let i = 0; i < envFileSecretKeys.length; i++) {
+        if (i < envFileSecretKeys.length - 1) {
+            warningMessage += envFileSecretKeys[i] + ", "
+        } else {
+            warningMessage += envFileSecretKeys[i] + "."
+        }
+    }
+    warningMessage += "\n\n\x1b[33mStoring secrets in .env file involves the risk of leaking secret values. It is recommended " +
+        "to store secrets using Hardhat's encrypted keystore instead.\n\nWould you like to continue using " +
+        "plain-text secrets found in \x1b[36m.env\x1b[33m file?\x1b[34m"
     console.log("\n") // Line break
     const input = await hre.interruptions.requestInput(warningMessage, "y/n");
     console.log("\x1b[0m") // Reset text color
@@ -224,6 +243,7 @@ function getSecretName(secretKey) {
 
     return secretName
 }
+
 function asyncForLoop(iterable, asyncCallback, index, result) {
     return new Promise(async (resolve, reject) => {
         try {
