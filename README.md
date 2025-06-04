@@ -15,9 +15,15 @@ Neon EVM provides a set of custom precompiles which are built to connect Solidit
 Helper libraries which could be used to prepare and validate data being passed to and return from Solana can be found [here](contracts/utils).
 
 ### Secret values setup
-Secret values (such as private keys) used in tests and scripts should be stored using Hardhat's encrypted keystore file 
-(located at `~/Library/Preferences/hardhat-nodejs/keystore.json` by default). To do so, run the following commands in 
-the CLI:
+Secret values (such as private keys) used in tests and scripts should be stored using Hardhat's encrypted keystore file. 
+This keystore file is specific to this _Hardhat_ project, you can run the following command in the CLI to display the 
+keystore file path for this _Hardhat_ project: 
+
+```shell
+npx hardhat keystore path
+```
+
+To store encrypted secret values into this project's Hardhat keystore file, run the following commands in the CLI:
 
 ```shell
 npx hardhat keystore set PRIVATE_KEY_OWNER
