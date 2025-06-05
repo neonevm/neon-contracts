@@ -1,26 +1,28 @@
-const { network, ethers} = require("hardhat");
-const { expect } = require("chai");
-const web3 = require("@solana/web3.js");
-const { getMint, getAccount, createTransferInstruction } = require("@solana/spl-token");
-const config = require("../config.js");
-const { deployContract, airdropSOL } = require("./utils.js");
+import { network, globalOptions } from "hardhat"
+import * as _ethers from "ethers"
+import { expect } from "chai"
+import web3 from "@solana/web3.js"
+import { getMint, getAccount, createTransferInstruction } from "@solana/spl-token"
+import config from "../config.js"
+import { deployContract, airdropSOL } from "./utils.js"
+import { getSecrets } from "../../neon-secrets.js";
 
 describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  function() {
 
-    console.log("Network name: " + network.name)
+    console.log("\nNetwork name: " + globalOptions.network)
 
-    const solanaConnection = new web3.Connection(config.svm_node[network.name], "processed")
-
-    const seed = config.composability.tokenMintSeed[network.name]
-    const decimals = config.composability.tokenMintDecimals[network.name]
-    const AMOUNT = ethers.parseUnits('1000', decimals)
-    const SMALL_AMOUNT = ethers.parseUnits('100', decimals)
+    const seed = config.composability.tokenMintSeed[globalOptions.network]
+    const decimals = config.composability.tokenMintDecimals[globalOptions.network]
     const ZERO_AMOUNT = BigInt(0)
+    const AMOUNT = _ethers.parseUnits('1000', decimals)
+    const SMALL_AMOUNT = _ethers.parseUnits('100', decimals)
     const ZERO_BYTES32 = Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
     const WSOL_MINT_PUBKEY = Buffer.from('069b8857feab8184fb687f634618c035dac439dc1aeb3b5598a0f00000000001', 'hex')
     const SPL_TOKEN_ACCOUNT_SIZE = 165
 
-    let deployer,
+    let ethers,
+        solanaConnection,
+        deployer,
         neonEVMUser,
         otherNeonEVMUser,
         callSPLTokenProgram,
@@ -60,13 +62,16 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         info
 
     before(async function() {
-        const deployment = await deployContract('CallSPLTokenProgram', null)
+        const { wallets } = await getSecrets()
+        ethers = (await network.connect()).ethers
+        solanaConnection = new web3.Connection(config.svm_node[globalOptions.network], "processed")
+        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallSPLTokenProgram', null)
         deployer = deployment.deployer
         neonEVMUser = deployment.user
         otherNeonEVMUser = deployment.otherUser
         callSPLTokenProgram = deployment.contract
-        callSystemProgram = (await deployContract('CallSystemProgram', null)).contract
-        callAssociatedTokenProgram = (await deployContract('CallAssociatedTokenProgram', null)).contract
+        callSystemProgram = (await deployContract(wallets.owner, wallets.user1, 'CallSystemProgram', null)).contract
+        callAssociatedTokenProgram = (await deployContract(wallets.owner, wallets.user1, 'CallAssociatedTokenProgram', null)).contract
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s SPL Token program\'s \x1b[36minitializeMint2\x1b[33m instruction\x1b[0m', function() {
@@ -400,7 +405,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
                 solanaUser.publicKey,
                 SMALL_AMOUNT
             ))
-            await airdropSOL(solanaConnection, solanaUser.publicKey, parseInt(SMALL_AMOUNT.toString()))
+            await airdropSOL(solanaUser.publicKey, parseInt(SMALL_AMOUNT.toString()))
             await web3.sendAndConfirmTransaction(solanaConnection, tx, [solanaUser])
 
             info = await solanaConnection.getTokenAccountBalance(
@@ -936,7 +941,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         it("Sync deployer's WSOL token balance", async function() {
 
             // Airdrop SOL to deployer's WSOL token account
-            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)), parseInt(SMALL_AMOUNT.toString()))
+            await airdropSOL(new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)), parseInt(SMALL_AMOUNT.toString()))
             initialDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerWSOLTokenAccountInBytes)))
             expect(initialDeployerTokenAccountSOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 
@@ -959,7 +964,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         it("User cannot sync a non-native token account (transaction reverts)", async function() {
 
             // Airdrop SOL to deployer's non-native token account
-            await airdropSOL(solanaConnection, new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)), parseInt(SMALL_AMOUNT.toString()))
+            await airdropSOL(new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)), parseInt(SMALL_AMOUNT.toString()))
             initialDeployerTokenAccountSOLBalance = await solanaConnection.getBalance(new web3.PublicKey(ethers.encodeBase58(deployerTokenAccountInBytes)))
             expect(initialDeployerTokenAccountSOLBalance).to.eq((await callSystemProgram.getRentExemptionBalance(SPL_TOKEN_ACCOUNT_SIZE)) + SMALL_AMOUNT)
 

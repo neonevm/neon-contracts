@@ -117,12 +117,23 @@ the `getUserExtAuthority` function, passing the attributed _NeonEVM_ account `ad
 Once those two steps have been completed, the _Solana_ user's ATA token balance will be included in the balance returned
 by the `balanceOf` function and this ATA token balance will be spendable via the `transfer` and `transferFrom` functions.
 
-## Running tests
-* **ERC20ForSpl** - this action is done in 2 steps. First we have to deploy a SPLToken on Solana and then to pass it into the ERC20ForSpl's constructor.
-    * run ```node test/helpers/deploySPLToken.js neondevnet``` to deploy new SPLToken.
-    * paste the new SPLToken mint address to `utils.DATA.ADDRESSES.ERC20ForSplTokenMint` inside `test/utils.js`.
-    * run `npx hardhat test test/ERC20ForSpl.js --network neondevnet`
-* **ERC20ForSplMintable** - run `npx hardhat test test/ERC20ForSplMintable.js --network neondevnet`
+## Tests
+
+### Secret values setup
+
+See detailed [instructions](../../../README.md) for setting up secret values (such as private keys) used to run tests.
+
+### Running tests
+
+* **ERC20ForSpl** - this action is done in 2 steps. First we have to deploy a SPLToken on Solana and then to pass it 
+    into the ERC20ForSpl's constructor.
+    * run ```npx hardhat run ./test/token/helpers/deploySPLToken.js --network < curvestand or neondevnet >``` to deploy new 
+    SPLToken.
+    * paste the new SPLToken mint address into `./test/config.js` inside `config.token.ERC20ForSplTokenMint.< curvestand 
+  or neondevnet >`, depending on the network tests are running on.
+    * run `npx hardhat test mocha ./test/token/ERC20ForSPL.test.js --network < curvestand or neondevnet >`
+* **ERC20ForSplMintable** - run `npx hardhat test mocha ./test/token/ERC20ForSPLMintable.test.js --network < curvestand or neondevnet >`
+* **ERC20ForSplFactory** - run `npx hardhat test mocha ./test/token/ERC20ForSplFactory.test.js --network < curvestand or neondevnet >`
 
 ## Audit
 The external audit was performed and completed by [Halborn](https://www.halborn.com/). The final report is located [here](./v2-audit/ERC20ForSPL_SSC_FINAL.pdf). 

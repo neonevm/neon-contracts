@@ -22,3 +22,7 @@ const seed = 'Buffer_OR_Uint8Array_SEED';
 const randomness = await vrf.waitFulfilled(seed);
 console.log(Buffer.from(randomness.randomness).readBigUInt64LE(), 'randomness');
 ```
+
+### Secret values setup
+
+See detailed [instructions](../../../README.md) for setting up secret values (such as private keys) used to run scripts.

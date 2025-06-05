@@ -1,24 +1,39 @@
-require("@nomicfoundation/hardhat-toolbox");
-require('@openzeppelin/hardhat-upgrades');
-require('solidity-docgen');
-require("dotenv").config();
+import hardhatToolboxMochaEthersPlugin from "@nomicfoundation/hardhat-toolbox-mocha-ethers"
+import {
+    setSecretTask,
+    getSecretTask,
+    listSecretsTask,
+    deleteSecretTask,
+    displayKeystoreFilePathTask,
+    askPasswordTask,
+    decryptSecretTask
+} from "./custom-tasks.js"
 
-/** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
+const config = {
+  plugins: [hardhatToolboxMochaEthersPlugin],
+  tasks: [
+    setSecretTask,
+    getSecretTask,
+    listSecretsTask,
+    deleteSecretTask,
+    displayKeystoreFilePathTask,
+    askPasswordTask,
+    decryptSecretTask
+  ],
   solidity: {
-        compilers:[
-            {
-                version: '0.8.28',
-                settings: {
-                    evmVersion: "cancun",
-                    viaIR: true,
-                    optimizer: {
-                        enabled: true,
-                        runs: 200,
-                    }
-                },
-            },
-        ],
+    compilers:[
+      {
+        version: '0.8.28',
+        settings: {
+          evmVersion: "cancun",
+          viaIR: true,
+          optimizer: {
+              enabled: true,
+              runs: 200
+          }
+        }
+      }
+    ]
   },
   docgen: {
     path: './docs',
@@ -28,7 +43,7 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      neonevm: "test",
+      neonevm: "test"
     },
     customChains: [
       {
@@ -36,31 +51,35 @@ module.exports = {
         chainId: 245022926,
         urls: {
           apiURL: "https://devnet-api.neonscan.org/hardhat/verify",
-          browserURL: "https://devnet.neonscan.org",
-        },
+          browserURL: "https://devnet.neonscan.org"
+        }
       },
       {
         network: "neonevm",
         chainId: 245022934,
         urls: {
           apiURL: "https://api.neonscan.org/hardhat/verify",
-          browserURL: "https://neonscan.org",
-        },
-      },
-    ],
+          browserURL: "https://neonscan.org"
+        }
+      }
+    ]
   },
   networks: {
     curvestand: {
+      type: "http",
+      chainType: "generic",
       url: "https://curve-stand.neontest.xyz",
-      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.PRIVATE_KEY_USER_1, process.env.PRIVATE_KEY_USER_2, process.env.PRIVATE_KEY_USER_3],
+      accounts: [],
       allowUnlimitedContractSize: false,
       gasMultiplier: 2,
       maxFeePerGas: 10000,
       maxPriorityFeePerGas: 5000
     },
     neondevnet: {
+      type: "http",
+      chainType: "generic",
       url: "https://devnet.neonevm.org",
-      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.PRIVATE_KEY_USER_1, process.env.PRIVATE_KEY_USER_2, process.env.PRIVATE_KEY_USER_3],
+      accounts: [],
       chainId: 245022926,
       allowUnlimitedContractSize: false,
       gasMultiplier: 2,
@@ -68,15 +87,19 @@ module.exports = {
       maxPriorityFeePerGas: '5000000000000'
     },
     neonmainnet: {
+      type: "http",
+      chainType: "generic",
       url: "https://neon-proxy-mainnet.solana.p2p.org",
-      accounts: [process.env.PRIVATE_KEY_OWNER, process.env.PRIVATE_KEY_USER_1, process.env.PRIVATE_KEY_USER_2, process.env.PRIVATE_KEY_USER_3],
+      accounts: [],
       chainId: 245022934,
       allowUnlimitedContractSize: false,
       gas: "auto",
-      gasPrice: "auto",
-    },
+      gasPrice: "auto"
+    }
   },
   mocha: {
     timeout: 5000000
   }
-};
+}
+
+export default config
