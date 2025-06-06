@@ -177,7 +177,7 @@ contract CallMetaplexProgram {
     function getTokenName(
         bytes32 tokenMint
     ) external view returns(string memory) {
-        return LibMetaplexData.getDeserializedMetadata(tokenMint).tokenName;
+        return LibMetaplexData.getDeserializedTokenName(tokenMint);
     }
 
     /// @notice Function to get the token symbol from a token metadata account
@@ -185,7 +185,7 @@ contract CallMetaplexProgram {
     function getTokenSymbol(
         bytes32 tokenMint
     ) external view returns(string memory) {
-        return LibMetaplexData.getDeserializedMetadata(tokenMint).tokenSymbol;
+        return LibMetaplexData.getDeserializedTokenSymbol(tokenMint);
     }
 
     /// @notice Function to get the token uri from a token metadata account
@@ -193,7 +193,7 @@ contract CallMetaplexProgram {
     function getUri(
         bytes32 tokenMint
     ) external view returns(string memory) {
-        return LibMetaplexData.getDeserializedMetadata(tokenMint).uri;
+        return LibMetaplexData.getDeserializedTokenUri(tokenMint);
     }
 
     /// @notice Function to get the isMutable boolean value from a token metadata account
@@ -201,7 +201,7 @@ contract CallMetaplexProgram {
     function getMetadataIsMutable(
         bytes32 tokenMint
     ) external view returns(bool) {
-        return LibMetaplexData.getDeserializedMetadata(tokenMint).isMutable;
+        return LibMetaplexData.getDeserializedTokenIsMutable(tokenMint);
     }
 
     /// @notice Function to get the public key of the account which has UPDATE authority over a token metadata account
@@ -209,6 +209,6 @@ contract CallMetaplexProgram {
     function getMetadataUpdateAuthority(
         bytes32 tokenMint
     ) external view returns(bytes32) {
-        return LibMetaplexData.getDeserializedMetadata(tokenMint).updateAuthority;
+        return LibMetaplexData.getDeserializedTokenUpdateAuthority(tokenMint);
     }
 }

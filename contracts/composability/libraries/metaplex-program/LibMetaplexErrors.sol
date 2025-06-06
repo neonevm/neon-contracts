@@ -17,7 +17,6 @@ library LibMetaplexErrors {
     // Metadata validation error
     error InvalidTokenMetadata();
 
-    // Metadata account data query errors
+    // Metadata account data query error
     error MetadataAccountDataQuery();
-    error BytesSliceOutOfBounds();
 }

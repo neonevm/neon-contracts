@@ -91,59 +91,72 @@ library LibMetaplexData {
         require(success, LibMetaplexErrors.MetadataAccountDataQuery());
 
         return TokenMetadata (
-            string(sliceBytes(data, 69, 32)), // 32 utf-8 bytes token name
-            string(sliceBytes(data, 105, 10)), // 10 utf-8 bytes token symbol
-            string(sliceBytes(data, 119, 200)), // 200 utf-8 bytes token uri
-            toBool(sliceBytes(data, 323, 1)), // 1 byte isMutable flag
+            string(data.sliceBytes(69, 32)), // 32 utf-8 bytes token name
+            string(data.sliceBytes(105, 10)), // 10 utf-8 bytes token symbol
+            string(data.sliceBytes(119, 200)), // 200 utf-8 bytes token uri
+            toBool(data.sliceBytes(323, 1)), // 1 byte isMutable flag
             data.toBytes32(1) // 32 bytes token metadata update authority public key
         );
     }
 
-    function sliceBytes(bytes memory _bytes, uint256 _start, uint256 _length) private pure returns (bytes memory){
-        require(_bytes.length >= _start + _length, LibMetaplexErrors.BytesSliceOutOfBounds());
+    // @notice Function to get deserialized token name
+    function getDeserializedTokenName(bytes32 tokenMint) internal view returns(string memory) {
+        (bool success, bytes memory data) = QueryAccount.data(
+            uint256(LibMetaplexData.getMetadataPDA(tokenMint)),
+            69,
+            32
+        );
+        require(success, LibMetaplexErrors.MetadataAccountDataQuery());
 
-        bytes memory tempBytes;
-        if(_length == 0) return tempBytes;
+        return string(data);
+    }
 
-        assembly {
-            // Have tempBytes point to the current free memory pointer
-            tempBytes := mload(0x40)
-            // Calculate length % 32 to get the length of the first slice (the first slice may be less that 32 bytes)
-            // while all slices after will be 32 bytes)
-            let firstSliceLength := and(_length, 31) // &(x, n-1) == x % n
-            // Calculate 32 bytes slices count (excluding the first slice)
-            let fullSlicesCount := div(_length, 0x20)
-            // Calculate the start position of the first 32 bytes slice to copy, which will include the first slice and
-            // some extra data on the left that we will discard
-            let firstSliceStartPosition := add(add(_bytes, _start), sub(0x20, firstSliceLength))
-            // Calculate the end position of the last slice to copy
-            let lastSliceEndPosition := add(add(firstSliceStartPosition, 0x20), mul(fullSlicesCount, 0x20))
-            // Calculate the position where we will copy the first 32 bytes of data, which will include the first slice
-            // and some extra data on the left that we will discard
-            let firstSliceCopyPosition := add(tempBytes, sub(0x20, firstSliceLength))
-            // Copy slices in memory
-            for {
-                let nextSliceStartPosition := firstSliceStartPosition
-                let nextSliceCopyPosition := firstSliceCopyPosition
-            }
-            lt(nextSliceStartPosition, lastSliceEndPosition)
-            {
-                // Update the start position of the next slice to copy
-                nextSliceStartPosition := add(nextSliceStartPosition, 0x20)
-                // Update the position where we will copy the next slice
-                nextSliceCopyPosition := add(nextSliceCopyPosition, 0x20)
-            } {
-                // Copy the slice
-                mcopy(nextSliceCopyPosition, nextSliceStartPosition, 0x20)
-            }
-            // Store copied data length a the tempBytes position, overwriting extra data that was copied
-            mstore(tempBytes, _length)
-            // Update the free memory pointer to: tempBytes position + 32 bytes length + (32 bytes * fullSlicesCount)
-            // + 32 bytes for the first slice (if it has non-zero length)
-            mstore(0x40, add(add(tempBytes, 0x20), add(mul(fullSlicesCount, 0x20), mul(sub(1, iszero(firstSliceLength)), 0x20))))
-        }
+    // @notice Function to get deserialized token symbol
+    function getDeserializedTokenSymbol(bytes32 tokenMint) internal view returns(string memory) {
+        (bool success, bytes memory data) = QueryAccount.data(
+            uint256(LibMetaplexData.getMetadataPDA(tokenMint)),
+            105,
+            10
+        );
+        require(success, LibMetaplexErrors.MetadataAccountDataQuery());
 
-        return tempBytes;
+        return string(data);
+    }
+
+    // @notice Function to get deserialized token uri
+    function getDeserializedTokenUri(bytes32 tokenMint) internal view returns(string memory) {
+        (bool success, bytes memory data) = QueryAccount.data(
+            uint256(LibMetaplexData.getMetadataPDA(tokenMint)),
+            119,
+            200
+        );
+        require(success, LibMetaplexErrors.MetadataAccountDataQuery());
+
+        return string(data);
+    }
+
+    // @notice Function to get deserialized token isMutable flag
+    function getDeserializedTokenIsMutable(bytes32 tokenMint) internal view returns(bool) {
+        (bool success, bytes memory data) = QueryAccount.data(
+            uint256(LibMetaplexData.getMetadataPDA(tokenMint)),
+            323,
+            1
+        );
+        require(success, LibMetaplexErrors.MetadataAccountDataQuery());
+
+        return toBool(data);
+    }
+
+    // @notice Function to get deserialized token updateAuthority public key
+    function getDeserializedTokenUpdateAuthority(bytes32 tokenMint) internal view returns(bytes32) {
+        (bool success, bytes memory data) = QueryAccount.data(
+            uint256(LibMetaplexData.getMetadataPDA(tokenMint)),
+            1,
+            32
+        );
+        require(success, LibMetaplexErrors.MetadataAccountDataQuery());
+
+        return data.toBytes32(0);
     }
 
     function toBool(bytes memory data) private pure returns (bool result) {
