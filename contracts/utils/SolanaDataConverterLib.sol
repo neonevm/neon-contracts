@@ -208,7 +208,7 @@ library SolanaDataConverterLib {
         return int256((input << 128) | ((input >> 128) & 0xFFFFFFFFFFFFFFFF));
     }
 
-    function sliceBytes(bytes memory _bytes, uint256 _start, uint256 _length) internal pure returns (bytes memory) {
+    function sliceBytes(bytes memory _bytes, uint256 _start, uint256 _length, bool _shift) internal pure returns (bytes memory) {
         require(_bytes.length >= _start + _length, OutOfBounds());
 
         bytes memory tempBytes;
@@ -217,18 +217,18 @@ library SolanaDataConverterLib {
         assembly {
             // Have tempBytes point to the current free memory pointer
             tempBytes := mload(0x40)
-            // Calculate length % 32 to get the length of the first slice (the first slice may be less that 32 bytes)
+            // Calculate length % 32 to get the length of the first slice (the first slice may be less than 32 bytes)
             // while all slices after will be 32 bytes)
             let firstSliceLength := and(_length, 31) // &(x, n-1) == x % n
             // Calculate 32 bytes slices count (excluding the first slice)
             let fullSlicesCount := div(_length, 0x20)
             // Calculate the start position of the first 32 bytes slice to copy, which will include the first slice and
-            // some extra data on the left that we will discard
+            // some extra data on the left that we will overwrite
             let firstSliceStartPosition := add(add(_bytes, _start), sub(0x20, firstSliceLength))
             // Calculate the end position of the last slice to copy
             let lastSliceEndPosition := add(add(firstSliceStartPosition, 0x20), mul(fullSlicesCount, 0x20))
             // Calculate the position where we will copy the first 32 bytes of data, which will include the first slice
-            // and some extra data on the left that we will discard
+            // and some extra data on the left that we will overwrite
             let firstSliceCopyPosition := add(tempBytes, sub(0x20, firstSliceLength))
             // Copy slices in memory
             for {
@@ -245,11 +245,30 @@ library SolanaDataConverterLib {
                 // Copy the slice
                 mcopy(nextSliceCopyPosition, nextSliceStartPosition, 0x20)
             }
-            // Store copied data length a the tempBytes position, overwriting extra data that was copied
+            // Store copied data length a the tempBytes position, overwriting extra data that was copied with the first
+            // slice
             mstore(tempBytes, _length)
             // Update the free memory pointer to: tempBytes position + 32 bytes length + (32 bytes * fullSlicesCount)
             // + 32 bytes for the first slice (if it has non-zero length)
-            mstore(0x40, add(add(tempBytes, 0x20), add(mul(fullSlicesCount, 0x20), mul(sub(1, iszero(firstSliceLength)), 0x20))))
+            mstore(0x40, add(
+                add(tempBytes, 0x20),
+                add(
+                    mul(fullSlicesCount, 0x20),
+                    mul(sub(1, iszero(firstSliceLength)), 0x20)
+                )
+            ))
+            // If only one slice was copied and its length is less than 32 bytes, shift those bytes to the right when
+            // the _shift flag is set to true (to facilitate casting of returned data to non-dynamic types)
+            if and(_shift, and(eq(fullSlicesCount, 0), lt(firstSliceLength, 32))) {
+                // Calculate bits shift value
+                let bitsShift := mul(sub(32, firstSliceLength), 8)
+                // Load slice to be shifted
+                let slice := mload(add(tempBytes, 0x20))
+                // Store slice after shifting its bits to the right
+                mstore(add(tempBytes, 0x20), shr(bitsShift, slice))
+                // Update slice length in tempBytes length slot to be 32 bytes
+                mstore(tempBytes, 0x20)
+            }
         }
 
         return tempBytes;

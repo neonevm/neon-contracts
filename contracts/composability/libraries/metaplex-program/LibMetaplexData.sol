@@ -91,10 +91,10 @@ library LibMetaplexData {
         require(success, LibMetaplexErrors.MetadataAccountDataQuery());
 
         return TokenMetadata (
-            string(data.sliceBytes(69, 32)), // 32 utf-8 bytes token name
-            string(data.sliceBytes(105, 10)), // 10 utf-8 bytes token symbol
-            string(data.sliceBytes(119, 200)), // 200 utf-8 bytes token uri
-            toBool(data.sliceBytes(323, 1)), // 1 byte isMutable flag
+            string(data.sliceBytes(69, 32, false)), // 32 utf-8 bytes token name
+            string(data.sliceBytes(105, 10, false)), // 10 utf-8 bytes token symbol
+            string(data.sliceBytes(119, 200, false)), // 200 utf-8 bytes token uri
+            data.sliceBytes(323, 1, true).toBool(0), // 1 byte isMutable flag
             data.toBytes32(1) // 32 bytes token metadata update authority public key
         );
     }
@@ -144,7 +144,7 @@ library LibMetaplexData {
         );
         require(success, LibMetaplexErrors.MetadataAccountDataQuery());
 
-        return toBool(data);
+        return data.toBool(0);
     }
 
     // @notice Function to get deserialized token updateAuthority public key
@@ -157,11 +157,5 @@ library LibMetaplexData {
         require(success, LibMetaplexErrors.MetadataAccountDataQuery());
 
         return data.toBytes32(0);
-    }
-
-    function toBool(bytes memory data) private pure returns (bool result) {
-        assembly {
-            result := shr(0xF8, mload(add(data, 0x20)))
-        }
     }
 }
