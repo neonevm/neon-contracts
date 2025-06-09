@@ -79,6 +79,27 @@ export const displayKeystoreFilePathTask = task(["keystore", "path"], "Displays 
     })
     .build()
 
+// Custom subtask to the built-in keystore task to check if a secret is set in the keystore
+export const isSecretSetTask = task(["keystore", "contains"], "Checks if a secret is set in the keystore")
+    .addPositionalArgument({
+        name: "key",
+        type: "STRING",
+        description: "Specifies the key that we are looking for in the keystore file"
+    })
+    .setAction(async (args, hre) => {
+        const keystoreLoader = setupKeystoreLoaderFrom({ config: customKeystoreFilePath(hre) })
+        const keystore = await keystoreLoader.loadKeystore();
+        const keys = await keystore.listUnverifiedKeys()
+        let secretIsSet = false;
+        keys.forEach((key) => {
+            if(key === args.key) {
+                secretIsSet = true
+            }
+        })
+        return secretIsSet
+    })
+    .build()
+
 // Custom subtask to the built-in keystore task to ask for the keystore password in the CLI while running mocha tests
 export const askPasswordTask = task(["keystore", "askpwd"], "Asks for the keystore password in the CLI")
     .setAction(async (args, hre) => {
