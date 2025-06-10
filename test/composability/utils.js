@@ -73,20 +73,22 @@ export async function airdropNEON(address, amount) {
         console.log("\nAirdropping " + neonAmount.toString() + " NEON to " + address)
         if(res.status !== 200) {
             console.warn("\nAirdrop request failed: " + JSON.stringify(res))
+        } else {
+            let accountBalance = BigInt(0)
+            await asyncWhileLoop(
+                accountBalance >= amount, // condition to fulfill
+                async () => {
+                    await asyncForLoop(1000)
+                    accountBalance = await ethers.provider.getBalance(address)
+                    return({
+                        isConditionFulfilled: accountBalance >= amount,
+                        result: null
+                    })
+                },
+                null
+            )
         }
-        let accountBalance = BigInt(0)
-        await asyncWhileLoop(
-            accountBalance >= amount, // condition to fulfill
-            async () => {
-                await asyncForLoop(1000)
-                accountBalance = await ethers.provider.getBalance(address)
-                return({
-                    isConditionFulfilled: accountBalance >= amount,
-                    result: null
-                })
-            },
-            null
-        )
+
         // console.log("\nNew account balance: ", accountBalance)
     }
 }

@@ -28,7 +28,7 @@ contract CallAssociatedTokenProgram is Ownable2Step {
     /// to it. This is the approach followed by most dApps on Solana when they have to transfer SPL tokens to their
     /// users.
     /// This function can be used to create and initialize a canonical Associated Token account for any third party
-    /// Solana user. It cna also be used to  create and initialize a canonical Associated Token account owned by this
+    /// Solana user. It can also be used to create and initialize a canonical Associated Token account owned by this
     /// contract.
     function createInitializeAssociatedTokenAccount(bytes32 tokenMint, bytes32 owner) external {
         /// @dev If the ATA is to be owned by this contract the `owner` field should be left empty.
@@ -59,10 +59,53 @@ contract CallAssociatedTokenProgram is Ownable2Step {
             isWritable,
             data
         );
-        // Execute initializeAccount2 instruction
+        // Execute create instruction
         // Neon proxy operator is asked to send the SOL amount equal to rentExemptionBalance with the transaction in
         // order to fund the created account
         CALL_SOLANA.execute(rentExemptionBalance, createIx);
+    }
+
+    /// @notice This function creates and initializes a canonical Associated Token account using the `createIdempotent`
+    /// instruction.
+    /// Using the `createIdempotent` instruction allows to create the ATA only if it doesn't already
+    /// exist, and avoids throwing an error if the ATA already exists. An error will be thrown, however, if the ATA
+    /// already exists but its owner account is different from the one specified in the instruction.
+    /// This function can be used to create and initialize a canonical Associated Token account for any third party
+    /// Solana user. It can also be used to create and initialize a canonical Associated Token account owned by this
+    /// contract.
+    function createInitializeIdempotentAssociatedTokenAccount(bytes32 tokenMint, bytes32 owner) external {
+        /// @dev If the ATA is to be owned by this contract the `owner` field should be left empty.
+        /// @dev If the ATA is to be used by a third party `solanaUser` Solana account to send tokens directly on Solana
+        /// without interacting with this contract, the `owner` field should be the `solanaUser` account.
+        if (owner == bytes32(0)) {
+            // If owner is empty, associated token account owner is this contract
+            owner =  CALL_SOLANA.getNeonAddress(address(this));
+        }
+        // Get the payer account which will pay to fund the ata creation
+        bytes32 payer = CALL_SOLANA.getPayer();
+        // Format createIdempotent instruction
+        (   bytes32[] memory accounts,
+            bool[] memory isSigner,
+            bool[] memory isWritable,
+            bytes memory data,
+            uint64 rentExemptionBalance
+        ) = LibAssociatedTokenProgram.formatCreateIdempotentInstruction(
+            payer,
+            owner, // account which owns the ATA and can spend from it
+            tokenMint
+        );
+        // Prepare initializeAccount2 instruction
+        bytes memory createIdempotentIx = CallSolanaHelperLib.prepareSolanaInstruction(
+            Constants.getAssociatedTokenProgramId(),
+            accounts,
+            isSigner,
+            isWritable,
+            data
+        );
+        // Execute createIdempotent instruction
+        // Neon proxy operator is asked to send the SOL amount equal to rentExemptionBalance with the transaction in
+        // order to fund the created account
+        CALL_SOLANA.execute(rentExemptionBalance, createIdempotentIx);
     }
 
     /// @notice This function shows how this contract can transfer tokens from its own associated token account created

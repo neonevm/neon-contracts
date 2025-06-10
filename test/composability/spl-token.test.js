@@ -34,6 +34,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         neonEVMUserPublicKeyInBytes,
         otherNeonEVMUserPublicKeyInBytes,
         solanaUser,
+        solanaUser1,
         tokenMintInBytes,
         deployerTokenAccountInBytes,
         deployerWSOLTokenAccountInBytes,
@@ -69,6 +70,7 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
         deployer = deployment.deployer
         neonEVMUser = deployment.user
         otherNeonEVMUser = deployment.otherUser
+        solanaUser1 = wallets.solanaUser1
         callSPLTokenProgram = deployment.contract
         callSystemProgram = (await deployContract(wallets.owner, wallets.user1, 'CallSystemProgram', null)).contract
         callAssociatedTokenProgram = (await deployContract(wallets.owner, wallets.user1, 'CallAssociatedTokenProgram', null)).contract
@@ -98,7 +100,8 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
     })
 
     describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s Associated Token program\'s \x1b[36mcreate\x1b[33m instruction\x1b[0m', function() {
-        it('Create and initialize new associated token account for third party Solana user', async function() {
+
+        it('Create and initialize new associated token account for third party Solana user', async function () {
             solanaUser = await web3.Keypair.generate()
 
             tx = await callAssociatedTokenProgram.connect(deployer).createInitializeAssociatedTokenAccount(
@@ -127,14 +130,14 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.tlvData.length).to.eq(0)
         })
 
-        it('Create and initialize new associated token account for CallAssociatedTokenProgram contract', async function() {
+        it('Create and initialize new associated token account for CallAssociatedTokenProgram contract', async function () {
             tx = await callAssociatedTokenProgram.connect(deployer).createInitializeAssociatedTokenAccount(
                 tokenMintInBytes,
                 Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that CallAssociatedTokenProgram contract owns the token account
             )
             await tx.wait(1) // Wait for 1 confirmation
 
-            contractPublicKeyInBytes =  await callAssociatedTokenProgram.getNeonAddress(callAssociatedTokenProgram.target)
+            contractPublicKeyInBytes = await callAssociatedTokenProgram.getNeonAddress(callAssociatedTokenProgram.target)
 
             contractAssociatedTokenAccountInBytes = await callAssociatedTokenProgram.getAssociatedTokenAccount(
                 tokenMintInBytes,
@@ -154,6 +157,54 @@ describe('\u{1F680} \x1b[36mSPL Token program composability tests\x1b[33m',  fun
             expect(info.isNative).to.eq(false)
             expect(info.rentExemptReserve).to.be.null
             expect(info.tlvData.length).to.eq(0)
+        })
+    })
+
+    describe('\n\u{231B} \x1b[33m Testing on-chain formatting and execution of Solana\'s Associated Token program\'s \x1b[36mcreateIdempotent\x1b[33m instruction\x1b[0m', function() {
+
+        it('Create and initialize new associated token account for third party Solana user using the `createIdemPotent` instruction', async function() {
+            tx = await callAssociatedTokenProgram.connect(deployer).createInitializeIdempotentAssociatedTokenAccount(
+                tokenMintInBytes,
+                solanaUser1.publicKey.toBuffer(), // Pass Solana user public key so that Solana user owns the token account
+            )
+            await tx.wait(1) // Wait for 1 confirmation
+
+            solanaUserAssociatedTokenAccountInBytes = await callAssociatedTokenProgram.getAssociatedTokenAccount(
+                tokenMintInBytes,
+                solanaUser1.publicKey.toBuffer(),
+            )
+            info = await getAccount(solanaConnection, new web3.PublicKey(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes)))
+
+            expect(info.address.toBase58()).to.eq(ethers.encodeBase58(solanaUserAssociatedTokenAccountInBytes))
+            expect(info.mint.toBase58()).to.eq(ethers.encodeBase58(tokenMintInBytes))
+            expect(info.owner.toBase58()).to.eq(solanaUser1.publicKey.toBase58())
+            expect(info.delegate).to.be.null
+            expect(info.closeAuthority).to.be.null
+            expect(info.amount).to.eq(ZERO_AMOUNT)
+            expect(info.delegatedAmount).to.eq(ZERO_AMOUNT)
+            expect(info.isInitialized).to.eq(true)
+            expect(info.isFrozen).to.eq(false)
+            expect(info.isNative).to.eq(false)
+            expect(info.rentExemptReserve).to.be.null
+            expect(info.tlvData.length).to.eq(0)
+        })
+
+        it('Attempt to create already existing associated token account for third party Solana user using the `createIdemPotent` instruction', async function() {
+            tx = await callAssociatedTokenProgram.connect(deployer).createInitializeIdempotentAssociatedTokenAccount(
+                tokenMintInBytes,
+                solanaUser1.publicKey.toBuffer(), // Pass Solana user public key so that Solana user owns the token account
+            )
+            const receipt = await tx.wait(1) // Wait for 1 confirmation
+            expect(receipt.status).to.eq(1) // Check that transaction did not revert
+        })
+
+        it('Attempt to create already existing associated token account for CallAssociatedTokenProgram contract using the `createIdemPotent` instruction', async function() {
+            tx = await callAssociatedTokenProgram.connect(deployer).createInitializeIdempotentAssociatedTokenAccount(
+                tokenMintInBytes,
+                Buffer.from('0000000000000000000000000000000000000000000000000000000000000000', 'hex'), // Leave owner field empty so that CallAssociatedTokenProgram contract owns the token account
+            )
+            const receipt = await tx.wait(1) // Wait for 1 confirmation
+            expect(receipt.status).to.eq(1) // Check that transaction did not revert
         })
     })
 

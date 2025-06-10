@@ -94,7 +94,7 @@ const config = {
             neonmainnet: "",
         },
         ERC20ForSplTokenMint: {
-            curvestand: "6yDSqgJJuySCMGvKtjcuUvbAEp5fk5SGydtjDu69u95T",
+            curvestand: "",
             neondevnet: "",
             neonmainnet: "",
         },
