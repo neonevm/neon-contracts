@@ -6,7 +6,7 @@ import {
 import { deployContract, setupSPLTokens, setupATAAccounts, approveSplTokens } from "./utils.js"
 import { getSecrets } from "../../neon-secrets.js";
 
-describe('LibRaydiumProgram', function() {
+describe('LibRaydiumCPMMProgram', function() {
     console.log("\nNetwork name: " + globalOptions.network)
 
     const RECEIPTS_COUNT = 1;
@@ -15,7 +15,7 @@ describe('LibRaydiumProgram', function() {
     let ethers,
         deployer,
         neonEVMUser,
-        CallRaydiumProgram,
+        CallRaydiumCPMMProgram,
         payer,
         tokenA_Erc20ForSpl,
         tokenB,
@@ -25,16 +25,16 @@ describe('LibRaydiumProgram', function() {
     before(async function() {
         const { wallets } = await getSecrets()
         ethers = (await network.connect()).ethers
-        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallRaydiumProgram', null);
+        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallRaydiumCPMMProgram', null);
         deployer = deployment.deployer
         neonEVMUser = deployment.user
-        CallRaydiumProgram = deployment.contract
-        payer = await CallRaydiumProgram.getPayer();
+        CallRaydiumCPMMProgram = deployment.contract
+        payer = await CallRaydiumCPMMProgram.getPayer();
         tokenB = await setupSPLTokens(wallets.solanaUser1);
         console.log(tokenA, 'tokenA');
         console.log(tokenB, 'tokenB');
 
-        // setup ATA accounts for our CallRaydiumProgram's payer
+        // setup ATA accounts for our CallRaydiumCPMMProgram's payer
         await setupATAAccounts(
             wallets.solanaUser1,
             ethers.encodeBase58(payer),
@@ -78,11 +78,11 @@ describe('LibRaydiumProgram', function() {
         await tx.wait(RECEIPTS_COUNT);
         console.log(await tokenB_Erc20ForSpl.balanceOf(deployer.address), 'tokenB balanceOf');
 
-        // grant maximum approval of tokenA and tokenB to CallRaydiumProgram
-        tx = await tokenA_Erc20ForSpl.connect(deployer).approve(CallRaydiumProgram.target, ethers.MaxUint256);
+        // grant maximum approval of tokenA and tokenB to CallRaydiumCPMMProgram
+        tx = await tokenA_Erc20ForSpl.connect(deployer).approve(CallRaydiumCPMMProgram.target, ethers.MaxUint256);
         await tx.wait(RECEIPTS_COUNT);
 
-        tx = await tokenB_Erc20ForSpl.connect(deployer).approve(CallRaydiumProgram.target, ethers.MaxUint256);
+        tx = await tokenB_Erc20ForSpl.connect(deployer).approve(CallRaydiumCPMMProgram.target, ethers.MaxUint256);
         await tx.wait(RECEIPTS_COUNT);
     })
 
@@ -91,7 +91,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
 
-            let tx = await CallRaydiumProgram.connect(deployer).createPoolAndLockLP(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).createPoolAndLockLP(
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 20000000,
@@ -103,7 +103,7 @@ describe('LibRaydiumProgram', function() {
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx createPool');
 
-            poolId = await CallRaydiumProgram.getCpmmPdaPoolId(
+            poolId = await CallRaydiumCPMMProgram.getCpmmPdaPoolId(
                 0,
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32)
@@ -118,7 +118,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
             
-            let tx = await CallRaydiumProgram.connect(deployer).swapInput(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).swapInput(
                 poolId,
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
@@ -136,7 +136,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
             
-            let tx = await CallRaydiumProgram.connect(deployer).collectFees(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).collectFees(
                 poolId,
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,

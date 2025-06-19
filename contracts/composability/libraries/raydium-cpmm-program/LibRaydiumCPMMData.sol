@@ -6,13 +6,13 @@ import {QueryAccount} from "../../../precompiles/QueryAccount.sol";
 import {SolanaDataConverterLib} from "../../../utils/SolanaDataConverterLib.sol";
 import {ICallSolana} from "../../../precompiles/ICallSolana.sol";
 import {LibSPLTokenData} from "../spl-token-program/LibSPLTokenData.sol";
-import {LibRaydiumErrors} from "./LibRaydiumErrors.sol";
+import {LibRaydiumCPMMErrors} from "./LibRaydiumCPMMErrors.sol";
 
 
-/// @title LibRaydiumData
+/// @title LibRaydiumCPMMData
 /// @author https://twitter.com/mnedelchev_
 /// @notice Helper library for getting data about Raydium's CPMM pools.
-library LibRaydiumData {
+library LibRaydiumCPMMData {
     using SolanaDataConverterLib for bytes;
     using SolanaDataConverterLib for uint16;
     using SolanaDataConverterLib for uint64;
@@ -43,7 +43,7 @@ library LibRaydiumData {
         bytes32 fundOwner;
     }
 
-    /// @notice Fetching a CPPM config account by given index
+    /// @notice Fetching a CPMM config account by given index
     function getConfigAccount(uint16 index) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
             Constants.getCreateCPMMPoolProgramId(),
@@ -54,7 +54,7 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Calculating the CPPM pool account
+    /// @notice Calculating the CPMM pool account
     function getCpmmPdaPoolId(
         bytes32 ammConfigId,
         bytes32 tokenA,
@@ -71,7 +71,7 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Calculating the CPPM pool's observation account
+    /// @notice Calculating the CPMM pool's observation account
     function getPdaObservationId(
         bytes32 poolId
     ) internal view returns(bytes32) {
@@ -84,7 +84,7 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Calculating the CPPM pool's LP Mint account
+    /// @notice Calculating the CPMM pool's LP Mint account
     function getPdaLpMint(
         bytes32 poolId
     ) internal view returns(bytes32) {
@@ -97,7 +97,7 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Calculating the CPPM pool's Vault account for given token mint
+    /// @notice Calculating the CPMM pool's Vault account for given token mint
     function getPdaVault(
         bytes32 poolId,
         bytes32 tokenMint
@@ -112,7 +112,7 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Calculating the CPPM authority
+    /// @notice Calculating the CPMM authority
     function getPdaPoolAuthority() internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
             Constants.getCreateCPMMPoolProgramId(),
@@ -122,7 +122,7 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Calculating the CPPM lock PDA for given token mint
+    /// @notice Calculating the CPMM lock PDA for given token mint
     function getCpLockPda(bytes32 tokenMint) internal view returns(bytes32) {
         return CALL_SOLANA.getSolanaPDA(
             Constants.getLockCPMMPoolProgramId(),
@@ -133,7 +133,7 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Calculating the CPPM metadata key account for given token mint
+    /// @notice Calculating the CPMM metadata key account for given token mint
     function getPdaMetadataKey(bytes32 tokenMint) internal view returns(bytes32) {
         bytes32 metaplexProgramId = Constants.getMetaplexProgramId();
         return CALL_SOLANA.getSolanaPDA(
@@ -146,14 +146,14 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Fetching the CPPM pool's data by given pool account
+    /// @notice Fetching the CPMM pool's data by given pool account
     function getPoolData(bytes32 poolId) internal view returns(PoolData memory) {
         (bool success, bytes memory data) = QueryAccount.data(
             uint256(poolId),
             0,
             328
         );
-        require(success, LibRaydiumErrors.InvalidPool(poolId));
+        require(success, LibRaydiumCPMMErrors.InvalidPool(poolId));
 
         return PoolData(
             data.toBytes32(8),
@@ -169,14 +169,14 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Fetching the CPPM config's data by given config account
+    /// @notice Fetching the CPMM config's data by given config account
     function getConfigData(bytes32 configAccount) internal view returns(ConfigData memory) {
         (bool success, bytes memory data) = QueryAccount.data(
             uint256(configAccount),
             0,
             108
         );
-        require(success, LibRaydiumErrors.InvalidConfig(configAccount));
+        require(success, LibRaydiumCPMMErrors.InvalidConfig(configAccount));
 
         return ConfigData(
             data.toBool(9),
@@ -190,24 +190,24 @@ library LibRaydiumData {
         );
     }
 
-    /// @notice Fetching the CPPM pool's reserve amount by given pool account and token mint account
+    /// @notice Fetching the CPMM pool's reserve amount by given pool account and token mint account
     function getTokenReserve(bytes32 poolId, bytes32 tokenMint) internal view returns(uint64) {
         return LibSPLTokenData.getSPLTokenAccountBalance(getPdaVault(poolId, tokenMint));
     }
 
-    /// @notice Fetching the CPPM pool's LP amount by given pool account
+    /// @notice Fetching the CPMM pool's LP amount by given pool account
     function getPoolLpAmount(bytes32 poolId) internal view returns(uint64) {
         return LibSPLTokenData.getSPLTokenSupply(getPdaLpMint(poolId));
     }
 
-    /// @notice Calculating the CPPM pool's LP amount to reserve amounts
+    /// @notice Calculating the CPMM pool's LP amount to reserve amounts
     function lpToAmount(
         uint64 lp,
         uint64 poolAmountA,
         uint64 poolAmountB,
         uint64 supply
     ) internal pure returns (uint64 amountA, uint64 amountB) {
-        require(supply > 0, LibRaydiumErrors.ZeroSupply());
+        require(supply > 0, LibRaydiumCPMMErrors.ZeroSupply());
 
         amountA = (lp * poolAmountA) / supply;
         if (amountA > 0 && (lp * poolAmountA) % supply > 0) {
@@ -220,7 +220,7 @@ library LibRaydiumData {
         }
     }
 
-    /// @notice Calculating the CPPM pool's swap output by given input amount
+    /// @notice Calculating the CPMM pool's swap output by given input amount
     function getSwapOutput(
         bytes32 poolId,
         bytes32 configAccount,
@@ -228,15 +228,15 @@ library LibRaydiumData {
         bytes32 outputToken,
         uint64 sourceAmount
     ) internal view returns(uint64) {
-        LibRaydiumData.ConfigData memory configData = LibRaydiumData.getConfigData(configAccount);
-        uint64 reserveInAmount = LibRaydiumData.getTokenReserve(poolId, inputToken);
-        uint64 reserveOutAmount = LibRaydiumData.getTokenReserve(poolId, outputToken);
+        LibRaydiumCPMMData.ConfigData memory configData = LibRaydiumCPMMData.getConfigData(configAccount);
+        uint64 reserveInAmount = LibRaydiumCPMMData.getTokenReserve(poolId, inputToken);
+        uint64 reserveOutAmount = LibRaydiumCPMMData.getTokenReserve(poolId, outputToken);
 
         uint64 tradeFee = ((sourceAmount * configData.tradeFeeRate) + 1000000 - 1) / 1000000;
         return reserveOutAmount - ((reserveInAmount * reserveOutAmount) / (reserveInAmount + sourceAmount - tradeFee));
     }
 
-    /// @notice Calculating the CPPM pool's swap input by given output amount
+    /// @notice Calculating the CPMM pool's swap input by given output amount
     function getSwapInput(
         bytes32 poolId,
         bytes32 configAccount,
@@ -244,9 +244,9 @@ library LibRaydiumData {
         bytes32 outputToken,
         uint64 outputAmount
     ) internal view returns(uint64) {
-        LibRaydiumData.ConfigData memory configData = LibRaydiumData.getConfigData(configAccount);
-        uint64 reserveInAmount = LibRaydiumData.getTokenReserve(poolId, inputToken);
-        uint64 reserveOutAmount = LibRaydiumData.getTokenReserve(poolId, outputToken);
+        LibRaydiumCPMMData.ConfigData memory configData = LibRaydiumCPMMData.getConfigData(configAccount);
+        uint64 reserveInAmount = LibRaydiumCPMMData.getTokenReserve(poolId, inputToken);
+        uint64 reserveOutAmount = LibRaydiumCPMMData.getTokenReserve(poolId, outputToken);
 
         uint64 amountRealOut = (outputAmount > reserveOutAmount) ? reserveOutAmount - 1 : outputAmount;
         uint64 denominator = reserveOutAmount - amountRealOut;

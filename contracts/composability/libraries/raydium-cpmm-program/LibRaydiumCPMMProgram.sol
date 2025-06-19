@@ -4,18 +4,18 @@ pragma solidity 0.8.28;
 import {Constants} from "../Constants.sol";
 import {ICallSolana} from "../../../precompiles/ICallSolana.sol";
 import {LibAssociatedTokenData} from "../associated-token-program/LibAssociatedTokenData.sol";
-import {LibRaydiumData} from "./LibRaydiumData.sol";
-import {LibRaydiumErrors} from "./LibRaydiumErrors.sol";
+import {LibRaydiumCPMMData} from "./LibRaydiumCPMMData.sol";
+import {LibRaydiumCPMMErrors} from "./LibRaydiumCPMMErrors.sol";
 import {LibSPLTokenData} from "../spl-token-program/LibSPLTokenData.sol";
 import {LibSystemData} from "../system-program/LibSystemData.sol";
 import {LibMetaplexData} from "../metaplex-program/LibMetaplexData.sol";
 import {SolanaDataConverterLib} from "../../../utils/SolanaDataConverterLib.sol";
 
 
-/// @title LibRaydium
+/// @title LibRaydiumCPMM
 /// @author https://twitter.com/mnedelchev_
-/// @notice Helper library for interactions with Solana's Raydium program
-library LibRaydiumProgram {
+/// @notice Helper library for interactions with Raydium's CPMM program on Solana
+library LibRaydiumCPMMProgram {
     using SolanaDataConverterLib for uint64;
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
@@ -44,11 +44,11 @@ library LibRaydiumProgram {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        require(tokenA != tokenB, LibRaydiumErrors.IdenticalTokenAddresses());
-        require(tokenA != bytes32(0) && tokenB != bytes32(0), LibRaydiumErrors.EmptyTokenAddress());
-        bytes32 configAccount = LibRaydiumData.getConfigAccount(configIndex);
-        bytes32 poolId = LibRaydiumData.getCpmmPdaPoolId(configAccount, tokenA, tokenB);
-        require(LibSystemData.getSpace(poolId) == 0, LibRaydiumErrors.AlreadyExistingPool(poolId));
+        require(tokenA != tokenB, LibRaydiumCPMMErrors.IdenticalTokenAddresses());
+        require(tokenA != bytes32(0) && tokenB != bytes32(0), LibRaydiumCPMMErrors.EmptyTokenAddress());
+        bytes32 configAccount = LibRaydiumCPMMData.getConfigAccount(configIndex);
+        bytes32 poolId = LibRaydiumCPMMData.getCpmmPdaPoolId(configAccount, tokenA, tokenB);
+        require(LibSystemData.getSpace(poolId) == 0, LibRaydiumCPMMErrors.AlreadyExistingPool(poolId));
 
         accounts = new bytes32[](20);
         if (premadeAccounts.length == 0) {
@@ -56,18 +56,18 @@ library LibRaydiumProgram {
         }
         accounts[0] = (premadeAccounts[0] != bytes32(0)) ? premadeAccounts[0] : CALL_SOLANA.getPayer();
         accounts[1] = configAccount;
-        accounts[2] = LibRaydiumData.getPdaPoolAuthority();
+        accounts[2] = LibRaydiumCPMMData.getPdaPoolAuthority();
         accounts[3] = poolId;
         accounts[4] = tokenA;
         accounts[5] = tokenB;
-        accounts[6] = LibRaydiumData.getPdaLpMint(accounts[3]);
+        accounts[6] = LibRaydiumCPMMData.getPdaLpMint(accounts[3]);
         accounts[7] = (premadeAccounts[7] != bytes32(0)) ? premadeAccounts[7] : LibAssociatedTokenData.getAssociatedTokenAccount(tokenA, accounts[0]);
         accounts[8] = (premadeAccounts[8] != bytes32(0)) ? premadeAccounts[8] : LibAssociatedTokenData.getAssociatedTokenAccount(tokenB, accounts[0]);
         accounts[9] = (premadeAccounts[9] != bytes32(0)) ? premadeAccounts[9] : LibAssociatedTokenData.getAssociatedTokenAccount(accounts[6], accounts[0]);
-        accounts[10] = LibRaydiumData.getPdaVault(accounts[3], tokenA);
-        accounts[11] = LibRaydiumData.getPdaVault(accounts[3], tokenB);
+        accounts[10] = LibRaydiumCPMMData.getPdaVault(accounts[3], tokenA);
+        accounts[11] = LibRaydiumCPMMData.getPdaVault(accounts[3], tokenB);
         accounts[12] = Constants.getCreateCPMMPoolFeeAccPubkey();
-        accounts[13] = LibRaydiumData.getPdaObservationId(accounts[3]);
+        accounts[13] = LibRaydiumCPMMData.getPdaObservationId(accounts[3]);
         accounts[14] = Constants.getTokenProgramId();
         accounts[15] = LibSystemData.getOwner(tokenA);
         accounts[16] = LibSystemData.getOwner(tokenB);
@@ -90,7 +90,7 @@ library LibRaydiumProgram {
         isWritable[12] = true;
         isWritable[13] = true;
 
-        LibRaydiumData.ConfigData memory configData = LibRaydiumData.getConfigData(accounts[1]);
+        LibRaydiumCPMMData.ConfigData memory configData = LibRaydiumCPMMData.getConfigData(accounts[1]);
 
         /// @dev configData.createPoolFee - CPMM's pool creation fee
         /// @dev LibSystemData.getRentExemptionBalance(6057, rentDataBytes) - lamports needed for all the accounts creations, in total 6057 bytes:
@@ -120,7 +120,7 @@ library LibRaydiumProgram {
 
     /// @notice Building instruction data for creation of a pool
     function buildCreatePoolData(uint64 amountMaxA, uint64 amountMaxB, uint64 startTime) internal pure returns (bytes memory) {
-        require(amountMaxA > 0 && amountMaxB > 0, LibRaydiumErrors.InsufficientInputAmount());
+        require(amountMaxA > 0 && amountMaxB > 0, LibRaydiumCPMMErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"afaf6d1f0d989bed", // initialize: [175, 175, 109, 31, 13, 152, 155, 237]
             amountMaxA.readLittleEndianUnsigned64(),
@@ -149,7 +149,7 @@ library LibRaydiumProgram {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
+        LibRaydiumCPMMData.PoolData memory poolData = LibRaydiumCPMMData.getPoolData(poolId);
 
         accounts = new bytes32[](13);
         if (premadeAccounts.length == 0) {
@@ -157,7 +157,7 @@ library LibRaydiumProgram {
         }
 
         accounts[0] = (premadeAccounts[0] != bytes32(0)) ? premadeAccounts[0] : CALL_SOLANA.getPayer();
-        accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : LibRaydiumData.getPdaPoolAuthority();
+        accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : LibRaydiumCPMMData.getPdaPoolAuthority();
         accounts[2] = poolId;
         accounts[3] = (premadeAccounts[3] != bytes32(0)) ? premadeAccounts[3] : LibAssociatedTokenData.getAssociatedTokenAccount(poolData.lpMint, accounts[0]);
         accounts[4] = (premadeAccounts[4] != bytes32(0)) ? premadeAccounts[4] : LibAssociatedTokenData.getAssociatedTokenAccount(poolData.tokenA, accounts[0]);
@@ -184,11 +184,11 @@ library LibRaydiumProgram {
         isWritable[12] = true;
 
         if (returnData) {
-            uint64 tokenAReserve = LibRaydiumData.getTokenReserve(poolId, poolData.tokenA);
-            uint64 tokenBReserve = LibRaydiumData.getTokenReserve(poolId, poolData.tokenB);
-            uint64 poolLpAmount = LibRaydiumData.getPoolLpAmount(poolId);
+            uint64 tokenAReserve = LibRaydiumCPMMData.getTokenReserve(poolId, poolData.tokenA);
+            uint64 tokenBReserve = LibRaydiumCPMMData.getTokenReserve(poolId, poolData.tokenB);
+            uint64 poolLpAmount = LibRaydiumCPMMData.getPoolLpAmount(poolId);
             uint64 lpAmount = (inputAmount * poolLpAmount) / ((baseIn) ? tokenAReserve : tokenBReserve);
-            (uint64 amountA, uint64 amountB) = LibRaydiumData.lpToAmount(
+            (uint64 amountA, uint64 amountB) = LibRaydiumCPMMData.lpToAmount(
                 lpAmount,
                 tokenAReserve, 
                 tokenBReserve,
@@ -206,7 +206,7 @@ library LibRaydiumProgram {
 
     /// @notice Building instruction data for adding LP to a pool
     function buildAddLiquidityData(uint64 lpAmount, uint64 amountMaxA, uint64 amountMaxB) internal pure returns (bytes memory) {
-        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
+        require(lpAmount > 0, LibRaydiumCPMMErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"f223c68952e1f2b6", // deposit: [242, 35, 198, 137, 82, 225, 242, 182]
             lpAmount.readLittleEndianUnsigned64(),
@@ -233,14 +233,14 @@ library LibRaydiumProgram {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
+        LibRaydiumCPMMData.PoolData memory poolData = LibRaydiumCPMMData.getPoolData(poolId);
 
         accounts = new bytes32[](14);
         if (premadeAccounts.length == 0) {
             premadeAccounts = new bytes32[](accounts.length);
         }
         accounts[0] = (premadeAccounts[0] != bytes32(0)) ? premadeAccounts[0] : CALL_SOLANA.getPayer();
-        accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : LibRaydiumData.getPdaPoolAuthority();
+        accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : LibRaydiumCPMMData.getPdaPoolAuthority();
         accounts[2] = poolId;
         accounts[3] = (premadeAccounts[3] != bytes32(0)) ? premadeAccounts[3] : LibAssociatedTokenData.getAssociatedTokenAccount(poolData.lpMint, accounts[0]);
         accounts[4] = (premadeAccounts[4] != bytes32(0)) ? premadeAccounts[4] : LibAssociatedTokenData.getAssociatedTokenAccount(poolData.tokenA, accounts[0]);
@@ -269,19 +269,19 @@ library LibRaydiumProgram {
         isWritable[13] = true;
 
         if (returnData) {
-            uint64 poolLpAmount = LibRaydiumData.getPoolLpAmount(poolId);
+            uint64 poolLpAmount = LibRaydiumCPMMData.getPoolLpAmount(poolId);
             slippage = (slippage > 10000) ? 10000 : slippage;
             data = buildWithdrawLiquidityData(
                 lpAmount, 
-                (((lpAmount * LibRaydiumData.getTokenReserve(poolId, poolData.tokenA)) / poolLpAmount) * (10000 - slippage)) / 10000, 
-                (((lpAmount * LibRaydiumData.getTokenReserve(poolId, poolData.tokenB)) / poolLpAmount) * (10000 - slippage)) / 10000
+                (((lpAmount * LibRaydiumCPMMData.getTokenReserve(poolId, poolData.tokenA)) / poolLpAmount) * (10000 - slippage)) / 10000, 
+                (((lpAmount * LibRaydiumCPMMData.getTokenReserve(poolId, poolData.tokenB)) / poolLpAmount) * (10000 - slippage)) / 10000
             );
         }
     }
 
     /// @notice Building instruction data for withdrawing LP from a pool
     function buildWithdrawLiquidityData(uint64 lpAmount, uint64 amountMinA, uint64 amountMinB) internal pure returns (bytes memory) {
-        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
+        require(lpAmount > 0, LibRaydiumCPMMErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"b712469c946da122", // withdraw: [183, 18, 70, 156, 148, 109, 161, 34],
             lpAmount.readLittleEndianUnsigned64(),
@@ -316,9 +316,9 @@ library LibRaydiumProgram {
             premadeAccounts = new bytes32[](accounts.length);
         }
 
-        LibRaydiumData.PoolData memory poolData;
+        LibRaydiumCPMMData.PoolData memory poolData;
         if (LibSystemData.getSpace(poolId) != 0 && (premadeAccounts[8] == bytes32(0) || premadeAccounts[11] == bytes32(0) || premadeAccounts[12] == bytes32(0))) {
-            poolData = LibRaydiumData.getPoolData(poolId);
+            poolData = LibRaydiumCPMMData.getPoolData(poolId);
         }
 
         /// @dev LibSystemData.getRentExemptionBalance() - lamports needed for all the accounts creations
@@ -349,13 +349,13 @@ library LibRaydiumProgram {
         accounts[4] = (premadeAccounts[4] != bytes32(0)) ? premadeAccounts[4] : CALL_SOLANA.getExtAuthority(salt);
         accounts[5] = (premadeAccounts[5] != bytes32(0)) ? premadeAccounts[5] : LibAssociatedTokenData.getAssociatedTokenAccount(accounts[4], accounts[1]);
         accounts[6] = poolId;
-        accounts[7] = (premadeAccounts[7] != bytes32(0)) ? premadeAccounts[7] : LibRaydiumData.getCpLockPda(accounts[4]);
+        accounts[7] = (premadeAccounts[7] != bytes32(0)) ? premadeAccounts[7] : LibRaydiumCPMMData.getCpLockPda(accounts[4]);
         accounts[8] = (premadeAccounts[8] != bytes32(0)) ? premadeAccounts[8] : poolData.lpMint;
         accounts[9] = (premadeAccounts[9] != bytes32(0)) ? premadeAccounts[9] : LibAssociatedTokenData.getAssociatedTokenAccount(accounts[8], accounts[1]);
         accounts[10] = (premadeAccounts[10] != bytes32(0)) ? premadeAccounts[10] : LibAssociatedTokenData.getAssociatedTokenAccount(accounts[8], accounts[0]);
         accounts[11] = (premadeAccounts[11] != bytes32(0)) ? premadeAccounts[11] : poolData.tokenAVault;
         accounts[12] = (premadeAccounts[12] != bytes32(0)) ? premadeAccounts[12] : poolData.tokenBVault;
-        accounts[13] = (premadeAccounts[13] != bytes32(0)) ? premadeAccounts[13] : LibRaydiumData.getPdaMetadataKey(accounts[4]);
+        accounts[13] = (premadeAccounts[13] != bytes32(0)) ? premadeAccounts[13] : LibRaydiumCPMMData.getPdaMetadataKey(accounts[4]);
         accounts[14] = Constants.getSysvarRentPubkey();
         accounts[15] = Constants.getSystemProgramId();
         accounts[16] = Constants.getTokenProgramId();
@@ -388,7 +388,7 @@ library LibRaydiumProgram {
 
     /// @notice Building instruction data for locking LP in a pool
     function buildLockLiquidityData(uint64 lpAmount, bool withMetadata) internal pure returns (bytes memory) {
-        require(lpAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
+        require(lpAmount > 0, LibRaydiumCPMMErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"d89d1d4e26331f1a", // lockCpLiquidity: [216, 157, 29, 78, 38, 51, 31, 26]
             lpAmount.readLittleEndianUnsigned64(),
@@ -414,7 +414,7 @@ library LibRaydiumProgram {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
+        LibRaydiumCPMMData.PoolData memory poolData = LibRaydiumCPMMData.getPoolData(poolId);
         bytes32 nftMintAccount = CALL_SOLANA.getExtAuthority(salt);
 
         accounts = new bytes32[](18);
@@ -424,7 +424,7 @@ library LibRaydiumProgram {
         accounts[0] = Constants.getLockCPMMPoolAuthPubkey();
         accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : CALL_SOLANA.getPayer();
         accounts[2] = (premadeAccounts[2] != bytes32(0)) ? premadeAccounts[2] : LibAssociatedTokenData.getAssociatedTokenAccount(nftMintAccount, accounts[1]);
-        accounts[3] = (premadeAccounts[3] != bytes32(0)) ? premadeAccounts[3] : LibRaydiumData.getCpLockPda(nftMintAccount);
+        accounts[3] = (premadeAccounts[3] != bytes32(0)) ? premadeAccounts[3] : LibRaydiumCPMMData.getCpLockPda(nftMintAccount);
         accounts[4] = Constants.getCreateCPMMPoolProgramId();
         accounts[5] = Constants.getCreateCPMMPoolAuth();
         accounts[6] = poolId;
@@ -461,7 +461,7 @@ library LibRaydiumProgram {
 
     /// @notice Building instruction data for collecting fees from locked LP position
     function buildCollectFeesData(uint64 lpFeeAmount) internal pure returns (bytes memory) {
-        require(lpFeeAmount > 0, LibRaydiumErrors.InsufficientInputAmount());
+        require(lpFeeAmount > 0, LibRaydiumCPMMErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"081e33c7d1b8f785", // collectCpFee: [8, 30, 51, 199, 209, 184, 247, 133]
             lpFeeAmount.readLittleEndianUnsigned64()
@@ -488,7 +488,7 @@ library LibRaydiumProgram {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
+        LibRaydiumCPMMData.PoolData memory poolData = LibRaydiumCPMMData.getPoolData(poolId);
         bytes32 outputToken = (inputToken == poolData.tokenA) ? poolData.tokenB : poolData.tokenA;
         (
             accounts,
@@ -497,7 +497,7 @@ library LibRaydiumProgram {
         ) = _swap(poolId, inputToken, outputToken, poolData, premadeAccounts);
 
         if (returnData) {
-            uint64 amounOutMin = LibRaydiumData.getSwapOutput(poolId, poolData.ammConfig, inputToken, outputToken, amountIn);
+            uint64 amounOutMin = LibRaydiumCPMMData.getSwapOutput(poolId, poolData.ammConfig, inputToken, outputToken, amountIn);
             slippage = (slippage > 10000) ? 10000 : slippage;
             amounOutMin = (slippage != 0) ? (amounOutMin * (10000 - slippage)) / 10000 : amounOutMin;
             data = buildSwapInputData(amountIn, amounOutMin);
@@ -506,7 +506,7 @@ library LibRaydiumProgram {
 
     /// @notice Building instruction data for swap input action
     function buildSwapInputData(uint64 amountIn, uint64 amounOutMin) internal pure returns (bytes memory) {
-        require(amountIn > 0, LibRaydiumErrors.InsufficientInputAmount());
+        require(amountIn > 0, LibRaydiumCPMMErrors.InsufficientInputAmount());
         return abi.encodePacked(
             hex"8fbe5adac41e33de", // swapBaseInput: [143, 190, 90, 218, 196, 30, 51, 222]
             amountIn.readLittleEndianUnsigned64(),
@@ -534,7 +534,7 @@ library LibRaydiumProgram {
         bool[] memory isWritable,
         bytes memory data
     ) {
-        LibRaydiumData.PoolData memory poolData = LibRaydiumData.getPoolData(poolId);
+        LibRaydiumCPMMData.PoolData memory poolData = LibRaydiumCPMMData.getPoolData(poolId);
         bytes32 outputToken = (inputToken == poolData.tokenA) ? poolData.tokenB : poolData.tokenA;
         (
             accounts,
@@ -543,7 +543,7 @@ library LibRaydiumProgram {
         ) = _swap(poolId, inputToken, outputToken, poolData, premadeAccounts);
 
         if (returnData) {
-            uint64 amountInMax = LibRaydiumData.getSwapInput(poolId, poolData.ammConfig, inputToken, outputToken, amountOut);
+            uint64 amountInMax = LibRaydiumCPMMData.getSwapInput(poolId, poolData.ammConfig, inputToken, outputToken, amountOut);
             slippage = (slippage > 10000) ? 10000 : slippage;
             amountInMax = (slippage != 0) ? (amountInMax * (10000 + slippage)) / 10000 : amountInMax;
             data = buildSwapOutputData(amountInMax, amountOut);
@@ -552,7 +552,7 @@ library LibRaydiumProgram {
 
     /// @notice Building instruction data for swap output action
     function buildSwapOutputData(uint64 amountInMax, uint64 amountOut) internal pure returns (bytes memory) {
-        require(amountOut > 0, LibRaydiumErrors.InsufficientOutputAmount());
+        require(amountOut > 0, LibRaydiumCPMMErrors.InsufficientOutputAmount());
         return abi.encodePacked(
             hex"37d96256a34ab4ad", // swapBaseOutput: [55, 217, 98, 86, 163, 74, 180, 173]
             amountInMax.readLittleEndianUnsigned64(),
@@ -564,7 +564,7 @@ library LibRaydiumProgram {
         bytes32 poolId,
         bytes32 inputToken,
         bytes32 outputToken,
-        LibRaydiumData.PoolData memory poolData,
+        LibRaydiumCPMMData.PoolData memory poolData,
         bytes32[] memory premadeAccounts
     ) private view returns(
         bytes32[] memory accounts,
@@ -576,7 +576,7 @@ library LibRaydiumProgram {
             premadeAccounts = new bytes32[](accounts.length);
         }
         accounts[0] = (premadeAccounts[0] != bytes32(0)) ? premadeAccounts[0] : CALL_SOLANA.getPayer();
-        accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : LibRaydiumData.getPdaPoolAuthority();
+        accounts[1] = (premadeAccounts[1] != bytes32(0)) ? premadeAccounts[1] : LibRaydiumCPMMData.getPdaPoolAuthority();
         accounts[2] = poolData.ammConfig;
         accounts[3] = poolId;
         accounts[4] = (premadeAccounts[4] != bytes32(0)) ? premadeAccounts[4] : LibAssociatedTokenData.getAssociatedTokenAccount(inputToken, accounts[0]);

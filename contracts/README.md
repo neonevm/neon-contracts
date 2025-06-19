@@ -157,7 +157,7 @@ pragma solidity 0.8.28;
 import { Constants } from "@neonevm/call-solana/composability/libraries/Constants.sol";
 import { CallSolanaHelperLib } from "@neonevm/call-solana/utils/CallSolanaHelperLib.sol";
 import { LibAssociatedTokenData } from "@neonevm/call-solana/composability/libraries/associated-token-program/LibAssociatedTokenData.sol";
-import { LibRaydiumProgram } from "@neonevm/call-solana/composability/libraries/raydium-program/LibRaydiumProgram.sol";
+import { LibRaydiumProgram } from "@neonevm/call-solana/composability/libraries/raydium-cpmm-program/LibRaydiumCPMMProgram.sol";
 
 import { ICallSolana } from "@neonevm/call-solana/precompiles/ICallSolana.sol";
 
@@ -280,11 +280,11 @@ Associated Token program Solidity libraries can be used in practice to interact 
   </dd>
 </dl>
 
-### Raydium program
+### Raydium CPMM program
 <dl>
   <dd>
 
-* [Raydium program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/raydium-program/README.md)
+* [Raydium CPMM program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/raydium-cpmm-program/README.md)
 
 * [CallRaydiumProgram](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/CallRaydiumProgram.sol) example contract demonstrating how the Raydium program 
 Solidity libraries can be used in practice to interact with Solana's Raydium program.
