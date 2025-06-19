@@ -16,3 +16,8 @@ This smart contract represents an instance of the ChainlinkAggregatorV3 interfac
 | BONK/USD | [0x3d22FD7e59D19e08a6D5f55aD720549339fc8544](https://neon.blockscout.com/address/0x3d22FD7e59D19e08a6D5f55aD720549339fc8544) | 0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419 |
 | JUP/USD | [0xD98d90B922C0a7112825232C7380B99176F090A7](https://neon.blockscout.com/address/0xD98d90B922C0a7112825232C7380B99176F090A7) | 0x0a0408d619e9380abad35060f9192039ed5042fa6f82301d0e48bb52be830996 |
 | INF/USD | [0x4Ff8DfecEb1d29bbF58e92Cc9847fd20b51406aD](https://neon.blockscout.com/address/0x4Ff8DfecEb1d29bbF58e92Cc9847fd20b51406aD) | 0xf51570985c642c49c2d6e50156390fdba80bb6d5f7fa389d2f012ced4f7d208f |
+
+
+### Secret values setup
+
+See detailed [instructions](../../../README.md) for setting up secret values (such as private keys) used to run scripts.

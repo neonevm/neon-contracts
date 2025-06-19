@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-/// @title CallSolanaValidationLib
+/// @title CallSolanaHelperLib
 /// @notice This contract serves as a helper library when interacting with precompile CallSolana ( 0xFF00000000000000000000000000000000000006 )
 /// @author https://twitter.com/mnedelchev_
 library CallSolanaHelperLib {
@@ -21,24 +21,27 @@ library CallSolanaHelperLib {
         bytes memory programIdAndAccounts;
         assembly {
             // get the free memory pointer
-            programIdAndAccounts := mload(0x40)
+            programIdAndAccounts := mload(64)
 
             // define the accounts length
             let accountsLen := mload(accounts)
 
             // define the instructionData length
             let instructionDataLen := mload(instructionData)
-            
+
             // define the total output bytes length
-            let dataLength := add(instructionDataLen, add(32, add(8, add(8, mul(accountsLen, 34)))))
+            let dataLength := add(32, add(8, mul(accountsLen, 34)))
+            if gt(instructionDataLen, 0) {
+                dataLength := add(dataLength, add(8, instructionDataLen))
+            }
 
             // set the new free memory pointer to accommodate the new bytes variable
-            mstore(0x40, add(programIdAndAccounts, add(dataLength, 0x20)))
+            mstore(64, add(programIdAndAccounts, add(dataLength, 32)))
 
             // store dataLength ( the total output bytes length )
             mstore(programIdAndAccounts, dataLength)
 
-            let dataPtr := add(programIdAndAccounts, 0x20)
+            let dataPtr := add(programIdAndAccounts, 32)
 
             // store programId
             mstore(dataPtr, programId)
@@ -50,19 +53,22 @@ library CallSolanaHelperLib {
             
             // loop store accounts + isSigner + isWritable
             for { let i := 0 } lt(i, accountsLen) { i := add(i, 1) } {
-                mstore(dataPtr, mload(add(accounts, add(0x20, mul(i, 0x20)))))
-                mstore8(add(dataPtr, 32), mload(add(isSigner, add(0x20, mul(i, 0x20)))))
-                mstore8(add(dataPtr, 33), mload(add(isWritable, add(0x20, mul(i, 0x20)))))
+                let dataLen := add(32, mul(i, 32))
+                mstore(dataPtr, mload(add(accounts, dataLen)))
+                mstore8(add(dataPtr, 32), mload(add(isSigner, dataLen)))
+                mstore8(add(dataPtr, 33), mload(add(isWritable, dataLen)))
                 dataPtr := add(dataPtr, 34)
             }
 
-            // store instructionDataLen
-            mstore8(dataPtr, instructionDataLen)
-            dataPtr := add(dataPtr, 8)
+            if gt(instructionDataLen, 0) {
+                // store instructionDataLen
+                mstore8(dataPtr, instructionDataLen)
+                dataPtr := add(dataPtr, 8)
 
-            // loop store instructionData
-            for { let i := 0 } lt(i, instructionDataLen) { i := add(i, 0x20) } {
-                mstore(add(dataPtr, i), mload(add(instructionData, add(0x20, i))))
+                // loop store instructionData
+                for { let i := 0 } lt(i, instructionDataLen) { i := add(i, 32) } {
+                    mstore(add(dataPtr, i), mload(add(instructionData, add(32, i))))
+                }
             }
         }
         return programIdAndAccounts;

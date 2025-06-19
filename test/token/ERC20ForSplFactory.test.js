@@ -1,37 +1,43 @@
-const { ethers } = require("hardhat");
-const { expect } = require("chai");
-const web3 = require("@solana/web3.js");
-const { config } = require('./config');
-require("dotenv").config();
+import { network, globalOptions } from "hardhat"
+import { expect } from "chai"
+import { getSecrets } from "../../neon-secrets.js";
+import utils from './utils.js'
+import config from '../config.js'
+import "dotenv/config"
 
+const ERC20ForSPLFactoryAddress = config.token.ERC20ForSplFactory[globalOptions.network];
+const TOKEN_MINT = utils.publicKeyToBytes32(config.token.ERC20ForSplTokenMint[globalOptions.network]);
+const RECEIPTS_COUNT = 1;
+
+let ethers;
 let owner;
-const ERC20ForSPLFactoryAddress = config.DATA.ADDRESSES.ERC20ForSplFactory;
+let tx;
 let ERC20ForSPLFactory;
 let ERC20ForSPL;
 let ERC20ForSPLMintable;
 let ERC20ForSplContractFactory;
 let ERC20ForSplMintableContractFactory;
-const TOKEN_MINT = config.utils.publicKeyToBytes32(config.DATA.ADDRESSES.ERC20ForSplTokenMint);
-const RECEIPTS_COUNT = 1;
 
 describe('Test init', async function () {
     before(async function() {
-        [owner] = await ethers.getSigners();
+        const { wallets } = await getSecrets()
+        ethers = (await network.connect()).ethers
+        owner = wallets.owner
 
         if (await ethers.provider.getBalance(owner.address) == 0) {
-            await config.utils.airdropNEON(owner.address);
+            await utils.airdropNEON(owner.address);
         }
 
-        const ERC20ForSplFactoryContractFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory');
-        ERC20ForSplContractFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSpl');
-        ERC20ForSplMintableContractFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSplMintable');
+        const ERC20ForSplFactoryContractFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory', owner);
+        ERC20ForSplContractFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSpl', owner);
+        ERC20ForSplMintableContractFactory = await ethers.getContractFactory('contracts/token/ERC20ForSpl/erc20_for_spl.sol:ERC20ForSplMintable', owner);
         
         if (ethers.isAddress(ERC20ForSPLFactoryAddress)) {
             console.log('\nCreating instance of already deployed ERC20ForSPLFactory contract on Neon EVM with address', "\x1b[32m", ERC20ForSPLFactoryAddress, "\x1b[30m", '\n');
             ERC20ForSPLFactory = ERC20ForSplFactoryContractFactory.attach(ERC20ForSPLFactoryAddress);
         } else {
             // deploy ERC20ForSPLFactory
-            ERC20ForSPLFactory = await ethers.deployContract('contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory');
+            ERC20ForSPLFactory = await ethers.deployContract('contracts/token/ERC20ForSpl/erc20_for_spl_factory.sol:ERC20ForSplFactory', owner);
             await ERC20ForSPLFactory.waitForDeployment();
             console.log('\nCreating instance of just now deployed ERC20ForSplFactory contract on Neon EVM with address', "\x1b[32m", ERC20ForSPLFactory.target, "\x1b[30m", '\n'); 
         }
