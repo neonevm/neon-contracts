@@ -6,7 +6,7 @@
   "scripts": {
     "test-composability-curvestand": "npx hardhat test mocha ./test/composability/system.test.js --network curvestand && npx hardhat test mocha ./test/composability/spl-token.test.js --network curvestand",
     "test-composability-neondevnet": "npx hardhat test mocha ./test/composability/system.test.js --network neondevnet && npx hardhat test mocha ./test/composability/spl-token.test.js --network neondevnet",
-    "test-raydium-composability-neondevnet": "npx hardhat test mocha ./test/composability/raydium.test.js --network neondevnet && npx hardhat test mocha ./test/composability/raydium-create-pool-and-lock-LP.test.js --network neondevnet",
+    "test-raydium-composability-neondevnet": "npx hardhat test mocha ./test/composability/raydium-cpmm.test.js --network neondevnet && npx hardhat test mocha ./test/composability/raydiumm-cpmm-create-pool-and-lock-LP.test.js --network neondevnet",
     "test-token-curvestand": "npx hardhat test mocha ./test/token/ERC20ForSplFactory.test.js --network curvestand && npx hardhat test mocha ./test/token/ERC20ForSPL.test.js --network curvestand && npx hardhat test mocha ./test/token/ERC20ForSPLMintable.test.js --network curvestand",
     "test-token-neondevnet": "npx hardhat test mocha ./test/token/ERC20ForSplFactory.test.js --network neondevnet && npx hardhat test mocha ./test/token/ERC20ForSPL.test.js --network neondevnet && npx hardhat test mocha ./test/token/ERC20ForSPLMintable.test.js --network neondevnet"
   },

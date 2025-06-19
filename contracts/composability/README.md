@@ -4,7 +4,7 @@ The composability feature allows dApps deployed on _NeonEVM_ to interact with _S
 formatting instructions in ways that are specific to each program.
 
 Here we provide a set of **Solidity** libraries which make it possible to easily implement secure interactions with 
-_Solana_'s **System**, **SPL Token** and **Raydium** programs.
+_Solana_'s **System**, **SPL Token** and **Raydium CPMM** programs.
 
 > [!CAUTION]
 > The following contracts have not been audited yet and are here for educational purposes.
@@ -45,12 +45,12 @@ This contract demonstrates how the **LibAssociatedTokenProgram** & **LibAssociat
   </dd>
 </dl>
 
-## Raydium program
+## Raydium CPMM program
 <dl>
   <dd>
 
-### CallRaydiumProgram contract
-This contract demonstrates how the **LibRaydiumProgram** & **LibRaydiumData** libraries can be used in practice to interact with Solana's Raydium program. [Link to Raydium Solidity libraries](./libraries/raydium-program/)
+### CallRaydiumCPMMProgram contract
+This contract demonstrates how the **LibRaydiumCPMMProgram** & **LibRaydiumCPMMData** libraries can be used in practice to interact with Raydium's CPMM program on Solana. [Link to Raydium's CPMM Solidity libraries](./libraries/raydium-cpmm-program/)
   </dd>
 </dl>
 
@@ -143,9 +143,9 @@ using the following commands:
 
 `npx hardhat test mocha ./test/composability/metaplex.test.js --network < curvestand or neondevnet >`
 
-The `raydium.test.js` and `raydium-create-pool-and-lock-LP.test.js` test cases can only be run on _Neon devnet_ using the 
+The `raydiumm-cpmm.test.js` and `raydiumm-cpmm-create-pool-and-lock-LP.test.js` test cases can only be run on _Neon devnet_ using the 
 following commands:
 
-`npx hardhat test mocha ./test/composability/raydium.test.js --network neondevnet`
+`npx hardhat test mocha ./test/composability/raydiumm-cpmm.test.js --network neondevnet`
 
-`npx hardhat test mocha ./test/composability/raydium-create-pool-and-lock-LP.test.js --network neondevnet`
+`npx hardhat test mocha ./test/composability/raydiumm-cpmm-create-pool-and-lock-LP.test.js --network neondevnet`

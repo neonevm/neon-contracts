@@ -17,7 +17,7 @@ describe('LibRaydiumProgram', function() {
     let ethers,
         deployer,
         neonEVMUser,
-        CallRaydiumProgram,
+        CallRaydiumCPMMProgram,
         payer,
         tokenA_Erc20ForSpl,
         tokenB,
@@ -27,16 +27,16 @@ describe('LibRaydiumProgram', function() {
     before(async function() {
         const { wallets } = await getSecrets()
         ethers = (await hre.network.connect()).ethers
-        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallRaydiumProgram', null);
+        const deployment = await deployContract(wallets.owner, wallets.user1, 'CallRaydiumCPMMProgram', null);
         deployer = deployment.deployer
         neonEVMUser = deployment.user
-        CallRaydiumProgram = deployment.contract
-        payer = await CallRaydiumProgram.getPayer();
+        CallRaydiumCPMMProgram = deployment.contract
+        payer = await CallRaydiumCPMMProgram.getPayer();
         tokenB = await setupSPLTokens(wallets.solanaUser1);
         console.log(tokenA, 'tokenA');
         console.log(tokenB, 'tokenB');
 
-        // setup ATA accounts for our CallRaydiumProgram's payer
+        // setup ATA accounts for our CallRaydiumCPMMProgram's payer
         await setupATAAccounts(
             wallets.solanaUser1,
             ethers.encodeBase58(payer),
@@ -80,11 +80,11 @@ describe('LibRaydiumProgram', function() {
         await tx.wait(RECEIPTS_COUNT);
         console.log(await tokenB_Erc20ForSpl.balanceOf(deployer.address), 'tokenB balanceOf');
 
-        // grant maximum approval of tokenA and tokenB to CallRaydiumProgram
-        tx = await tokenA_Erc20ForSpl.connect(deployer).approve(CallRaydiumProgram.target, ethers.MaxUint256);
+        // grant maximum approval of tokenA and tokenB to CallRaydiumCPMMProgram
+        tx = await tokenA_Erc20ForSpl.connect(deployer).approve(CallRaydiumCPMMProgram.target, ethers.MaxUint256);
         await tx.wait(RECEIPTS_COUNT);
 
-        tx = await tokenB_Erc20ForSpl.connect(deployer).approve(CallRaydiumProgram.target, ethers.MaxUint256);
+        tx = await tokenB_Erc20ForSpl.connect(deployer).approve(CallRaydiumCPMMProgram.target, ethers.MaxUint256);
         await tx.wait(RECEIPTS_COUNT);
     })
 
@@ -93,7 +93,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
 
-            let tx = await CallRaydiumProgram.connect(deployer).createPool(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).createPool(
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
                 20000000,
@@ -103,7 +103,7 @@ describe('LibRaydiumProgram', function() {
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx createPool');
 
-            poolId = await CallRaydiumProgram.getCpmmPdaPoolId(
+            poolId = await CallRaydiumCPMMProgram.getCpmmPdaPoolId(
                 0,
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32)
@@ -118,7 +118,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
 
-            const poolData = await CallRaydiumProgram.getPoolData(
+            const poolData = await CallRaydiumCPMMProgram.getPoolData(
                 0,
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
@@ -129,23 +129,23 @@ describe('LibRaydiumProgram', function() {
             const inputAmount = 0.0025 * 10 ** 9;
             const baseIn = false;
             const lpDivisor = (baseIn) ? 
-            await CallRaydiumProgram.getTokenReserve(poolId, poolTokens[0]) : 
-            await CallRaydiumProgram.getTokenReserve(poolId, poolTokens[1]);
+            await CallRaydiumCPMMProgram.getTokenReserve(poolId, poolTokens[0]) : 
+            await CallRaydiumCPMMProgram.getTokenReserve(poolId, poolTokens[1]);
             console.log(lpDivisor, 'lpDivisor');
 
-            const poolLpAmount = await CallRaydiumProgram.getPoolLpAmount(poolId);
+            const poolLpAmount = await CallRaydiumCPMMProgram.getPoolLpAmount(poolId);
             const lpAmount = (BigInt(inputAmount) * poolLpAmount) / lpDivisor;
             console.log(lpAmount, 'lpAmount');
 
-            const lpToAmount = await CallRaydiumProgram.lpToAmount(
+            const lpToAmount = await CallRaydiumCPMMProgram.lpToAmount(
                 lpAmount,
-                await CallRaydiumProgram.getTokenReserve(poolId, poolTokens[0]),
-                await CallRaydiumProgram.getTokenReserve(poolId, poolTokens[1]),
+                await CallRaydiumCPMMProgram.getTokenReserve(poolId, poolTokens[0]),
+                await CallRaydiumCPMMProgram.getTokenReserve(poolId, poolTokens[1]),
                 poolLpAmount
             );
             console.log(lpToAmount, 'lpToAmount');
             
-            let tx = await CallRaydiumProgram.connect(deployer).addLiquidity(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).addLiquidity(
                 poolId,
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
@@ -166,7 +166,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
 
-            const getPdaLpMint = await CallRaydiumProgram.getPdaLpMint(poolId);
+            const getPdaLpMint = await CallRaydiumCPMMProgram.getPdaLpMint(poolId);
             const lpMintATA = await getAssociatedTokenAddress(
                 new web3.PublicKey(ethers.encodeBase58(getPdaLpMint)),
                 new web3.PublicKey(ethers.encodeBase58(payer)),
@@ -174,7 +174,7 @@ describe('LibRaydiumProgram', function() {
             );
             console.log(lpMintATA, 'lpMintATA');
             
-            let tx = await CallRaydiumProgram.connect(deployer).withdrawLiquidity(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).withdrawLiquidity(
                 poolId,
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
@@ -189,7 +189,7 @@ describe('LibRaydiumProgram', function() {
         });
 
         it('lockLiquidity - with metadata', async function() {
-            const getPdaLpMint = await CallRaydiumProgram.getPdaLpMint(poolId);
+            const getPdaLpMint = await CallRaydiumCPMMProgram.getPdaLpMint(poolId);
             const lpMintATA = await getAssociatedTokenAddress(
                 new web3.PublicKey(ethers.encodeBase58(getPdaLpMint)),
                 new web3.PublicKey(ethers.encodeBase58(payer)),
@@ -197,7 +197,7 @@ describe('LibRaydiumProgram', function() {
             );
             console.log(lpMintATA, 'lpMintATA');
 
-            let tx = await CallRaydiumProgram.connect(deployer).lockLiquidity(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).lockLiquidity(
                 poolId,
                 parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 6), // lock 1/6th of the LP position
                 true,
@@ -208,7 +208,7 @@ describe('LibRaydiumProgram', function() {
         });
 
         it('lockLiquidity - without metadata', async function() {
-            const getPdaLpMint = await CallRaydiumProgram.getPdaLpMint(poolId);
+            const getPdaLpMint = await CallRaydiumCPMMProgram.getPdaLpMint(poolId);
             const lpMintATA = await getAssociatedTokenAddress(
                 new web3.PublicKey(ethers.encodeBase58(getPdaLpMint)),
                 new web3.PublicKey(ethers.encodeBase58(payer)),
@@ -216,11 +216,11 @@ describe('LibRaydiumProgram', function() {
             );
             console.log(lpMintATA, 'lpMintATA');
 
-            let tx = await CallRaydiumProgram.connect(deployer).lockLiquidity(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).lockLiquidity(
                 poolId,
                 parseInt(parseInt((await getAccount(connection, lpMintATA)).amount) / 6), // lock 1/6th of the LP position
                 false,
-                ethers.zeroPadValue(ethers.toBeHex(CallRaydiumProgram.target), 32) // salt
+                ethers.zeroPadValue(ethers.toBeHex(CallRaydiumCPMMProgram.target), 32) // salt
             );
             await tx.wait(RECEIPTS_COUNT);
             console.log(tx, 'tx createPool');
@@ -230,7 +230,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
             
-            let tx = await CallRaydiumProgram.connect(deployer).swapInput(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).swapInput(
                 poolId,
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
@@ -251,14 +251,14 @@ describe('LibRaydiumProgram', function() {
             const swapOutputAmount = 20000;
             const slippage = 100;
 
-            const poolData = await CallRaydiumProgram.getPoolData(
+            const poolData = await CallRaydiumCPMMProgram.getPoolData(
                 0,
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenB)), 32),
             );
             console.log(poolData, 'getPoolData');
 
-            const swapInput = await CallRaydiumProgram.getSwapInput(
+            const swapInput = await CallRaydiumCPMMProgram.getSwapInput(
                 poolId,
                 poolData[0],
                 ethers.zeroPadValue(ethers.toBeHex(ethers.decodeBase58(tokenA)), 32),
@@ -267,7 +267,7 @@ describe('LibRaydiumProgram', function() {
             );
             console.log(swapInput, 'swapInput');
             
-            let tx = await CallRaydiumProgram.connect(deployer).swapOutput(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).swapOutput(
                 poolId,
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,
@@ -286,7 +286,7 @@ describe('LibRaydiumProgram', function() {
             const initialTokenABalance = await tokenA_Erc20ForSpl.balanceOf(deployer.address);
             const initialTokenBBalance = await tokenB_Erc20ForSpl.balanceOf(deployer.address);
             
-            let tx = await CallRaydiumProgram.connect(deployer).collectFees(
+            let tx = await CallRaydiumCPMMProgram.connect(deployer).collectFees(
                 poolId,
                 tokenA_Erc20ForSpl.target,
                 tokenB_Erc20ForSpl.target,

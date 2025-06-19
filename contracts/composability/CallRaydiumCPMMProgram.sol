@@ -5,8 +5,8 @@ import {Constants} from "./libraries/Constants.sol";
 import {CallSolanaHelperLib} from "../utils/CallSolanaHelperLib.sol";
 import {ICallSolana} from "../precompiles/ICallSolana.sol";
 import {LibAssociatedTokenData} from "./libraries/associated-token-program/LibAssociatedTokenData.sol";
-import {LibRaydiumProgram} from "./libraries/raydium-program/LibRaydiumProgram.sol";
-import {LibRaydiumData} from "./libraries/raydium-program/LibRaydiumData.sol";
+import {LibRaydiumCPMMProgram} from "./libraries/raydium-cpmm-program/LibRaydiumCPMMProgram.sol";
+import {LibRaydiumCPMMData} from "./libraries/raydium-cpmm-program/LibRaydiumCPMMData.sol";
 import {LibSPLTokenData} from "./libraries/spl-token-program/LibSPLTokenData.sol";
 import {LibSPLTokenProgram} from "./libraries/spl-token-program/LibSPLTokenProgram.sol";
 import {SolanaDataConverterLib} from "../utils/SolanaDataConverterLib.sol";
@@ -23,10 +23,10 @@ interface IERC20ForSpl {
 }
 
 
-/// @title CallRaydiumProgram
+/// @title CallRaydiumCPMMProgram
 /// @author https://twitter.com/mnedelchev_
-/// @notice Example contract showing how to use LibRaydium library to interact with the Raydium program on Solana
-contract CallRaydiumProgram {
+/// @notice Example contract showing how to use LibRaydiumCPMM library to interact with the Raydium's CPMM program on Solana
+contract CallRaydiumCPMMProgram {
     using SolanaDataConverterLib for uint64;
     ICallSolana public constant CALL_SOLANA = ICallSolana(0xFF00000000000000000000000000000000000006);
 
@@ -68,7 +68,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
+        ) = LibRaydiumCPMMProgram.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
 
         CALL_SOLANA.execute(
             lamports,
@@ -122,7 +122,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.addLiquidityInstruction(poolId, inputAmount, baseIn, slippage, true, premadeAccounts);
+        ) = LibRaydiumCPMMProgram.addLiquidityInstruction(poolId, inputAmount, baseIn, slippage, true, premadeAccounts);
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -156,7 +156,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.withdrawLiquidityInstruction(poolId, lpAmount, slippage, true, premadeAccounts);
+        ) = LibRaydiumCPMMProgram.withdrawLiquidityInstruction(poolId, lpAmount, slippage, true, premadeAccounts);
         require(accounts[10] == tokenAMint && accounts[11] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -183,7 +183,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.lockLiquidityInstruction(
+        ) = LibRaydiumCPMMProgram.lockLiquidityInstruction(
             poolId, 
             lpAmount, 
             withMetadata, 
@@ -226,7 +226,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.collectFeesInstruction(poolId, lpFeeAmount, salt, true, premadeAccounts);
+        ) = LibRaydiumCPMMProgram.collectFeesInstruction(poolId, lpFeeAmount, salt, true, premadeAccounts);
         require(accounts[12] == tokenAMint && accounts[13] == tokenBMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -269,7 +269,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.swapInputInstruction(poolId, inputTokenMint, amountIn, slippage, true, premadeAccounts);
+        ) = LibRaydiumCPMMProgram.swapInputInstruction(poolId, inputTokenMint, amountIn, slippage, true, premadeAccounts);
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -313,7 +313,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.swapOutputInstruction(poolId, inputTokenMint, amountOut, slippage, true, premadeAccounts);
+        ) = LibRaydiumCPMMProgram.swapOutputInstruction(poolId, inputTokenMint, amountOut, slippage, true, premadeAccounts);
         require(accounts[10] == inputTokenMint && accounts[11] == outputTokenMint, InvalidTokens());
 
         CALL_SOLANA.execute(
@@ -399,7 +399,7 @@ contract CallRaydiumProgram {
             bool[] memory isSigner,
             bool[] memory isWritable,
             bytes memory data
-        ) = LibRaydiumProgram.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
+        ) = LibRaydiumCPMMProgram.createPoolInstruction(tokenAMint, tokenBMint, mintAAmount, mintBAmount, startTime, 0, true, premadeAccounts);
         bytes32 poolId = accounts[3];
         if (salt == bytes32(0)) {
             salt = poolId;
@@ -418,7 +418,7 @@ contract CallRaydiumProgram {
             bool[] memory isSignerLock,
             bool[] memory isWritableLock,
             bytes memory dataLock
-        ) = LibRaydiumProgram.lockLiquidityInstruction(poolId, 0, withMetadata, salt, false, premadeLockLPAccounts);
+        ) = LibRaydiumCPMMProgram.lockLiquidityInstruction(poolId, 0, withMetadata, salt, false, premadeLockLPAccounts);
 
         bytes memory lockInstruction = CallSolanaHelperLib.prepareSolanaInstruction(
             Constants.getLockCPMMPoolProgramId(),
@@ -442,7 +442,7 @@ contract CallRaydiumProgram {
         
         // Building the instruction data for the second composability request
         uint64 lpBalance = LibSPLTokenData.getSPLTokenAccountBalance(accountsLock[9]);
-        bytes memory lockInstructionData = LibRaydiumProgram.buildLockLiquidityData(
+        bytes memory lockInstructionData = LibRaydiumCPMMProgram.buildLockLiquidityData(
             lpBalance,
             withMetadata
         );
@@ -478,15 +478,15 @@ contract CallRaydiumProgram {
     }
 
     function getTokenReserve(bytes32 poolId, bytes32 tokenMint) public view returns(uint64) {
-        return LibRaydiumData.getTokenReserve(poolId, tokenMint);
+        return LibRaydiumCPMMData.getTokenReserve(poolId, tokenMint);
     }
 
     function getPoolLpAmount(bytes32 poolId) public view returns(uint64) {
-        return LibRaydiumData.getPoolLpAmount(poolId);
+        return LibRaydiumCPMMData.getPoolLpAmount(poolId);
     }
 
     function getPdaLpMint(bytes32 poolId) public view returns(bytes32) {
-        return LibRaydiumData.getPdaLpMint(poolId);  
+        return LibRaydiumCPMMData.getPdaLpMint(poolId);  
     }
 
     function lpToAmount(
@@ -495,15 +495,15 @@ contract CallRaydiumProgram {
         uint64 poolAmountB,
         uint64 supply
     ) public pure returns(uint64, uint64) {
-        return LibRaydiumData.lpToAmount(lp, poolAmountA, poolAmountB, supply);
+        return LibRaydiumCPMMData.lpToAmount(lp, poolAmountA, poolAmountB, supply);
     }
 
     function getConfigAccount(uint16 index) public view returns(bytes32) {
-        return LibRaydiumData.getConfigAccount(index);
+        return LibRaydiumCPMMData.getConfigAccount(index);
     }
 
-    function getConfigData(uint16 index) public view returns(LibRaydiumData.ConfigData memory) {
-        return LibRaydiumData.getConfigData(LibRaydiumData.getConfigAccount(index));
+    function getConfigData(uint16 index) public view returns(LibRaydiumCPMMData.ConfigData memory) {
+        return LibRaydiumCPMMData.getConfigData(LibRaydiumCPMMData.getConfigAccount(index));
     }
 
     function getCpmmPdaPoolId(
@@ -511,15 +511,15 @@ contract CallRaydiumProgram {
         bytes32 tokenA,
         bytes32 tokenB
     ) public view returns(bytes32) {
-        return LibRaydiumData.getCpmmPdaPoolId(LibRaydiumData.getConfigAccount(index), tokenA, tokenB);
+        return LibRaydiumCPMMData.getCpmmPdaPoolId(LibRaydiumCPMMData.getConfigAccount(index), tokenA, tokenB);
     }
 
     function getPoolData(
         uint16 index,
         bytes32 tokenA,
         bytes32 tokenB
-    ) public view returns(LibRaydiumData.PoolData memory) {
-        return LibRaydiumData.getPoolData(LibRaydiumData.getCpmmPdaPoolId(LibRaydiumData.getConfigAccount(index), tokenA, tokenB));
+    ) public view returns(LibRaydiumCPMMData.PoolData memory) {
+        return LibRaydiumCPMMData.getPoolData(LibRaydiumCPMMData.getCpmmPdaPoolId(LibRaydiumCPMMData.getConfigAccount(index), tokenA, tokenB));
     }
 
     function getSwapOutput(
@@ -529,7 +529,7 @@ contract CallRaydiumProgram {
         bytes32 outputToken,
         uint64 sourceAmount
     ) public view returns(uint64) {
-        return LibRaydiumData.getSwapOutput(poolId, configAccount, inputToken, outputToken, sourceAmount);
+        return LibRaydiumCPMMData.getSwapOutput(poolId, configAccount, inputToken, outputToken, sourceAmount);
     }
 
     function getSwapInput(
@@ -539,7 +539,7 @@ contract CallRaydiumProgram {
         bytes32 outputToken,
         uint64 outputAmount
     ) public view returns(uint64) {
-        return LibRaydiumData.getSwapInput(poolId, configAccount, inputToken, outputToken, outputAmount);
+        return LibRaydiumCPMMData.getSwapInput(poolId, configAccount, inputToken, outputToken, outputAmount);
     }
 
     // Temporary method as in Erc20ForSpl V1 solanaAccount method is private, to be removed when Erc20ForSpl V2 is out

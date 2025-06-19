@@ -49,7 +49,7 @@ const config = {
             neondevnet: "",
             neonmainnet: "",
         },
-        CallRaydiumProgram: {
+        CallRaydiumCPMMProgram: {
             curvestand: "",
             neondevnet: "",
             neonmainnet: "",
