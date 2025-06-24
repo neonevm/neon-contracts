@@ -236,9 +236,9 @@ contract CallRaydiumProgram {
 <dl>
   <dd>
 
-* [System program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/system-program/README.md)
+* [System program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/libraries/system-program/README.md)
 
-* [CallSystemProgram](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/CallSystemProgram.sol) example contract demonstrating how the System program 
+* [CallSystemProgram](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/CallSystemProgram.sol) example contract demonstrating how the System program 
 Solidity libraries can be used in practice to interact with Solana's System program.
 
   </dd>
@@ -248,9 +248,9 @@ Solidity libraries can be used in practice to interact with Solana's System prog
 <dl>
   <dd>
 
-* [SPL Token program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/spl-token-program/README.md)
+* [SPL Token program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/libraries/spl-token-program/README.md)
 
-* [CallSPLTokenProgram](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/CallSPLTokenProgram.sol) example contract demonstrating how the SPL Token 
+* [CallSPLTokenProgram](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/CallSPLTokenProgram.sol) example contract demonstrating how the SPL Token 
 program Solidity libraries can be used in practice to interact with Solana's SPL Token program.
 
   </dd>
@@ -260,9 +260,9 @@ program Solidity libraries can be used in practice to interact with Solana's SPL
 <dl>
   <dd>
 
-* [Metaplex program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/metaplex-program/README.md)
+* [Metaplex program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/libraries/metaplex-program/README.md)
 
-* [CallMetaplexProgram](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/CallMetaplexProgram.sol) example contract demonstrating how the Metaplex
+* [CallMetaplexProgram](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/CallMetaplexProgram.sol) example contract demonstrating how the Metaplex
   program Solidity libraries can be used in practice to interact with Solana's Metaplex program.
 
   </dd>
@@ -272,9 +272,9 @@ program Solidity libraries can be used in practice to interact with Solana's SPL
 <dl>
   <dd>
 
-* [Associated Token program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/associated-token-program/README.md)
+* [Associated Token program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/libraries/associated-token-program/README.md)
 
-* [CallAssociatedTokenProgram](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/CallAssociatedTokenProgram.sol) example contract demonstrating how the 
+* [CallAssociatedTokenProgram](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/CallAssociatedTokenProgram.sol) example contract demonstrating how the 
 Associated Token program Solidity libraries can be used in practice to interact with Solana's Associated Token program.
 
   </dd>
@@ -284,9 +284,9 @@ Associated Token program Solidity libraries can be used in practice to interact 
 <dl>
   <dd>
 
-* [Raydium CPMM program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/raydium-cpmm-program/README.md)
+* [Raydium CPMM program Solidity libraries](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/libraries/raydium-cpmm-program/README.md)
 
-* [CallRaydiumProgram](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/CallRaydiumProgram.sol) example contract demonstrating how the Raydium program 
+* [CallRaydiumProgram](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/CallRaydiumProgram.sol) example contract demonstrating how the Raydium program 
 Solidity libraries can be used in practice to interact with Solana's Raydium program.
 
   </dd>
@@ -294,15 +294,15 @@ Solidity libraries can be used in practice to interact with Solana's Raydium pro
 
 ## Composability helper contracts
 
-* [Constants.sol](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/composability/libraries/Constants.sol) provides commonly used constants for formatting 
+* [Constants.sol](https://github.com/neonevm/neon-contracts/blob/main/contracts/composability/libraries/Constants.sol) provides commonly used constants for formatting 
 instructions to be executed by _Solana_ programs
-* [CallSolanaHelperLib.sol](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/utils/CallSolanaHelperLib.sol) provides helper functions to prepare formatted instructions
+* [CallSolanaHelperLib.sol](https://github.com/neonevm/neon-contracts/blob/main/contracts/utils/CallSolanaHelperLib.sol) provides helper functions to prepare formatted instructions
 right before they are executed on _Solana_
-* [SolanaDataConverterLib.sol](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/utils/SolanaDataConverterLib.sol) provides helper functions for casting data to and 
+* [SolanaDataConverterLib.sol](https://github.com/neonevm/neon-contracts/blob/main/contracts/utils/SolanaDataConverterLib.sol) provides helper functions for casting data to and 
 from various types commonly used on _Solana_
-* [ICallSolana.sol](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/precompiles/ICallSolana.sol) provides an interfacte to the `CallSolana` precompiled contract which 
+* [ICallSolana.sol](https://github.com/neonevm/neon-contracts/blob/main/contracts/precompiles/ICallSolana.sol) provides an interfacte to the `CallSolana` precompiled contract which 
 is the cornerstone of _NeonEVM_'s composability with _Solana_. See: [ICallSolana interface documentation ](https://neonevm.org/docs/composability/call_solana_interface).
-* [QueryAccount.sol](https://github.com/neonevm/neon-contracts/blob/dev/solidity-composability-libraries/contracts/precompiles/QueryAccount.sol) provides a set of getter function for reading _Solana_'s state by 
+* [QueryAccount.sol](https://github.com/neonevm/neon-contracts/blob/main/contracts/precompiles/QueryAccount.sol) provides a set of getter function for reading _Solana_'s state by 
 querying data stored on _Solana_ accounts
 
 ## Solana specifics
