@@ -136,4 +136,23 @@ library LibLayerZeroData {
             )
         );
     }
+
+    function dvnConfig() internal view returns(bytes32) {
+        return CALL_SOLANA.getSolanaPDA(
+            L0_DVN,
+            abi.encodePacked(
+                hex"44766E436F6E666967" // "DvnConfig"
+            )
+        );
+    }
+
+    function oappRegistry(bytes32 oapp) internal view returns(bytes32) {
+        return CALL_SOLANA.getSolanaPDA(
+            L0_DVN,
+            abi.encodePacked(
+                hex"4F417070", // "OApp"
+                oapp
+            )
+        );
+    }
 }
