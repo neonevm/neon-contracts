@@ -73,6 +73,16 @@ interface ICallSolana {
     // This method uses external authority to authorize the operation (`getExtAuthority(salt)`)
     // Returns the returned data of the executed instruction (if program returned the data is equal to the program_id of the instruction)
     function executeWithSeed(uint64 lamports, bytes32 salt, Instruction memory instruction) external returns (bytes memory);
+
+
+    // Execute the instruction with call to the Solana program.
+    // Guarantees successful execution of call after a success return.
+    // Note: If the call was unsuccessful, the transaction fails (due to Solana's behaviour).
+    // - `salt` - the salt to generate an address of external authority (see `getExtAuthority()` function)
+    // - `instruction` - instruction which should be executed
+    // This method uses external authority to authorize the operation (`getExtAuthority(salt)`)
+    // Returns the returned data of the executed instruction (if program returned the data is equal to the program_id of the instruction)
+    function executeWithSeed(bytes32 salt, Instruction memory instruction) external returns (bytes memory);
     
     
     // Execute the instruction with a call to the Solana program.
@@ -105,6 +115,16 @@ interface ICallSolana {
     // This method uses external authority to authorize the operation (`getExtAuthority(salt)`)
     // Returns the returned data of the executed instruction (if program returned the data is equal to the program_id of the instruction)
     function executeWithSeed(uint64 lamports, bytes32 salt, bytes memory instruction) external returns (bytes memory);
+    
+    
+    // Execute the instruction with call to the Solana program.
+    // Guarantees successful execution of call after a success return.
+    // Note: If the call was unsuccessful, the transaction fails (due to Solana's behaviour).
+    // - `salt` - the salt to generate an address of external authority (see `getExtAuthority()` function)
+    // - `instruction` - bincode serialized instruction which should be executed
+    // This method uses external authority to authorize the operation (`getExtAuthority(salt)`)
+    // Returns the returned data of the executed instruction (if program returned the data is equal to the program_id of the instruction)
+    function executeWithSeed(bytes32 salt, bytes memory instruction) external returns (bytes memory);
 
 
     // Returns the program_id and returned data of the last executed instruction (if no return data was set returns zeroed bytes)
