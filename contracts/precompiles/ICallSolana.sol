@@ -46,6 +46,15 @@ interface ICallSolana {
     // Execute the instruction with a call to the Solana program.
     // Guarantees successful execution of call after a success return.
     // Note: If the call was unsuccessful, the transaction fails (due to Solana's behaviour).
+    // - `instruction` - instruction which should be executed
+    // This method uses PDA for sender to authorize the operation (`getNeonAddress(msg.sender)`)
+    // Returns the returned data of the executed instruction (if program returned the data is equal to the program_id of the instruction)
+    function execute(Instruction memory instruction) external returns (bytes memory);
+
+
+    // Execute the instruction with a call to the Solana program.
+    // Guarantees successful execution of call after a success return.
+    // Note: If the call was unsuccessful, the transaction fails (due to Solana's behaviour).
     // The `lamports` parameter specifies the amount of lamports that can be required to create new accounts during execution.
     //   This lamports transferred to `payer`-account (see `getPayer()` function) before the call.
     // - `instruction` - instruction which should be executed
@@ -64,6 +73,15 @@ interface ICallSolana {
     // This method uses external authority to authorize the operation (`getExtAuthority(salt)`)
     // Returns the returned data of the executed instruction (if program returned the data is equal to the program_id of the instruction)
     function executeWithSeed(uint64 lamports, bytes32 salt, Instruction memory instruction) external returns (bytes memory);
+    
+    
+    // Execute the instruction with a call to the Solana program.
+    // Guarantees successful execution of call after a success return.
+    // Note: If the call was unsuccessful, the transaction fails (due to Solana's behaviour).
+    // - `instruction` - bincode serialized instruction which should be executed
+    // This method uses PDA for sender to authorize the operation (`getNeonAddress(msg.sender)`)
+    // Returns the returned data of the executed instruction (if program returned the data is equal to the program_id of the instruction)
+    function execute(bytes memory instruction) external returns (bytes memory);
     
     
     // Execute the instruction with a call to the Solana program.
