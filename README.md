@@ -2,6 +2,10 @@
 
 This repository is a set of various contracts and integrations that aim to help developers building on Neon EVM.
 
+> [!NOTE]
+> This repository includes Hardhat 3 which requires the support of Node.js v22 or later installed on your system, along
+> with a package manager such as npm or pnpm.
+
 ### Integrations on Neon EVM
 * [ERC20ForSPL & ERC20ForSPLFactory](contracts/token/ERC20ForSpl)
 * [Solidity libraries to interact with Solana](contracts/composability)
